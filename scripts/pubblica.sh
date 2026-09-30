@@ -22,7 +22,8 @@ if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; th
   echo "Mancano CLOUDFLARE_API_TOKEN e/o CLOUDFLARE_ACCOUNT_ID nell'ambiente (docs/DEPLOY.md)." >&2
   exit 1
 fi
-if grep -q "DA_COMPILARE" wrangler.toml; then
+# solo le righe di configurazione, non i commenti
+if grep -v '^[[:space:]]*#' wrangler.toml | grep -q "DA_COMPILARE"; then
   echo "wrangler.toml contiene ancora DA_COMPILARE (database_id, ACCESS_TEAM_DOMAIN o ACCESS_AUD)." >&2
   exit 1
 fi

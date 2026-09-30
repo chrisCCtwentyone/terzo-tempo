@@ -62,10 +62,17 @@ chiuso() {
   esac
 }
 
+# Un 5xx subito dopo la pubblicazione puo' essere la propagazione di Cloudflare (visto sul PRIMO
+# deploy: 522 per qualche decina di secondi): si riprova fino a 4 volte, a intervalli di 10 secondi.
+# Qualsiasi altro codice (404, 302...) e' un problema vero e non si ritenta.
 aperto() {
-  local url="$1" r
-  r=$(esito "$url") || { male "$url non raggiungibile"; return; }
-  if [ "${r%% *}" = "200" ]; then bene "$url -> 200"; else male "$url -> ${r%% *} (atteso 200)"; fi
+  local url="$1" r codice tentativo
+  for tentativo in 1 2 3 4; do
+    r=$(esito "$url") || r="000 "
+    codice=${r%% *}
+    case "$codice" in 5*|000) [ "$tentativo" -lt 4 ] && sleep 10 ;; *) break ;; esac
+  done
+  if [ "$codice" = "200" ]; then bene "$url -> 200"; else male "$url -> $codice (atteso 200)"; fi
 }
 
 PAGINE_PUBBLICHE=(/ /classifiche /partite /giocatori)

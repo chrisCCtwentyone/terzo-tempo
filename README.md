@@ -1,7 +1,7 @@
 # Terzo Tempo
 
 Webapp (mobile-first) per le partite di calcetto: convocati, formazioni, gol, MVP votato, pagelle, classifiche.
-Regole e decisioni: `CLAUDE.md`. Backend: `docs/API.md`. Dubbi aperti: `docs/DOMANDE_APERTE.md`.
+Regole e decisioni: `CLAUDE.md`. Backend: `docs/API.md`. Dubbi aperti: `docs/DOMANDE_APERTE.md`. Pubblicazione: `docs/DEPLOY.md` (`./scripts/pubblica.sh`).
 
 ## Comandi
 

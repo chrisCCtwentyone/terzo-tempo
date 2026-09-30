@@ -19,6 +19,7 @@ Gli esempi vengono dai dati di prova (`scripts/seed_prova.sql`: nomi inventati).
 - **Nomi giocatore**: `"Cognome I."`, iniziali attaccate col punto: `"Rossi M."`, `"Rossi S.C."`, `"De Luca V."` (decisione dell'utente,
   30/09/2026). E' la forma di `nome` in TUTTE le risposte, ordinate per cognome; unici (senza distinguere maiuscole). L'admin li inserisce in
   due campi, `cognome` e `iniziali`, e il server compone il nome (`shared/nomi.ts`, usato anche dal frontend).
+  Le `iniziali` sono **facoltative**: senza, il nome e' il solo testo scritto (`"Giorgio"`, `"Amico Giorgio"`) e `iniziali` vale `""`.
 - **Posizioni pedine**: `pos_x`, `pos_y` in percentuale 0-100 del campo (`null` = non posizionata). Vanno sempre in coppia.
   Dall'admin sono le coordinate delle CASELLE del modulo scelto (`shared/moduli.ts`: a 5 `1-2-1`, `2-2`; a 6 `2-1-2`, `3-2`; a 7 `3-2-1`, `2-3-1`,
   `3-1-2`; a 8 `3-3-1`, `3-2-2`; portiere sempre incluso). Il modulo NON ha una colonna: si deduce dalle posizioni (`deduciModulo`), quindi la pagina
@@ -229,12 +230,12 @@ Tutte richiedono l'accesso (sopra). Corpo JSON con `Content-Type: application/js
 
 - `GET /api/admin/giocatori` -> `{ "giocatori": [ { "id": 2, "nome": "Bianchi L.", "cognome": "Bianchi", "iniziali": "L.", "attivo": true, "livello_segreto": 4, "badge_ids": [5, 7] } ] }`
   (tutti, archiviati compresi; **e' l'unico posto col livello**).
-- `POST /api/admin/giocatori` `{ "cognome": "Verdi", "iniziali": "A.G.", "livello_segreto": 4, "attivo": true }` -> `201` con il giocatore (`nome: "Verdi A.G."`).
-  Form tollerante, risultato sempre canonico: `cognome` `"de  luca"` -> `"De Luca"`, `"ROSSI"` -> `"Rossi"`; `iniziali` `"s c"`, `"S.C."`, `"sc"` -> `"S.C."` (da 1 a 3 lettere).
+- `POST /api/admin/giocatori` `{ "cognome": "Verdi", "iniziali"?: "A.G.", "livello_segreto": 4, "attivo": true }` -> `201` con il giocatore (`nome: "Verdi A.G."`).
+  Form tollerante, risultato sempre canonico: `cognome` `"de  luca"` -> `"De Luca"`, `"ROSSI"` -> `"Rossi"`; `iniziali` `"s c"`, `"S.C."`, `"sc"` -> `"S.C."` (da 1 a 3 lettere; assenti, `null` o vuote = nessuna iniziale).
   Un campo non valido = `400` (`"cognome: ..."`, `"iniziali: ..."`); il vecchio campo `nome` non si accetta piu'.
   `livello_segreto` (intero 1-5) e `attivo` sono facoltativi. `409` se il nome esiste.
 - `GET /api/admin/giocatori/:id`
-- `PATCH /api/admin/giocatori/:id` `{ "cognome"?, "iniziali"?, "attivo"?, "livello_segreto"? }` (`livello_segreto: null` lo toglie; cambiando solo una delle due parti del nome, l'altra resta).
+- `PATCH /api/admin/giocatori/:id` `{ "cognome"?, "iniziali"? (`null` o `""` le toglie), "attivo"?, "livello_segreto"? }` (`livello_segreto: null` lo toglie; cambiando solo una delle due parti del nome, l'altra resta).
 - `DELETE /api/admin/giocatori/:id` solo se non ha partite ne' voti, altrimenti `409` (si archivia con `attivo: false`).
 - `PUT /api/admin/giocatori/:id/badge` `{ "badge_ids": [1, 7] }` sostituisce i badge del giocatore -> `{ "giocatore_id": 14, "badge_ids": [1, 7] }`.
 
