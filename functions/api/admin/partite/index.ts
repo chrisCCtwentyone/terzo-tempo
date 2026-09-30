@@ -1,11 +1,12 @@
 /**
- * POST /api/admin/partite   { data_ora, giocatori: [id, ...], stagione_id? }
+ * POST /api/admin/partite   { data_ora, giocatori: [id, ...], stagione_id?, campo_id? }
  * Crea una partita in "convocazione". `data_ora`: con Z/scostamento e' un istante,
  * senza (es. "2026-10-01T21:00") e' ora di Roma. Senza stagione_id: la stagione aperta.
  */
 import { ErroreApi, json, leggiOggetto, perMetodo } from '../../../lib/risposta';
 import { MAX_CONVOCATI } from '../../../lib/costanti';
 import { dataOraUtc, elenco, intero } from '../../../lib/valida';
+import { campoAssegnabile } from '../../../lib/campi';
 import { stagioneAperta } from '../../../lib/partite';
 
 export const onRequest = perMetodo({
@@ -26,9 +27,11 @@ export const onRequest = perMetodo({
       if (trovati!.n !== ids.length) throw new ErroreApi(400, 'giocatori: un id non esiste');
     }
 
+    const campoId = await campoAssegnabile(env.DB, c.campo_id ?? null, null);
+
     const p = await env.DB
-      .prepare('INSERT INTO partite (stagione_id, data_ora) VALUES (?, ?) RETURNING id')
-      .bind(stagioneId, dataOra)
+      .prepare('INSERT INTO partite (stagione_id, data_ora, campo_id) VALUES (?, ?, ?) RETURNING id')
+      .bind(stagioneId, dataOra, campoId)
       .first<{ id: number }>();
     try {
       await env.DB.batch(ids.map((g) => env.DB.prepare('INSERT INTO partecipazioni (partita_id, giocatore_id) VALUES (?, ?)').bind(p!.id, g)));
@@ -36,6 +39,6 @@ export const onRequest = perMetodo({
       await env.DB.prepare('DELETE FROM partite WHERE id = ?').bind(p!.id).run(); // niente partita a meta'
       throw e;
     }
-    return json({ id: p!.id, stagione_id: stagioneId, data_ora: dataOra, stato: 'convocazione' }, 201);
+    return json({ id: p!.id, stagione_id: stagioneId, data_ora: dataOra, stato: 'convocazione', campo_id: campoId }, 201);
   },
 });

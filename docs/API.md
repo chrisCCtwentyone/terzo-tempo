@@ -39,7 +39,7 @@ Gli esempi vengono dai dati di prova (`scripts/seed_prova.sql`: nomi inventati).
 - Le scritture (POST/PUT/PATCH/DELETE) dal browser devono partire dallo stesso sito (altrimenti 403): il middleware
   controlla `Origin` e `Sec-Fetch-Site` su tutte le scritture di `/api`, voto MVP compreso.
 - **Limiti degli ingressi** (`functions/lib/costanti.ts`, `functions/lib/valida.ts`): corpo JSON al massimo 64 KB (`413`);
-  nome badge 40, descrizione badge 120, nome stagione 60, cognome 40, iniziali 3, cronaca 5000 caratteri; elenchi
+  nome badge 40, descrizione badge 120, nome stagione 60, nome campo 80, link di Google Maps 2000, cognome 40, iniziali 3, cronaca 5000 caratteri; elenchi
   (convocati, giocatori di una partita, badge di un giocatore) al massimo 60 elementi (`400` col nome del campo);
   nei testi sono vietati i caratteri di controllo e quelli invisibili che ribaltano il verso di scrittura
   (i soli a capo e tabulazioni ammessi sono quelli della cronaca).
@@ -79,6 +79,7 @@ Ultima partita giocata, prossima partita, top marcatori della stagione aperta.
   "prossima_partita": {
     "id": 11, "stagione_id": 2, "data_ora": "2026-10-01T19:00:00Z", "stato": "convocazione",
     "squadre": [ { "codice": "A", "nome": "Casaccati", "gol": null }, { "codice": "B", "nome": "Smollicati", "gol": null } ],
+    "campo": { "nome": "Centro Sportivo Esempio", "url_indicazioni": "https://www.google.com/maps/dir/?api=1&destination=44.123456,10.654321" },
     "cronaca": null,
     "giocatori": [ { "giocatore_id": 2, "nome": "Bianchi L.", "squadra": null, "pos_x": null, "pos_y": null, "gol": 0, "autogol": 0, "voto_pagella": null } ],
     "mvp": { "stato": "non_aperto", "voti_totali": 0, "ha_votato": false, "chiude_il": null }
@@ -93,6 +94,7 @@ Ultima partita giocata, prossima partita, top marcatori della stagione aperta.
   sono `null` se non ce ne sono.
 - `ultima_partita` = la giocata piu' recente (di qualunque stagione). `prossima_partita` = la partita **in convocazione**
   con la data piu' vicina (anche se la data e' gia' passata e l'admin non l'ha ancora segnata giocata).
+- `ultima_partita` e `prossima_partita` hanno anche `campo` (vedi "Il campo" sotto).
 - `top_marcatori`: massimo 5 posizioni; chi e' a pari merito nell'ultima posizione entra tutto (quindi possono essere di piu').
 
 ## `GET /api/stagioni`
@@ -135,9 +137,12 @@ Elenco riepilogativo, dalla piu' recente (comprese le convocazioni). `stagione` 
 ```json
 { "stagione": null, "partite": [
   { "id": 11, "stagione_id": 2, "data_ora": "2026-10-01T19:00:00Z", "stato": "convocazione",
-    "squadre": [ { "codice": "A", "nome": "Casaccati", "gol": null }, { "codice": "B", "nome": "Smollicati", "gol": null } ] }
+    "squadre": [ { "codice": "A", "nome": "Casaccati", "gol": null }, { "codice": "B", "nome": "Smollicati", "gol": null } ],
+    "campo": { "nome": "Centro Sportivo Esempio", "url_indicazioni": "https://www.google.com/maps/dir/?api=1&destination=44.123456,10.654321" } }
 ] }
 ```
+
+Ogni partita ha `campo` (oggetto o `null`).
 
 ## `GET /api/partite/:id`
 
@@ -147,6 +152,7 @@ Dettaglio: squadre, posizioni, gol, pagelle, cronaca, stato MVP. Questa chiamata
 {
   "id": 10, "stagione_id": 2, "data_ora": "2026-09-24T19:00:00Z", "stato": "giocata",
   "squadre": [ { "codice": "A", "nome": "Casaccati", "gol": 6 }, { "codice": "B", "nome": "Smollicati", "gol": 3 } ],
+  "campo": { "nome": "Palestra di Prova", "url_indicazioni": "https://www.google.com/maps/dir/?api=1&destination=Palestra%20di%20Prova" },
   "cronaca": "Cronaca di prova, breve come spesso succede.",
   "giocatori": [
     { "giocatore_id": 1, "nome": "Rossi M.", "squadra": "A", "pos_x": 32.5, "pos_y": 21.4, "gol": 2, "autogol": 0, "voto_pagella": 8.5 }
@@ -162,6 +168,19 @@ Dettaglio: squadre, posizioni, gol, pagelle, cronaca, stato MVP. Questa chiamata
   `gol` / `autogol` sono del giocatore (l'autogol e' un gol a favore degli avversari).
 - `cronaca` e' `null` se non scritta: la pagina deve stare bene anche cosi'.
 - Il blocco `mvp` e' descritto sotto.
+
+### Il campo
+
+`campo` e' `{ "nome": "...", "url_indicazioni": "..." }` oppure `null` (nessun campo scelto: la pagina non mostra nulla). Sta nella home
+(`ultima_partita`, `prossima_partita`), nell'elenco e nel dettaglio delle partite, e non ha altri campi: l'id del campo, il link incollato
+dall'admin e lo stato "archiviato" non escono mai dalle rotte pubbliche.
+
+- **`url_indicazioni` e' SEMPRE `https://www.google.com/maps/dir/?api=1&destination=...`, costruito dal server** (`shared/indicazioni.ts`)
+  da `lat,lng` se il campo le ha (`destination=44.123456,10.654321`), altrimenti dal nome codificato (`destination=Palestra%20di%20Prova`).
+  Mai il link incollato, mai il testo della colonna `campi.url_indicazioni`: se nel database ci fosse un valore non di Google
+  (`javascript:...`, un altro sito) l'API pubblica non lo restituirebbe, perche' non lo legge (un test lo prova).
+  Il formato apre l'app di Google Maps sul telefono, se c'e', altrimenti il sito, direttamente sulle indicazioni.
+- Un campo **archiviato** resta sulle partite che lo avevano.
 
 ## `GET /api/partite/:id/mvp`
 
@@ -269,6 +288,58 @@ Tutte richiedono l'accesso (sopra). Corpo JSON con `Content-Type: application/js
 - `PATCH /api/admin/badge/:id` `{ "nome"?, "descrizione"? (null la toglie), "tipo"? }`
 - `DELETE /api/admin/badge/:id` lo toglie anche a chi lo ha.
 
+## Campi
+
+Il luogo della partita. Flusso: incolla il link di Google Maps -> `risolvi` -> correggi il nome se serve -> crea il campo -> sceglilo nella partita (`campo_id`).
+Nome **obbligatorio** (testo, al massimo 80 caratteri, stesse regole degli altri nomi), unico senza distinguere maiuscole (`409`).
+Un campo **non si cancella**: si archivia (`archiviato: true`), cosi' resta sulle partite passate e non si sceglie piu' per le nuove.
+
+- `GET /api/admin/campi` -> `{ "campi": [ { "id": 1, "nome": "Centro Sportivo Esempio", "link_originale": "https://maps.app.goo.gl/AbC", "lat": 44.123456, "lng": 10.654321, "url_indicazioni": "https://www.google.com/maps/dir/?api=1&destination=44.123456,10.654321", "archiviato": false, "partite": 3 } ] }`
+  (attivi prima, poi archiviati; `partite` = quante partite lo usano; `lat`/`lng`/`link_originale` possono essere `null`).
+- `POST /api/admin/campi` `{ "nome": "Centro Sportivo Esempio", "link"?: "https://maps.app.goo.gl/AbC", "lat"?: 44.1, "lng"?: 10.6 }` -> `201` col campo.
+  `nome` obbligatorio (`400 "nome: ..."`). `link` facoltativo: dev'essere un indirizzo https con host nella lista di Google Maps (come per `risolvi`, ma
+  qui **senza nessuna richiesta di rete**); se c'e' del testo intorno si salva solo il primo indirizzo. `lat` e `lng` vanno **in coppia** (`400` se ne arriva una sola), nei limiti
+  della Terra. `url_indicazioni` lo calcola il server: se il client ne manda uno, viene ignorato.
+- `PATCH /api/admin/campi/:id` `{ "nome"?, "link"? (null lo toglie), "lat"?, "lng"? (in coppia; null, null le toglie), "archiviato"? }` -> il campo. Cambiando nome o posizione
+  `url_indicazioni` si ricalcola. `404` id inesistente, `409` nome gia' usato, `400` corpo senza campi.
+- `POST /api/admin/campi/risolvi` `{ "link": "Guarda questo posto: https://maps.app.goo.gl/AbC" }` -> `{ "nome"?, "lat"?, "lng"?, "url_indicazioni", "link_finale" }`.
+  **Non scrive niente.** `nome`, `lat` e `lng` mancano se non si ricavano (in particolare: se manca `nome`, l'admin lo scrive a mano; non si inventa).
+
+### Come si risolve un link (`functions/lib/maps.ts`)
+
+Il link "Condividi" dell'app (`https://maps.app.goo.gl/XXXX`) **non contiene il nome**: il server lo apre e segue i redirect. Da `link_finale` ricava:
+
+- **nome**: dal percorso `/maps/place/<Nome+Del+Campo>/...` (`+` -> spazio, `%xx` decodificati); se manca, dal testo di `?q=<Nome, indirizzo>` fino alla prima virgola
+  (e' la forma vera dei link "Condividi" dell'app: `https://maps.google.com?q=Nome+Via+...&ftid=...`, osservata dalla rete il 30/09/2026). Mai se e' vuoto, piu' lungo di 80 caratteri, con
+  caratteri di controllo o fatto di sole coordinate;
+- **coordinate**: `!3d<lat>!4d<lng>` (quelle del posto, da preferire), poi `@lat,lng` (il centro della mappa), poi `?q=lat,lng` (anche `query=`, `ll=`); mai fuori da -90..90 / -180..180;
+- **`url_indicazioni`**: `https://www.google.com/maps/dir/?api=1&destination=<lat>,<lng>`; senza coordinate `destination=<nome codificato>`; senza nessuno dei due, il `link_finale` validato.
+
+Quando ci si ferma: un indirizzo di Google che dice gia' nome o coordinate non si apre (nessuna richiesta, e niente giri con il consenso); `maps.app.goo.gl` e `goo.gl/maps` si aprono
+sempre; uno che non dice niente si apre per vedere se rimanda altrove. La pagina `/sorry/...` di Google (controllo anti-robot) non si segue: ci si ferma con quello che c'e'.
+
+**Difese anti-SSRF** (provate in `test/maps.test.ts` e nell'e2e admin):
+
+| Difesa | Come |
+|---|---|
+| Solo https | `http:`, `intent:`, `javascript:`, `data:`... rifiutati, anche come `Location` |
+| Host in lista **esatta** | `maps.app.goo.gl`, `goo.gl` (solo percorso `/maps...`), `www.google.com`, `google.com`, `maps.google.com`, `www.google.it`, `google.it`, `consent.google.com`. Niente sottodomini, suffissi, porte, utente/password, host con il punto finale |
+| Niente IP | qualunque forma (decimale, esadecimale, ottale, IPv6) e' rifiutata |
+| Ogni passaggio, il primo compreso | il `Location` di ogni risposta e' ri-validato come un link nuovo prima di essere richiesto; si richiede sempre l'`href` normalizzato dell'URL controllato |
+| Redirect a mano | `redirect: 'manual'`, al massimo **5** (conta anche il passaggio da `consent`); il sesto = `400` |
+| Timeout | circa **5 s in tutto** (non per passaggio); poi `502` |
+| Nessuna credenziale | niente cookie ne' intestazioni del client: si manda solo `User-Agent` e `Accept-Language` |
+| Corpo mai letto | serve solo l'intestazione `Location`; il corpo si scarta (`cancel`). Non e' emerso nessun caso che lo richieda: le risposte di Google ai link corti sono `302` con corpo vuoto |
+| `consent.google.com` | non si apre: si usa `?continue=<url>`, validato con la stessa lista |
+| Solo admin | la rotta sta sotto `/api/admin`: senza Access (o col CSRF) non parte nessuna richiesta verso Google |
+
+Errori di `risolvi`: `400 "link: ..."` (nessun indirizzo, non https, host fuori lista, IP, troppi reindirizzamenti, "Google non riconosce questo link"), `502` se Google non risponde
+in tempo o con un errore (`"link: Google non ha risposto in tempo. Riprova fra poco, o scrivi il nome a mano"`). Il messaggio non contiene mai dettagli interni.
+
+**Prove nel browser**: `npm run e2e:admin` avvia il server con `--binding GOOGLE_MAPS_PROVA=http://127.0.0.1:<porta>` e un finto Google (`e2e/google_simulato.ts`). La variabile
+vale **solo** alle condizioni del bypass di sviluppo (`DEV_ADMIN_BYPASS=1`, richiesta da localhost, Access non configurato, niente `Cf-Ray`) e solo se punta a localhost: in produzione
+e' ignorata anche se ci finisse per errore (un test lo prova). Cambia solo DOVE si spedisce la richiesta: lista degli host e redirect restano validati sugli indirizzi veri di Google.
+
 ## Stagioni
 
 L'elenco e' pubblico (`GET /api/stagioni`). **Una sola stagione alla volta puo' essere aperta** (409 altrimenti).
@@ -285,9 +356,10 @@ L'elenco e' pubblico (`GET /api/stagioni`). **Una sola stagione alla volta puo' 
 Flusso: **crea la convocazione** -> **salva squadre e pedine** (ripetibile) -> a partita finita **inserisci gol, autogol e pagelle**
 -> **segna giocata** col risultato -> eventuale cronaca / correzioni. Il generatore e' un aiuto alla fase "squadre".
 
-- `POST /api/admin/partite` `{ "data_ora": "2026-10-08T21:00", "giocatori": [1, 2, 3], "stagione_id"?: 2 }` -> `201`
-  `{ "id": 12, "stagione_id": 2, "data_ora": "2026-10-08T19:00:00Z", "stato": "convocazione" }`.
-  Senza `stagione_id` usa la stagione aperta (`409` se non ce n'e'). `giocatori` puo' essere `[]`.
+- `POST /api/admin/partite` `{ "data_ora": "2026-10-08T21:00", "giocatori": [1, 2, 3], "stagione_id"?: 2, "campo_id"?: 1 }` -> `201`
+  `{ "id": 12, "stagione_id": 2, "data_ora": "2026-10-08T19:00:00Z", "stato": "convocazione", "campo_id": 1 }`.
+  Senza `stagione_id` usa la stagione aperta (`409` se non ce n'e'). `giocatori` puo' essere `[]`. `campo_id` facoltativo (assente o `null` = nessun campo):
+  il campo deve esistere e **non essere archiviato**, altrimenti `400 "campo_id: il campo non esiste o è archiviato"`.
 - `PUT /api/admin/partite/:id/convocati` **sostituisce tutto l'elenco**, quindi si manda sempre per intero:
 
   ```json
@@ -303,8 +375,9 @@ Flusso: **crea la convocazione** -> **salva squadre e pedine** (ripetibile) -> a
   convocato deve avere una squadra e le due squadre non possono essere vuote (`409`). Togliere qualcuno dall'elenco = non ha giocato.
 - `POST /api/admin/partite/:id/giocata` `{ "gol_a": 3, "gol_b": 1 }` segna la partita giocata col risultato. `409` se qualche
   convocato non ha una squadra, se una squadra e' vuota, o se e' gia' giocata. Risposta: dettaglio + `avvisi`.
-- `PATCH /api/admin/partite/:id` `{ "data_ora"?, "stagione_id"?, "cronaca"? (null o "" la toglie, max 5000 caratteri), "gol_a"?, "gol_b"? }`
-  I gol solo per partite gia' giocate (correzione del risultato). Cambiare `data_ora` sposta anche la scadenza del voto MVP.
+- `GET /api/admin/partite/:id` -> la partita com'e' nel database, **con `campo_id`** (il pubblico vede il campo, non il suo id): serve alla tendina "Campo" dell'admin.
+- `PATCH /api/admin/partite/:id` `{ "data_ora"?, "stagione_id"?, "cronaca"? (null o "" la toglie, max 5000 caratteri), "campo_id"? (null = nessun campo), "gol_a"?, "gol_b"? }`
+  `campo_id` come nel `POST` (un campo archiviato DOPO essere stato assegnato a questa partita resta valido per lei). I gol solo per partite gia' giocate (correzione del risultato). Cambiare `data_ora` sposta anche la scadenza del voto MVP.
 - `DELETE /api/admin/partite/:id` solo se in convocazione.
 
 **`avvisi`** (`string[]`): se i gol dei giocatori (autogol avversari compresi) non tornano col risultato, per ogni squadra

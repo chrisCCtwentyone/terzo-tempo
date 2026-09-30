@@ -33,7 +33,7 @@ export function numeroOpz(v: unknown, campo: string, min: number, max: number): 
  * al contrario) e l'inizio di file (U+FEFF). Non servono in nessun nome o cronaca e sono un classico dei
  * testi "truccati".
  */
-const VIETATI = /[\p{Cc}\u2028\u2029\u202A-\u202E\u2066-\u2069\uFEFF]/u;
+export const VIETATI = /[\p{Cc}\u2028\u2029\u202A-\u202E\u2066-\u2069\uFEFF]/u;
 
 export function testo(v: unknown, campo: string, maxLungo: number, multiriga = false): string {
   if (typeof v !== 'string' || !v.trim() || v.trim().length > maxLungo) KO(campo, `testo non vuoto, al massimo ${maxLungo} caratteri`);

@@ -210,7 +210,7 @@ a.row:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--sh)}
 .nav-in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 /* barra pubblica a cinque voci: anche a 320 px ogni voce resta larga almeno 44 px e l'etichetta intera */
 .nav-in.cinque{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
-.nav.pub{padding-left:max(2px,env(safe-area-inset-left,0px));padding-right:max(2px,env(safe-area-inset-right,0px))}
+.nav.pub,.nav.adm{padding-left:max(2px,env(safe-area-inset-left,0px));padding-right:max(2px,env(safe-area-inset-right,0px))}
 /* niente bordo trasparente (toglie 4 px a ogni voce): l'evidenziazione usa un'ombra interna */
 .nav-in.cinque a{padding:5px 0;border:0;font-size:clamp(8px,2.6vw,11px);letter-spacing:0}
 .nav-in.cinque a[aria-current="page"]{box-shadow:inset 0 0 0 2px var(--edge),2px 2px 0 var(--sh)}

@@ -27,9 +27,10 @@ L'app è pensata per un gruppo di circa venti amici che giocano a calcetto e vog
 | **Scheda giocatore** | La figurina con i **badge** (Cecchino, Muro, Turista...), le statistiche, gli ultimi cinque risultati (V/P/S) e il grafico dei voti in pagella. |
 | **Campo con moduli** | Le formazioni sul campo, in stile fantacalcio: modulo scelto per la partita (per esempio 2-1-2 o 3-2-1) e giocatori sulle loro caselle. |
 | **Voto MVP dal telefono** | Ogni partita ha la sua votazione: si vota dal telefono, **senza login**, un voto per dispositivo. |
+| **Campo da gioco** | Dove si gioca: ogni partita può avere un campo, e il suo nome è un link che apre **Google Maps sulle indicazioni stradali** (app del telefono, se c'è). L'admin aggiunge un campo incollando il link "Condividi" di Google Maps. |
 | **Generatore di squadre** | Dai convocati propone due squadre bilanciate; poi chi organizza ritocca a mano. |
 | **Stagioni** | Aperte e chiuse a mano: classifiche per stagione e storico. |
-| **Area admin** | Giocatori, badge, stagioni, partite, risultati e MVP. Protetta da Cloudflare Access. |
+| **Area admin** | Giocatori, badge, campi, stagioni, partite, risultati e MVP. Protetta da Cloudflare Access. |
 
 La parte pubblica è in **sola lettura**, tranne il voto MVP. Tutto il resto lo scrive l'area admin.
 
@@ -48,6 +49,7 @@ flowchart LR
     A --> F
     F -->|"riverifica il token<br/>e l'email"| F
     F --> D[("🗄️ Cloudflare D1<br/>SQLite")]
+    F -.->|"solo per l'admin, solo per i campi:<br/>apre il link di Google Maps<br/>(host in lista, redirect a mano)"| G["🗺️ Google Maps"]
 ```
 
 > Le rotte pubbliche non hanno login. Le rotte admin rispondono 401 o 403 senza un token valido: **mai aperte per errore**.
@@ -74,6 +76,20 @@ flowchart TD
     I -->|"zero voti"| L["🧑‍⚖️ L'admin sceglie l'MVP"]
     K --> J
     L --> J
+```
+
+Il **campo** è facoltativo e si sceglie da una tendina (o si toglie) in creazione e in modifica della partita. I campi si aggiungono una volta sola, dalla pagina Campi dell'admin, partendo dal link di Google Maps:
+
+```mermaid
+flowchart TD
+    A["🔗 L'admin incolla il link 'Condividi'<br/>di Google Maps (maps.app.goo.gl/...)"] --> B["🛡️ Il server lo apre seguendo i redirect a mano<br/>solo https, host in lista esatta, max 5, 5 secondi,<br/>corpo mai letto"]
+    B --> C{"Nome e posizione<br/>nell'indirizzo finale?"}
+    C -->|"sì"| D["✏️ Nome precompilato<br/>(sempre modificabile)"]
+    C -->|"il nome manca"| E["⌨️ 'Scrivilo a mano'<br/>senza nome non si salva"]
+    D --> F["📍 Campo salvato<br/>(link, posizione, indicazioni)"]
+    E --> F
+    F --> G["⚽ Scelto nella partita<br/>dalla tendina 'Campo'"]
+    G --> H["🗺️ Pubblico: 'Nome del campo →'<br/>apre le indicazioni su Google Maps"]
 ```
 
 La scadenza automatica si calcola sull'**orario della partita**, non su quando la si carica: se l'admin inserisce il risultato in ritardo, nessuno può comunque votare giorni dopo. Non c'è nessun cron: la chiusura viene applicata alla prima lettura o al primo voto successivi.
@@ -127,6 +143,7 @@ Le squadre nel database sono solo `A` e `B`: i loro nomi arrivano dal codice, in
 ```mermaid
 erDiagram
     STAGIONI ||--o{ PARTITE : contiene
+    CAMPI ||--o{ PARTITE : "ospita (facoltativo)"
     PARTITE ||--o{ PARTECIPAZIONI : "ha convocati"
     GIOCATORI ||--o{ PARTECIPAZIONI : gioca
     GIOCATORI ||--o{ GIOCATORE_BADGE : ha
@@ -160,9 +177,20 @@ erDiagram
         text data_inizio
         text data_fine
     }
+    CAMPI {
+        int id PK
+        text nome UK "obbligatorio, max 80"
+        text link_originale "il link incollato, solo admin"
+        real lat "vuota se il link non la dice"
+        real lng
+        text url_indicazioni "copia: il pubblico la ricostruisce"
+        text creato_il
+        int archiviato "0 = attivo"
+    }
     PARTITE {
         int id PK
         int stagione_id FK
+        int campo_id FK "facoltativo"
         text data_ora "ISO UTC"
         text stato "convocazione o giocata"
         int gol_a
@@ -194,7 +222,7 @@ erDiagram
     }
 ```
 
-`VOTI_MVP` ha un vincolo `UNIQUE (partita_id, hash_token)`: un dispositivo, un voto per partita. Schema completo in [`migrations/`](migrations/).
+`VOTI_MVP` ha un vincolo `UNIQUE (partita_id, hash_token)`: un dispositivo, un voto per partita. Un campo si **archivia**, non si cancella: resta sulle partite passate ma non si sceglie più per le nuove. Schema completo in [`migrations/`](migrations/).
 
 ---
 
@@ -225,8 +253,8 @@ erDiagram
 │       └── stili/      # token, tema chiaro e scuro, stili dei componenti
 ├── functions/          # Pages Functions: middleware, API pubbliche e admin
 │   ├── api/            #   rotte (le admin sotto api/admin)
-│   └── lib/            #   accesso, generatore di squadre, MVP, statistiche
-├── shared/             # codice comune a frontend e backend: nomi e moduli
+│   └── lib/            #   accesso, generatore di squadre, MVP, statistiche, campi e link di Google Maps (maps.ts)
+├── shared/             # codice comune a frontend e backend: nomi, moduli, indirizzo delle indicazioni
 ├── migrations/         # schema D1
 ├── scripts/            # pubblicazione, controllo del sito vero, dati di prova, icone
 ├── test/               # Vitest (compresa la guardia dei nomi reali)
@@ -302,9 +330,11 @@ Account Cloudflare, Access, secret e trappole già incontrate: [`docs/DEPLOY.md`
 
 **Area admin fail-closed.** `/api/admin/*` richiede un token di Cloudflare Access, che il backend verifica da solo (firma, audience ed email). Se manca un pezzo della configurazione la risposta è 403, mai un accesso aperto. Un test elenca ogni file sotto `functions/api/admin` e controlla che nessuno risponda senza accesso, anche con percorsi scritti in modo strano.
 
+**Difesa anti-SSRF nell'apertura dei link di Google Maps.** È l'unico punto in cui il server richiede un indirizzo scelto da un utente (e solo un admin può farlo). Ogni passaggio, **compreso il primo**, deve essere `https` e avere l'host in una lista esatta (`maps.app.goo.gl`, `goo.gl` solo per `/maps...`, `www.google.com`, `google.com`, `maps.google.com`, `www.google.it`, `google.it`, `consent.google.com`): niente indirizzi IP, sottodomini, porte o utente e password. I redirect si seguono a mano (al massimo 5) e ogni `Location` è ri-validato prima di essere richiesto; tempo massimo 5 secondi in tutto; non si inoltra nessun cookie; il corpo delle risposte non si legge mai. Se Google rimanda a `consent.google.com?continue=...` si usa `continue`, validato allo stesso modo. Le prove (`test/maps.test.ts`) coprono catene valide, host fuori lista a metà catena, troppi redirect, `http`, IP in ogni scrittura, timeout e corpo mai letto.
+
 **Voto anonimo.** Del token del dispositivo si salva solo l'hash SHA-256: nemmeno chi legge il database può risalire al telefono. Le scritture da un altro sito sono rifiutate (difesa dal CSRF). Contro gli script, un freno semplice: al massimo 10 voti per rete e per partita, contati su un pezzetto (16 bit) di hash dell'indirizzo, così una famiglia sullo stesso wifi vota senza problemi e nessuno può risalire all'indirizzo.
 
-**Niente codice iniettato.** La CSP ammette solo risorse proprie, senza `unsafe-inline` né `unsafe-eval`; React non usa mai `innerHTML`; nessun testo scritto dall'admin finisce in un `href` o in un `src`. Ogni query D1 usa parametri (`bind`): un test analizza il codice e lancia payload da manuale su ogni rotta. Nomi, badge e cronache hanno lunghezze massime e non ammettono caratteri di controllo.
+**Niente codice iniettato.** La CSP ammette solo risorse proprie, senza `unsafe-inline` né `unsafe-eval`; React non usa mai `innerHTML`; nessun testo scritto dall'admin finisce in un `href` o in un `src`: l'unico link esterno dei dati, quello del campo, è sempre `https://www.google.com/maps/...` costruito dal server da posizione e nome (mai il link incollato), e il frontend lo ricontrolla prima di mostrarlo. Ogni query D1 usa parametri (`bind`): un test analizza il codice e lancia payload da manuale su ogni rotta. Nomi, badge e cronache hanno lunghezze massime e non ammettono caratteri di controllo.
 
 **Prove d'attacco automatiche.** Suite di test su SQL injection, percorsi mascherati verso l'admin, JWT contraffatti, CSRF, limiti degli ingressi, intestazioni, segreti nel bundle e nella storia di git; un e2e che inserisce payload XSS dall'admin e verifica che la parte pubblica li mostri come testo; `scripts/controlla_produzione.sh` ripete le prove non distruttive sul sito vero a ogni pubblicazione.
 

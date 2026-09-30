@@ -155,3 +155,11 @@
 .ped.mov:focus-visible .fig,.ped.mov.sel .fig{outline:3px solid var(--yellow);outline-offset:2px}
 .ped.mov.sel .cart{background:var(--yellow)}
 .pt{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--yellow);color:#1a1712;border:1.5px solid #1a1712;display:grid;place-items:center;font-family:Anton,Impact,sans-serif;font-size:11px;line-height:1}
+
+/* campi da gioco: form con "Ricava nome", anteprima delle indicazioni, tendina nella partita */
+.ricava{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.indicazioni{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0}
+.indicazioni .luogo{justify-self:start}
+.campo-scelta{display:grid;grid-template-columns:minmax(0,1fr);gap:0;min-width:0}
+.nuovo-campo{display:inline-flex;align-items:center;justify-self:start;max-width:100%;min-height:44px;font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--bluet);text-decoration:underline;text-underline-offset:3px}
+.badge-riga .who b .tu{margin-left:8px;vertical-align:middle}

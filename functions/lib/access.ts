@@ -30,6 +30,11 @@ export type Ambiente = {
   EMAIL_AUTORIZZATE?: string;
   /** "1" salta il controllo, ma SOLO per richieste da localhost (.dev.vars) */
   DEV_ADMIN_BYPASS?: string;
+  /**
+   * SOLO PROVE (npm run e2e:admin): indirizzo http://localhost:<porta> di un finto Google. Vale alle stesse condizioni
+   * del bypass di sviluppo (vedi `fetchDiProva` in functions/lib/maps.ts); altrove e' ignorata.
+   */
+  GOOGLE_MAPS_PROVA?: string;
 };
 
 export type EsitoAccesso =
@@ -114,7 +119,7 @@ function localhost(url: URL): boolean {
  * si spegne da solo) e nessuna traccia di Cloudflare sulla richiesta (Cf-Ray lo aggiunge l'edge a
  * OGNI richiesta reale; wrangler in locale no).
  */
-function bypassAmmesso(request: Request, url: URL, env: Ambiente): boolean {
+export function bypassAmmesso(request: Request, url: URL, env: Ambiente): boolean {
   if (env.DEV_ADMIN_BYPASS !== '1' || !localhost(url)) return false;
   if (configurata(env.ACCESS_TEAM_DOMAIN) || configurata(env.ACCESS_AUD) || configurata(env.EMAIL_AUTORIZZATE)) return false;
   return !request.headers.has('Cf-Ray');

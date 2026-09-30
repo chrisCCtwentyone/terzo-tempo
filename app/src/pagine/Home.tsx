@@ -3,7 +3,7 @@ import { useBadge } from '../lib/listone'
 import type { HomeDati, Partita } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
 import { useTitolo } from '../router'
-import { Attesa, Carta, Cart, Figurina, Icona, Intestazione, Podio, PulsanteLink, Riga, Sezione, Tabellone } from '../ui'
+import { Attesa, Carta, Cart, Figurina, Icona, Intestazione, Luogo, Podio, PulsanteLink, Riga, Sezione, Tabellone } from '../ui'
 import { BollinoMvp, EsitoMvp } from './Mvp'
 
 function UltimaPartita({ p }: { p: Partita }) {
@@ -13,6 +13,7 @@ function UltimaPartita({ p }: { p: Partita }) {
       <div className="foot">
         <div>
           <p className="dt">{giornoAnno(p.data_ora)}</p>
+          <Luogo campo={p.campo} />
           <EsitoMvp partita={p} />
         </div>
         <BollinoMvp mvp={p.mvp} />
@@ -26,6 +27,7 @@ function ProssimaPartita({ p, badge }: { p: Partita; badge: ReturnType<typeof us
   return (
     <Carta att i={2}>
       <div className="when"><b>{giornoOra(p.data_ora)}</b></div>
+      <Luogo campo={p.campo} />
       {p.giocatori.length === 0 ? (
         <p className="note">Convocati non ancora inseriti.</p>
       ) : (

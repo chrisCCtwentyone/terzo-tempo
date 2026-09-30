@@ -21,3 +21,19 @@ export type Proposta = {
 
 /** Dettaglio partita; le scritture su convocati e "giocata" aggiungono gli avvisi sui conti. */
 export type PartitaAdmin = Partita & { avvisi?: string[] }
+
+/** Un campo da gioco come lo vede l'admin (anche archiviato, col link incollato). */
+export type CampoAdmin = {
+  id: number
+  nome: string
+  link_originale: string | null
+  lat: number | null
+  lng: number | null
+  url_indicazioni: string | null
+  archiviato: boolean
+  /** quante partite lo usano */
+  partite: number
+}
+
+/** Risposta di POST /api/admin/campi/risolvi: nome e coordinate possono mancare. */
+export type LinkRisolto = { nome?: string; lat?: number; lng?: number; url_indicazioni: string; link_finale: string }

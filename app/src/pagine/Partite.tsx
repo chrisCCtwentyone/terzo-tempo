@@ -2,16 +2,17 @@ import { giornoNumero, meseBreve, giorno, ora } from '../lib/formato'
 import type { PartitaRiga, Stagione } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
 import { Link, useTitolo } from '../router'
-import { Attesa, Carta, Intestazione, Sezione } from '../ui'
+import { Attesa, Carta, Intestazione, LuogoRiga, Sezione } from '../ui'
 
 function Riga({ p, i }: { p: PartitaRiga; i: number }) {
   const [a, b] = ['A', 'B'].map((c) => p.squadre.find((s) => s.codice === c))
   const giocata = p.stato === 'giocata' && a?.gol != null && b?.gol != null
   const vinceA = giocata && a!.gol! > b!.gol!
   const vinceB = giocata && b!.gol! > a!.gol!
+  const doveSi = p.campo ? `, al campo ${p.campo.nome}` : ''
   const etichetta = giocata
-    ? `${giorno(p.data_ora)}: ${a!.nome} ${a!.gol}, ${b!.nome} ${b!.gol}`
-    : `${giorno(p.data_ora)}, ${ora(p.data_ora)}: ${a?.nome} contro ${b?.nome}, da giocare`
+    ? `${giorno(p.data_ora)}: ${a!.nome} ${a!.gol}, ${b!.nome} ${b!.gol}${doveSi}`
+    : `${giorno(p.data_ora)}, ${ora(p.data_ora)}: ${a?.nome} contro ${b?.nome}, da giocare${doveSi}`
   return (
     <li className="att" style={{ '--i': i } as React.CSSProperties}>
       <Link verso={`/partite/${p.id}`} className="row match" aria-label={etichetta}>
@@ -19,6 +20,7 @@ function Riga({ p, i }: { p: PartitaRiga; i: number }) {
         <span aria-hidden="true">
           <span className={`sq ${vinceA ? 'vinta' : ''}`}><span>{a?.nome}</span><b>{a?.gol ?? '–'}</b></span>
           <span className={`sq ${vinceB ? 'vinta' : ''}`}><span>{b?.nome}</span><b>{b?.gol ?? '–'}</b></span>
+          <LuogoRiga campo={p.campo} />
         </span>
         {!giocata && <span className="tag2" aria-hidden="true">{ora(p.data_ora)} · da giocare</span>}
       </Link>

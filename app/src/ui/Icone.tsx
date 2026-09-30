@@ -43,13 +43,14 @@ export function Sprite() {
         <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></symbol>
         <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10.5" rx="1.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /><circle cx="12" cy="15.7" r="1.2" fill="currentColor" /></symbol>
         <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 11v6" /><circle cx="12" cy="7.6" r="1.1" fill="currentColor" /></symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21.5s-7-6.3-7-11.7a7 7 0 0 1 14 0c0 5.4-7 11.7-7 11.7z" /><circle cx="12" cy="9.8" r="2.6" /></symbol>
         <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></symbol>
       </defs>
     </svg>
   )
 }
 
-export type IdIcona = 'i-home' | 'i-rank' | 'i-pitch' | 'i-user' | 'i-theme' | 'i-check' | 'i-arrow' | 'i-target' | 'i-lock' | 'i-info'
+export type IdIcona = 'i-home' | 'i-rank' | 'i-pitch' | 'i-user' | 'i-theme' | 'i-check' | 'i-arrow' | 'i-target' | 'i-lock' | 'i-info' | 'i-pin'
 
 export const Icona = ({ id }: { id: IdIcona }) => (
   <svg className="ico" aria-hidden="true">
