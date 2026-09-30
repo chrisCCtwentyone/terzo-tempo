@@ -47,9 +47,11 @@ export function BadgeAdmin() {
                     const apri = aperto === x.id
                     return (
                       <li key={x.id} className="att" style={{ '--i': i } as React.CSSProperties}>
-                        <button type="button" className="row semplice riga-btn" aria-expanded={apri} onClick={() => setAperto(apri ? null : x.id)}>
-                          <span className={`bdg${t === 'negativo' ? ' neg' : ''}`} style={{ alignSelf: 'start', marginTop: 2 }}>{x.nome}<span className="sr"> (badge {t})</span></span>
-                          <span className="who"><span className="desc">{x.descrizione ?? 'Nessuna descrizione'}</span></span>
+                        <button type="button" className="row semplice badge-riga riga-btn" aria-expanded={apri} onClick={() => setAperto(apri ? null : x.id)}>
+                          <span className="who">
+                            <span className={`bdg${t === 'negativo' ? ' neg' : ''}`}>{x.nome}<span className="sr"> (badge {t})</span></span>
+                            <span className="desc">{x.descrizione ?? 'Nessuna descrizione'}</span>
+                          </span>
                           <span className="val"><b>{quanti}</b><small>{quanti === 1 ? 'giocatore' : 'giocatori'}</small></span>
                         </button>
                         {apri && <Carta className="edit"><ModificaBadge b={x} assegnato={quanti} onFatto={rileggi} onElimina={(nome) => { setAperto(null); setNota(`Eliminato il badge ${nome}`); rileggi() }} /></Carta>}

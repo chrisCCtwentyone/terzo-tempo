@@ -30,6 +30,47 @@ export function preparaBase() {
   d1('execute', '--file', 'scripts/seed_prova.sql')
 }
 
+/**
+ * Dati ESTREMI, solo per le prove nel browser (mai nel seed di produzione ne' in seed_prova.sql): servono a stressare il
+ * layout con nomi molto piu' lunghi di quelli veri. Nomi inventati. Ids alti (90+) per non toccare quelli del seed.
+ *  - giocatori: un nome lungo con spazi e uno di una sola parola lunghissima (nessun punto dove andare a capo);
+ *  - badge: due nomi lunghi (uno con spazi, uno senza) e una descrizione al massimo della lunghezza;
+ *  - stagione dal nome lungo (chiusa, vecchia: non cambia la stagione aperta ne' la home);
+ *  - partita 120 giocata (nella stagione lunga, con i due giocatori lunghi sul campo, gol e cronaca con una parola
+ *    lunghissima) e partita 121 in convocazione, DOPO la 11, cosi' la home continua a mostrare la 11.
+ */
+export function aggiungiDatiEstremi() {
+  const GIOCATORI = [
+    [90, 'Pettirosso Montefiascone Vannozzi S.C.'],
+    [91, 'Wolfeschlegelsteinhausenbergerdorff M.'],
+    [92, 'De Gregoriis Baldassarre-Malaspina R.'],
+  ] as const
+  const pos = (partita: number, righe: readonly [number, 'A' | 'B', number, number, number, number, number | null][]) =>
+    `INSERT INTO partecipazioni (partita_id, giocatore_id, squadra, pos_x, pos_y, gol, autogol, voto_pagella) VALUES ${righe.map(([g, sq, x, y, gol, og, v]) => `(${partita},${g},'${sq}',${x},${y},${gol},${og},${v})`).join(',')};`
+  sql(
+    [
+      `INSERT INTO giocatori (id, nome, attivo, livello_segreto, creato_il) VALUES ${GIOCATORI.map(([id, n]) => `(${id},'${n}',1,3,'2026-07-01T10:00:00Z')`).join(',')};`,
+      `INSERT INTO badge (id, nome, descrizione, tipo) VALUES
+        (90,'Dribblomane Instancabile','Corre, dribbla e non si ferma mai, nemmeno quando la partita e'' finita da un pezzo e tutti sono negli spogliatoi',  'positivo'),
+        (91,'Supercalifragilistichespiralidoso',NULL,'negativo'),
+        (92,'Ritardatario cronico e incallito','Arriva sempre dopo il fischio d''inizio',  'negativo');`,
+      `INSERT INTO giocatore_badge (giocatore_id, badge_id) VALUES (90,90),(90,92),(91,91),(91,90),(92,92),(92,91);`,
+      `INSERT INTO stagioni (id, nome, aperta, data_inizio, data_fine) VALUES (90,'Stagione straordinaria dei campionati amichevoli 2024-25',0,'2024-09-01','2025-06-30');`,
+      `INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il) VALUES
+        (120, 90, '2025-05-01T19:00:00Z', 'giocata', 6, 5, 'Serata memorabile: Wolfeschlegelsteinhausenbergerdorff ha segnato due volte e poi ha inseguito il pallone fino a https://esempio.invalid/una/strada/lunghissima/senza/spazi/che/non/finisce/mai', 'assegnato', '2025-05-02T19:00:00Z'),
+        (121, 2, '2026-10-15T19:00:00Z', 'convocazione', NULL, NULL, NULL, 'aperto', NULL);`,
+      pos(120, [
+        [90, 'A', 16.7, 19.6, 3, 0, 9.5], [1, 'A', 50, 19.6, 2, 0, 8], [2, 'A', 83.3, 19.6, 1, 0, 7],
+        [3, 'A', 16.7, 33, 0, 0, 6.5], [4, 'A', 50, 33, 0, 0, 6], [5, 'A', 83.3, 33, 0, 0, 5.5],
+        [91, 'B', 16.7, 67, 2, 0, 8.5], [92, 'B', 50, 67, 2, 0, 8], [6, 'B', 83.3, 67, 1, 0, 7],
+        [7, 'B', 16.7, 81, 0, 0, 6], [8, 'B', 50, 81, 0, 0, 6.5], [9, 'B', 83.3, 81, 0, 0, null],
+      ]),
+      `INSERT INTO mvp_vincitori (partita_id, giocatore_id) VALUES (120, 90);`,
+      pos(121, [[90, 'A', 16.7, 19.6, 0, 0, null], [91, 'B', 16.7, 67, 0, 0, null], [92, 'B', 50, 67, 0, 0, null], [1, 'A', 50, 19.6, 0, 0, null]]),
+    ].join('\n'),
+  )
+}
+
 const server: ChildProcess[] = []
 /** Avvia `wrangler pages dev` sulla build; `extra` = altri argomenti (es. --binding DEV_ADMIN_BYPASS=1). */
 export async function avviaServer(porta: number, extra: string[] = []) {
