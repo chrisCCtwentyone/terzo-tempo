@@ -40,7 +40,10 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   `chrisCCtwentyone/toto-amici`).
 - **Credits**: nell'app, una pagina "Info" con "creato da chrisCCtwentyone" e link
   al profilo GitHub (https://github.com/chrisCCtwentyone). Solo il nickname, MAI il
-  nome vero (decisione dell'utente).
+  nome vero (decisione dell'utente). Dal 30/09/2026 (utente: "il tasto Info e'
+  troppo ripetitivo"): Info e' una QUINTA voce della barra in basso, a destra di
+  Giocatori; in fondo alle pagine niente pulsante Info ma una riga discreta come in
+  Toto-Amici: "Terzo Tempo · sviluppato da chrisCCtwentyone · codice su GitHub".
 - **Licenza**: MIT, intestata a chrisCCtwentyone (decisione dell'utente, 30/09/2026).
 - **Hosting**: Cloudflare Pages + D1 (gratuito, ~20 utenti).
 - **Accesso**: parte pubblica senza password. Sezione admin (/admin e /api/admin)
