@@ -12,8 +12,11 @@
  *  - nessun token -> 401; qualunque anomalia del token -> 403;
  *  - chiavi pubbliche irraggiungibili -> 503, mai "lascio passare".
  *
- * Unica scorciatoia: DEV_ADMIN_BYPASS=1 (solo .dev.vars) E richiesta da
- * localhost. Le due condizioni sono in `&&`: nessuna basta da sola.
+ * Unica scorciatoia: DEV_ADMIN_BYPASS=1 (solo .dev.vars), richiesta da
+ * localhost, NESSUNA configurazione di Access e nessuna intestazione dell'edge di
+ * Cloudflare (Cf-Ray). Tutte le condizioni sono in `&&`: nessuna basta da sola, e
+ * nessuna dipende da qualcosa che un client possa scrivere per APRIRE l'accesso
+ * (un client puo' al piu' aggiungere Cf-Ray, che il bypass lo spegne).
  *
  * Non scrive MAI nei log il token, ne' l'email.
  */
@@ -105,6 +108,18 @@ function localhost(url: URL): boolean {
   return url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]';
 }
 
+/**
+ * Il bypass di sviluppo. Vale SOLO se: variabile esplicita, indirizzo locale, Access NON configurato
+ * (in produzione ci sono sempre dominio, AUD ed email: un bypass rimasto per errore fra le variabili
+ * si spegne da solo) e nessuna traccia di Cloudflare sulla richiesta (Cf-Ray lo aggiunge l'edge a
+ * OGNI richiesta reale; wrangler in locale no).
+ */
+function bypassAmmesso(request: Request, url: URL, env: Ambiente): boolean {
+  if (env.DEV_ADMIN_BYPASS !== '1' || !localhost(url)) return false;
+  if (configurata(env.ACCESS_TEAM_DOMAIN) || configurata(env.ACCESS_AUD) || configurata(env.EMAIL_AUTORIZZATE)) return false;
+  return !request.headers.has('Cf-Ray');
+}
+
 /** Una variabile e' configurata se non e' vuota e non e' il segnaposto. */
 function configurata(v: string | undefined): string {
   const pulita = (v || '').trim();
@@ -138,9 +153,8 @@ const rifiuto = (motivo: string): EsitoAccesso => ({ ok: false, stato: 403, moti
 export async function verificaAccesso(request: Request, env: Ambiente): Promise<EsitoAccesso> {
   const url = new URL(request.url);
 
-  // Scorciatoia di sviluppo: sul sito pubblico e sugli indirizzi di anteprima
-  // l'hostname non e' mai localhost, quindi questo ramo non e' raggiungibile.
-  if (env.DEV_ADMIN_BYPASS === '1' && localhost(url)) {
+  // Scorciatoia di sviluppo: irraggiungibile in produzione (vedi bypassAmmesso).
+  if (bypassAmmesso(request, url, env)) {
     return { ok: true, email: 'sviluppo@locale' };
   }
 
@@ -223,7 +237,8 @@ export async function verificaAccesso(request: Request, env: Ambiente): Promise<
     return rifiuto('emittente del token non corrispondente');
   }
 
-  const audToken = Array.isArray(corpo.aud) ? corpo.aud.map(String) : [String(corpo.aud || '')];
+  // solo stringhe vere: String(["x"]) o String({}) non devono poter "diventare" l'AUD
+  const audToken = (Array.isArray(corpo.aud) ? corpo.aud : [corpo.aud]).filter((a): a is string => typeof a === 'string');
   if (!audToken.includes(aud)) return rifiuto("token emesso per un'altra applicazione");
 
   // Seconda difesa, obbligatoria: anche un token valido, ma di una persona che

@@ -27,15 +27,33 @@ export function numeroOpz(v: unknown, campo: string, min: number, max: number): 
   return v as number;
 }
 
-export function testo(v: unknown, campo: string, maxLungo: number): string {
+/**
+ * Caratteri di controllo (tranne, se `multiriga`, a capo e tabulazione), separatori di riga, caratteri
+ * invisibili che cambiano il verso di scrittura (U+202A-202E, U+2066-2069: servono a far leggere un nome
+ * al contrario) e l'inizio di file (U+FEFF). Non servono in nessun nome o cronaca e sono un classico dei
+ * testi "truccati".
+ */
+const VIETATI = /[\p{Cc}\u2028\u2029\u202A-\u202E\u2066-\u2069\uFEFF]/u;
+
+export function testo(v: unknown, campo: string, maxLungo: number, multiriga = false): string {
   if (typeof v !== 'string' || !v.trim() || v.trim().length > maxLungo) KO(campo, `testo non vuoto, al massimo ${maxLungo} caratteri`);
-  return (v as string).trim();
+  const t = (v as string).trim();
+  const senzaAcapo = multiriga ? t.replace(/[\n\r\t]/g, ' ') : t;
+  if (VIETATI.test(senzaAcapo)) KO(campo, 'contiene caratteri non ammessi (di controllo o invisibili)');
+  return t;
 }
 
 /** Testo, oppure null (assente, null o stringa vuota = null). */
-export function testoOpz(v: unknown, campo: string, maxLungo: number): string | null {
+export function testoOpz(v: unknown, campo: string, maxLungo: number, multiriga = false): string | null {
   if (v === undefined || v === null || (typeof v === 'string' && !v.trim())) return null;
-  return testo(v, campo, maxLungo);
+  return testo(v, campo, maxLungo, multiriga);
+}
+
+/** Elenco di al massimo `max` elementi (413 sarebbe sproporzionato: e' un 400 col nome del campo). */
+export function elenco(v: unknown, campo: string, max: number): unknown[] {
+  if (!Array.isArray(v)) return KO(campo, 'elenco');
+  if (v.length > max) KO(campo, `al massimo ${max} elementi`);
+  return v;
 }
 
 export function booleano(v: unknown, campo: string): boolean {

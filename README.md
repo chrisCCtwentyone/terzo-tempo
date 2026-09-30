@@ -287,7 +287,11 @@ Account Cloudflare, Access, secret e trappole già incontrate: [`docs/DEPLOY.md`
 
 **Area admin fail-closed.** `/api/admin/*` richiede un token di Cloudflare Access, che il backend verifica da solo (firma, audience ed email). Se manca un pezzo della configurazione la risposta è 403, mai un accesso aperto. Un test elenca ogni file sotto `functions/api/admin` e controlla che nessuno risponda senza accesso, anche con percorsi scritti in modo strano.
 
-**Voto anonimo.** Del token del dispositivo si salva solo l'hash SHA-256: nemmeno chi legge il database può risalire al telefono. Le scritture da un altro sito sono rifiutate (difesa dal CSRF) e la CSP ammette solo risorse proprie.
+**Voto anonimo.** Del token del dispositivo si salva solo l'hash SHA-256: nemmeno chi legge il database può risalire al telefono. Le scritture da un altro sito sono rifiutate (difesa dal CSRF). Contro gli script, un freno semplice: al massimo 10 voti per rete e per partita, contati su un pezzetto (16 bit) di hash dell'indirizzo, così una famiglia sullo stesso wifi vota senza problemi e nessuno può risalire all'indirizzo.
+
+**Niente codice iniettato.** La CSP ammette solo risorse proprie, senza `unsafe-inline` né `unsafe-eval`; React non usa mai `innerHTML`; nessun testo scritto dall'admin finisce in un `href` o in un `src`. Ogni query D1 usa parametri (`bind`): un test analizza il codice e lancia payload da manuale su ogni rotta. Nomi, badge e cronache hanno lunghezze massime e non ammettono caratteri di controllo.
+
+**Prove d'attacco automatiche.** Suite di test su SQL injection, percorsi mascherati verso l'admin, JWT contraffatti, CSRF, limiti degli ingressi, intestazioni, segreti nel bundle e nella storia di git; un e2e che inserisce payload XSS dall'admin e verifica che la parte pubblica li mostri come testo; `scripts/controlla_produzione.sh` ripete le prove non distruttive sul sito vero a ogni pubblicazione.
 
 Nel repository non ci sono email, token o chiavi: le email degli admin stanno nel secret `EMAIL_AUTORIZZATE` e nelle policy di Access.
 

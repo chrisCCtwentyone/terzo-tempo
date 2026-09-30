@@ -63,7 +63,7 @@ describe('configurazione mancante: 403 anche con un token valido', () => {
       pubblicaChiavi([chiave.jwk]);
       const r = await chiama(db, 'GET', '/api/admin/giocatori', { env, token: await firma(chiave) });
       expect(r.stato).toBe(403);
-      expect(r.json.errore).toContain('non configurato');
+      expect(r.json.errore).toBe('accesso negato'); // nessun indizio sul motivo, all'esterno
     });
   }
 });

@@ -37,7 +37,13 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
 - **Accesso**: parte pubblica senza password. Sezione admin (/admin e /api/admin)
   dietro Cloudflare Access con codice via email (OTP, come turni-plus), piu'
   verifica del JWT nel backend. Le email degli admin NON vanno in git: stanno nella
-  policy di Access e nel secret EMAIL_AUTORIZZATE.
+  policy di Access e nel secret EMAIL_AUTORIZZATE. Stesso account e stessa
+  organizzazione Zero Trust di turni-plus: chi ha gia' fatto il codice su turni-plus
+  entra in Terzo Tempo senza un nuovo codice SE e' anche nella lista di Terzo Tempo
+  (sessione globale dell'organizzazione). Spiegato all'utente il 30/09/2026, che
+  ha scelto di lasciarlo cosi' ("se non e' un buco di sicurezza lascia tutto cosi'").
+  Chi non e' nella lista non entra: la policy e' valutata per app e il backend
+  ricontrolla AUD ed email.
 - **Dati reali**: il sito online parte con i giocatori VERI forniti dall'utente
   (30/09/2026), inseriti direttamente nel database di produzione e MAI in un file
   tracciato. I dati finti di scripts/seed_prova.sql servono solo in locale e nei test.

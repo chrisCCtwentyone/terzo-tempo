@@ -16,7 +16,23 @@ const iscrivi = (cb: () => void) => {
 
 export const useUrl = () => useSyncExternalStore(iscrivi, url, () => '/')
 
+/** Un indirizzo dell'area admin (/admin, /admin/..., con query o hash). */
+const versoAdmin = (verso: string) => /^\/admin(?:[/?#]|$)/.test(verso)
+const dentroAdmin = () => /^\/admin(?:\/|$)/.test(location.pathname)
+
+/**
+ * Entrare in /admin DA FUORI dell'area admin e' sempre una navigazione di pagina vera: solo cosi' il browser chiede
+ * /admin al server e Cloudflare Access puo' intercettarla e mostrare il login. Una navigazione della SPA non
+ * arriverebbe mai al server: si vedrebbe il guscio dell'admin e poi un fetch verso l'API rimandato al login di Access
+ * (redirect cross-origin bloccato: "server irraggiungibile"). Fra le pagine dell'admin invece si resta nella SPA.
+ */
+export const daPaginaVera = (verso: string) => versoAdmin(verso) && !dentroAdmin()
+
 export function vai(verso: string, opzioni?: { sostituisci?: boolean }) {
+  if (daPaginaVera(verso)) {
+    location.assign(verso)
+    return
+  }
   history[opzioni?.sostituisci ? 'replaceState' : 'pushState'](null, '', verso)
   dispatchEvent(new Event(EVENTO))
 }
@@ -33,6 +49,7 @@ export function Link({ verso, onClick, ...resto }: { verso: string } & Omit<Anch
   const clic = (e: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(e)
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    if (daPaginaVera(verso)) return // lo lascia al browser: navigazione vera verso il server
     e.preventDefault()
     vai(verso)
   }

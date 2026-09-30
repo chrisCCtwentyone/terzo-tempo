@@ -1,4 +1,9 @@
 # Copiare in .dev.vars (ignorato da git). Solo per lo sviluppo locale.
-# Con DEV_ADMIN_BYPASS=1 le rotte /api/admin/* si aprono SOLO per richieste
-# che arrivano da localhost. In produzione questa variabile non va mai messa.
+# Con DEV_ADMIN_BYPASS=1 le rotte /api/admin/* si aprono SOLO se TUTTE queste condizioni valgono:
+# la richiesta arriva da localhost, Access NON e' configurato (per questo le due righe sotto
+# spengono i valori di wrangler.toml, altrimenti il bypass resterebbe chiuso) e la richiesta non e'
+# passata dall'edge di Cloudflare. In produzione questa variabile non va mai messa: se ci fosse,
+# si spegnerebbe da sola perche' Access e' configurato.
 DEV_ADMIN_BYPASS=1
+ACCESS_TEAM_DOMAIN=DA_COMPILARE
+ACCESS_AUD=DA_COMPILARE

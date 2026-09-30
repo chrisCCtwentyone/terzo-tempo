@@ -15,6 +15,8 @@ import { mkdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { chromium, type Browser, type CDPSession, type Page } from 'playwright-core'
 import { caselle } from '../shared/moduli.ts'
+import { avviaAccessSimulato } from './access_simulato.ts'
+import { visitaModuli } from './moduli.ts'
 import { DATI, RADICE, apri, assesta, avviaServer, chiudiSessione, concludi, falliti, foto, preparaBase, sql, verifica, type Sessione } from './impianto.ts'
 
 const PORTA = Number(process.env.E2E_PORT ?? 8798)
@@ -283,8 +285,12 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   verifica(dopoRigenera.json.giocatori.every((g) => g.squadra !== null), `${tema} "Rigenera" salva prima la bozza (i convocati sono sul server con le squadre del ritocco)`)
   c = await conta()
   verifica(c.A + c.B === 10 && Math.abs(c.A - c.B) <= 1, `${tema} rigenerate (${c.A}-${c.B})`)
-  await p.getByRole('button', { name: 'Salva', exact: true }).click()
-  await p.getByRole('status').filter({ hasText: 'Salvato', hasNotText: 'non' }).first().waitFor()
+  // "Rigenera" senza seed sceglie una proposta a caso: se coincide con quella gia' salvata non c'e' niente da salvare e "Salva" resta spento
+  const salva = p.getByRole('button', { name: 'Salva', exact: true })
+  if (await salva.isEnabled()) {
+    await salva.click()
+    await p.getByRole('status').filter({ hasText: 'Salvato', hasNotText: 'non' }).first().waitFor()
+  }
   const conSquadre = await api<PartitaDati>(p, `/api/partite/${id}`)
   verifica(conSquadre.json.giocatori.filter((g) => g.squadra === 'A').length === c.A && conSquadre.json.giocatori.filter((g) => g.squadra === 'B').length === c.B, `${tema} squadre salvate sul server`)
   verifica(/Tutto salvato/i.test((await p.locator('.barra-salva').textContent()) ?? ''), `${tema} dopo il salvataggio: "Tutto salvato"`)
@@ -530,6 +536,164 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   await chiudiSessione(s, tema)
 }
 
+/** Layout dei form: nessun campo sovrapposto o fuori dal contenitore a 320, 360, 390 e 430 px (chiaro e scuro). */
+async function provaLayoutModuli(browser: Browser, tema: 'light' | 'dark') {
+  console.log(`\n== layout dei form admin, tema ${tema} ==`)
+  const s = await apri(browser, BASE, tema, { touch: true })
+  const p = await s.ctx.newPage()
+  await visitaModuli(p, BASE, tema, join(SCHERMATE, 'moduli'))
+  await chiudiSessione(s, `${tema} layout dei form`)
+}
+
+/**
+ * XSS: dall'admin si scrivono payload da manuale in badge, stagione e cronaca; la parte PUBBLICA li deve
+ * mostrare come TESTO e non eseguire niente (nessun window.__xss, nessun dialogo, nessun elemento iniettato,
+ * nessun link javascript:, zero violazioni CSP). I nomi dei giocatori sono solo lettere: il server rifiuta i payload.
+ */
+async function provaXss(browser: Browser, tema: 'light' | 'dark') {
+  console.log(`\n== XSS, tema ${tema} ==`)
+  const t = tema === 'light' ? 'l' : 'd'
+  const P1 = `<img src=x onerror="window.__xss=1">${t}`
+  const P2 = `<script>window.__xss=2</script>${t}`
+  const P3 = `"><svg onload=window.__xss=3>${t}`
+  const P4 = 'javascript:window.__xss=4'
+  // i 400 sono provocati apposta (cognome e iniziali con markup rifiutati dal server)
+  const s = await apri(browser, BASE, tema, { touch: true, ignora: /status of 400/ })
+  const dialoghi: string[] = []
+  const p = await s.ctx.newPage()
+  p.on('dialog', (d) => { dialoghi.push(d.message()); void d.dismiss() })
+  await p.addInitScript(() => { (window as unknown as { __xss?: number }).__xss = undefined })
+
+  await p.goto(`${BASE}/admin`)
+  await p.locator('main h1').waitFor()
+  verifica((await api(p, '/api/admin/giocatori', { method: 'POST', corpo: { cognome: P1, iniziali: 'X' } })).stato === 400, `${tema} XSS: il cognome di un giocatore con markup e' rifiutato (solo lettere)`)
+  verifica((await api(p, '/api/admin/giocatori', { method: 'POST', corpo: { cognome: 'Rossi', iniziali: P3 } })).stato === 400, `${tema} XSS: le iniziali con markup sono rifiutate`)
+  const badge = await api<{ id: number }>(p, '/api/admin/badge', { method: 'POST', corpo: { nome: P1, descrizione: P3, tipo: 'positivo' } })
+  verifica(badge.stato === 201, `${tema} XSS: badge col markup nel nome e nella descrizione creato (${badge.stato})`)
+  verifica((await api(p, '/api/admin/giocatori/1/badge', { method: 'PUT', corpo: { badge_ids: [badge.json.id] } })).stato === 200, `${tema} XSS: badge assegnato`)
+  verifica((await api(p, '/api/admin/stagioni', { method: 'POST', corpo: { nome: P2, data_inizio: '2031-01-01', aperta: false } })).stato === 201, `${tema} XSS: stagione col markup nel nome creata`)
+  const cronaca = `${P1} ${P2} ${P3} ${P4} [x](${P4}) <a href="${P4}">clic</a> <iframe src="${P4}"></iframe>`
+  verifica((await api(p, '/api/admin/partite/10', { method: 'PATCH', corpo: { cronaca } })).stato === 200, `${tema} XSS: cronaca col markup salvata`)
+
+  // la parte pubblica: ogni pagina che mostra questi testi
+  const pagine: [string, string][] = [
+    ['/giocatori', 'listone (badge)'], ['/giocatori/1', 'scheda (badge)'], ['/partite/10', 'partita (cronaca)'],
+    ['/classifiche?stagione=sempre', 'classifiche (selettore stagioni)'], ['/partite', 'elenco partite'], ['/', 'home'],
+  ]
+  for (const [url, nome] of pagine) {
+    await p.goto(`${BASE}${url}`)
+    await assesta(p, `${tema} XSS ${nome}`)
+    const m = await p.evaluate(() => ({
+      xss: (window as unknown as { __xss?: number }).__xss,
+      iniettati: document.querySelectorAll('img[src="x"], svg[onload], iframe, script:not([src]), [onerror], [onload]').length,
+      linkPericolosi: [...document.querySelectorAll('[href],[src],[action],[formaction]')].filter((e) => /^\s*javascript:/i.test(e.getAttribute('href') ?? e.getAttribute('src') ?? e.getAttribute('action') ?? e.getAttribute('formaction') ?? '')).length,
+      testo: document.body.innerText,
+      html: document.body.innerHTML,
+    }))
+    verifica(m.xss === undefined, `${tema} XSS ${nome}: nessun codice eseguito (window.__xss=${m.xss})`)
+    verifica(m.iniettati === 0, `${tema} XSS ${nome}: nessun elemento iniettato (${m.iniettati})`)
+    verifica(m.linkPericolosi === 0, `${tema} XSS ${nome}: nessun link javascript: (${m.linkPericolosi})`)
+    if (url === '/partite/10') {
+      verifica(m.testo.includes('<script>window.__xss=2</script>') && m.testo.includes('<a href="javascript:'), `${tema} XSS ${nome}: la cronaca compare come TESTO, con il markup visibile`)
+    }
+    if (url === '/giocatori/1' || url === '/giocatori') {
+      verifica(m.testo.includes('<img src=x onerror="window.__xss=1">'), `${tema} XSS ${nome}: il nome del badge compare come testo`)
+    }
+    if (url.startsWith('/classifiche')) {
+      verifica((await p.locator('option', { hasText: P2 }).count()) === 1, `${tema} XSS ${nome}: la stagione compare come testo nel selettore`)
+    }
+    verifica(!m.html.includes('<script>window.__xss') && !m.html.includes('<img src=x'), `${tema} XSS ${nome}: nel DOM il markup e' escapato (&lt;)`)
+  }
+  verifica(dialoghi.length === 0, `${tema} XSS: nessun alert/confirm/prompt (${dialoghi.join(', ')})`)
+  // la stessa cosa nell'area admin, che mostra gli stessi testi
+  for (const url of ['/admin/badge', '/admin/stagioni', '/admin/giocatori', '/admin/partite/10?sez=risultato']) {
+    await p.goto(`${BASE}${url}`)
+    await assesta(p, `${tema} XSS admin ${url}`)
+    const x = await p.evaluate(() => [(window as unknown as { __xss?: number }).__xss, document.querySelectorAll('img[src="x"], svg[onload], iframe, script:not([src])').length])
+    verifica(x[0] === undefined && x[1] === 0, `${tema} XSS admin ${url}: niente eseguito ne' iniettato`)
+  }
+  verifica(dialoghi.length === 0, `${tema} XSS: nessun dialogo nemmeno nell'admin`)
+  await chiudiSessione(s, `${tema} XSS`)
+}
+
+/**
+ * Accesso con Cloudflare Access SIMULATO (proxy davanti al sito senza bypass, vedi access_simulato.ts).
+ * Difetto trovato in produzione: il pulsante "Area admin" era una navigazione della SPA, il browser non chiedeva mai
+ * /admin al server, Access non mostrava il login; si vedeva il guscio dell'admin e poi "Non riesco a raggiungere il
+ * server" (il fetch seguiva il 302 verso il login, bloccato da CORS/CSP).
+ */
+async function provaAccessoSimulato(browser: Browser, tema: 'light' | 'dark') {
+  console.log(`\n== accesso con Access simulato, tema ${tema} ==`)
+  const base = (porta: number) => `http://127.0.0.1:${porta}`
+  const nuovaSessione = async (porta: number) => {
+    const s = await apri(browser, base(porta), tema, { touch: true, ignora: /status of (401|403)/ })
+    const guscio: string[] = []
+    await s.ctx.exposeFunction('segnalaGuscio', (dove: string) => guscio.push(dove))
+    await s.ctx.addInitScript(() => {
+      new MutationObserver(() => {
+        if (document.querySelector('nav.nav.adm, .admbar, .riga-btn')) (window as unknown as { segnalaGuscio: (d: string) => void }).segnalaGuscio(location.href)
+      }).observe(document, { childList: true, subtree: true })
+    })
+    const navigazioni: string[] = []
+    const p = await s.ctx.newPage()
+    p.on('request', (r) => r.isNavigationRequest() && navigazioni.push(r.url()))
+    return { s, p, guscio, navigazioni }
+  }
+
+  // (a) Access davanti a tutto: dalla Home il pulsante "Area admin" e' una navigazione di pagina vera verso il login
+  const A = await avviaAccessSimulato(PORTA + 2, PORTA + 1, 'completo')
+  {
+    const { s, p, guscio, navigazioni } = await nuovaSessione(A.porta)
+    await p.goto(`${base(A.porta)}/`)
+    await p.locator('.admin-cta').waitFor()
+    const href = await p.locator('.admin-cta').getAttribute('href')
+    verifica(href === '/admin', `${tema} Access simulato: il pulsante "Area admin" e' un link normale a /admin`)
+    await p.locator('.admin-cta').click()
+    await p.waitForURL(/\/cdn-cgi\/access\/login\//)
+    verifica(navigazioni.includes(`${base(A.porta)}/admin`), `${tema} Access simulato: e' partita una navigazione di DOCUMENTO verso /admin (${navigazioni.join(', ')})`)
+    verifica(p.url().startsWith(`http://localhost:${A.porta}/cdn-cgi/access/login/`), `${tema} Access simulato: si finisce sulla pagina di login (${p.url()})`)
+    verifica(A.stato.documentiAdmin >= 1 && A.stato.login === 1, `${tema} Access simulato: /admin e' stato chiesto al server (${A.stato.documentiAdmin}) e il login e' stato mostrato (${A.stato.login})`)
+    verifica(A.stato.apiAdmin === 0, `${tema} Access simulato: la SPA non ha nemmeno chiamato /api/admin (${A.stato.apiAdmin})`)
+    verifica(guscio.length === 0, `${tema} Access simulato: il guscio dell'admin non e' MAI comparso (${guscio.join(', ')})`)
+    await s.ctx.close()
+  }
+  A.chiudi()
+
+  // (b) sessione scaduta a meta' uso: la pagina passa, l'API rimanda al login. Un solo tentativo automatico, niente giri a vuoto
+  const B = await avviaAccessSimulato(PORTA + 3, PORTA + 1, 'solo-api')
+  {
+    const { s, p, guscio, navigazioni } = await nuovaSessione(B.porta)
+    await p.goto(`${base(B.porta)}/admin/giocatori`)
+    await p.getByRole('heading', { name: 'Area riservata agli admin' }).waitFor()
+    await p.waitForLoadState('networkidle')
+    const testo = await p.locator('body').innerText()
+    verifica(!/raggiungere il server/i.test(testo), `${tema} Access scaduto: non dice "server irraggiungibile"`)
+    verifica(/codice via email/i.test(testo), `${tema} Access scaduto: spiega che si accede con il codice via email`)
+    verifica(B.stato.documentiAdmin === 2, `${tema} Access scaduto: UN solo tentativo automatico di navigazione piena, poi si ferma (${B.stato.documentiAdmin} richieste di pagina)`)
+    verifica(navigazioni.filter((u) => u.includes('/admin/giocatori')).length === 2, `${tema} Access scaduto: la navigazione piena riporta alla stessa pagina (${navigazioni.join(', ')})`)
+    verifica(guscio.length === 0, `${tema} Access scaduto: il guscio dell'admin non e' MAI comparso (${guscio.join(', ')})`)
+    verifica((await p.locator('nav.nav.adm').count()) === 0 && (await p.locator('.admbar').count()) === 0, `${tema} Access scaduto: nessun menu admin`)
+    verifica((await p.locator('input').count()) === 0, `${tema} Access scaduto: nessun form di password`)
+    // il pulsante fa una navigazione di pagina vera (e non un ciclo)
+    const prima = B.stato.documentiAdmin
+    await p.getByRole('button', { name: 'Accedi con il codice via email' }).click()
+    await p.getByRole('heading', { name: 'Area riservata agli admin' }).waitFor()
+    await p.waitForLoadState('networkidle')
+    verifica(B.stato.documentiAdmin === prima + 1, `${tema} Access scaduto: il pulsante fa UNA navigazione di pagina (${B.stato.documentiAdmin - prima})`)
+    verifica(guscio.length === 0, `${tema} Access scaduto: nemmeno dopo il pulsante compare il guscio`)
+    await foto(p, join(SCHERMATE, 'moduli'), `${tema}-accesso-scaduto`)
+    // e dalla pagina "Area riservata" il ritorno al sito funziona (SPA)
+    await p.getByRole('link', { name: 'Torna al sito' }).click()
+    await p.waitForURL((u) => u.pathname === '/')
+    // il fetch NON ha seguito il rinvio al login (redirect manuale): il simulatore non ha mai visto una richiesta di login.
+    // (Chromium segnala comunque il "salto" del rinvio come richiesta: si toglie dall'elenco delle risorse esterne.)
+    verifica(B.stato.login === 0, `${tema} Access scaduto: il fetch non ha seguito il rinvio al login (${B.stato.login} richieste di login)`)
+    s.esterne = s.esterne.filter((u) => !u.includes('/cdn-cgi/access/login/'))
+    await chiudiSessione(s, `${tema} Access scaduto`)
+  }
+  B.chiudi()
+}
+
 async function provaSenzaAccesso(browser: Browser, tema: 'light' | 'dark') {
   console.log(`\n== senza accesso, tema ${tema} ==`)
   const s = await apri(browser, BASE_SENZA, tema, { touch: true, ignora: /status of (401|403)/ })
@@ -563,19 +727,26 @@ async function provaMovimentoRidotto(browser: Browser) {
 }
 
 async function main() {
-  mkdirSync(SCHERMATE, { recursive: true })
+  mkdirSync(join(SCHERMATE, 'moduli'), { recursive: true })
   console.log(`dati di prova in ${DATI}, schermate in ${SCHERMATE}`)
   preparaBase()
-  await avviaServer(PORTA, ['--binding', 'DEV_ADMIN_BYPASS=1'])
+  // il bypass si apre solo senza Access configurato: si spengono i valori di wrangler.toml (come fa .dev.vars.example)
+  await avviaServer(PORTA, ['--binding', 'DEV_ADMIN_BYPASS=1', '--binding', 'ACCESS_TEAM_DOMAIN=DA_COMPILARE', '--binding', 'ACCESS_AUD=DA_COMPILARE'])
   await avviaServer(PORTA + 1)
   const browser = await chromium.launch({ executablePath: process.env.E2E_CHROMIUM || undefined })
   const pubblico: string[] = []
   try {
+    await provaLayoutModuli(browser, 'light')
+    await provaLayoutModuli(browser, 'dark')
     await provaAdmin(browser, 'light', pubblico)
     await provaAdmin(browser, 'dark', pubblico)
     await provaSenzaAccesso(browser, 'light')
     await provaSenzaAccesso(browser, 'dark')
     await provaMovimentoRidotto(browser)
+    await provaAccessoSimulato(browser, 'light')
+    await provaAccessoSimulato(browser, 'dark')
+    await provaXss(browser, 'light')
+    await provaXss(browser, 'dark')
   } finally {
     await browser.close()
   }

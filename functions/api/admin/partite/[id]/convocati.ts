@@ -6,11 +6,11 @@
  * posizioni delle pedine, gol, autogol e pagelle. Risposta: dettaglio + `avvisi`.
  */
 import { avvisiCoerenza, controllaGiocabile, type Convocato } from '../../../../lib/admin';
-import { CODICI_SQUADRA } from '../../../../lib/costanti';
+import { CODICI_SQUADRA, MAX_CONVOCATI } from '../../../../lib/costanti';
 import { caricaPartita } from '../../../../lib/mvp';
 import { dettaglio } from '../../../../lib/partite';
 import { ErroreApi, idDa, json, leggiOggetto, perMetodo } from '../../../../lib/risposta';
-import { intero, numeroOpz, votoPagella } from '../../../../lib/valida';
+import { elenco, intero, numeroOpz, votoPagella } from '../../../../lib/valida';
 
 function leggiConvocato(v: unknown): Convocato {
   if (!v || typeof v !== 'object') throw new ErroreApi(400, 'convocati: ogni elemento è un oggetto');
@@ -35,8 +35,7 @@ export const onRequest = perMetodo({
   PUT: async ({ env, request, params }) => {
     const id = idDa(params.id);
     const c = await leggiOggetto(request);
-    if (!Array.isArray(c.convocati)) throw new ErroreApi(400, 'convocati: elenco');
-    const righe = c.convocati.map(leggiConvocato);
+    const righe = elenco(c.convocati, 'convocati', MAX_CONVOCATI).map(leggiConvocato);
     if (new Set(righe.map((r) => r.giocatore_id)).size !== righe.length) throw new ErroreApi(400, 'convocati: giocatori ripetuti');
     const p = await caricaPartita(env.DB, id);
     if (!p) throw new ErroreApi(404, 'partita non trovata');

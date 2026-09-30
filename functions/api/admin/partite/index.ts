@@ -4,15 +4,15 @@
  * senza (es. "2026-10-01T21:00") e' ora di Roma. Senza stagione_id: la stagione aperta.
  */
 import { ErroreApi, json, leggiOggetto, perMetodo } from '../../../lib/risposta';
-import { dataOraUtc, intero } from '../../../lib/valida';
+import { MAX_CONVOCATI } from '../../../lib/costanti';
+import { dataOraUtc, elenco, intero } from '../../../lib/valida';
 import { stagioneAperta } from '../../../lib/partite';
 
 export const onRequest = perMetodo({
   POST: async ({ env, request }) => {
     const c = await leggiOggetto(request);
     const dataOra = dataOraUtc(c.data_ora);
-    if (!Array.isArray(c.giocatori)) throw new ErroreApi(400, 'giocatori: elenco di id');
-    const ids = c.giocatori.map((g) => intero(g, 'giocatori', 1, Number.MAX_SAFE_INTEGER));
+    const ids = elenco(c.giocatori, 'giocatori', MAX_CONVOCATI).map((g) => intero(g, 'giocatori', 1, Number.MAX_SAFE_INTEGER));
     if (new Set(ids).size !== ids.length) throw new ErroreApi(400, 'giocatori: id ripetuti');
 
     const stagioneId = c.stagione_id === undefined ? (await stagioneAperta(env.DB))?.id : intero(c.stagione_id, 'stagione_id', 1, Number.MAX_SAFE_INTEGER);

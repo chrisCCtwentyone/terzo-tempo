@@ -85,7 +85,7 @@ function Modulo({ giocatori, badge, stagioni }: { giocatori: GiocatoreAdmin[]; b
   return (
     <form className="modulo" onSubmit={(e) => { e.preventDefault(); void crea() }} noValidate>
       <Carta>
-        <div className="due">
+        <div className="due impila">
           <Fld etichetta="Data e ora" aiuto="Ora di Roma.">
             {(p) => <input {...p} type="datetime-local" value={dataOra} onChange={(e) => setDataOra(e.target.value)} required />}
           </Fld>

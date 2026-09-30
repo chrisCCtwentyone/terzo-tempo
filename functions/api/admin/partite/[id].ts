@@ -17,7 +17,7 @@ export const onRequest = perMetodo({
     const campi: [string, unknown][] = [];
     if ('data_ora' in c) campi.push(['data_ora', dataOraUtc(c.data_ora)]);
     if ('stagione_id' in c) campi.push(['stagione_id', intero(c.stagione_id, 'stagione_id', 1, Number.MAX_SAFE_INTEGER)]);
-    if ('cronaca' in c) campi.push(['cronaca', testoOpz(c.cronaca, 'cronaca', 5000)]);
+    if ('cronaca' in c) campi.push(['cronaca', testoOpz(c.cronaca, 'cronaca', 5000, true)]);
     for (const g of ['gol_a', 'gol_b'] as const) {
       if (g in c) {
         if (p.stato !== 'giocata') throw new ErroreApi(409, `${g}: il risultato si inserisce segnando la partita "giocata"`);
