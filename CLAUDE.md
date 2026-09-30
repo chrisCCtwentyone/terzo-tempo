@@ -42,7 +42,8 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
     dopo l'ORARIO DELLA PARTITA (es. partita gio 21:00 -> chiusa ven 21:00), anche
     se l'admin carica la partita in ritardo. Nessuno deve poter votare giorni dopo;
   - mentre e' aperta si vede solo quanti hanno votato; il risultato esce alla chiusura;
-  - in caso di parita' decide l'admin fra i pari merito.
+  - in caso di parita' decide l'admin fra i pari merito;
+  - se si chiude senza nessun voto, l'MVP lo sceglie l'admin (solo in quel caso).
 - **Stagioni**: aperte e chiuse a mano dall'admin; classifiche per stagione e storico.
 - **Giocatori**: identificati come "Iniziale. Cognome" (anche due iniziali, es.
   "S. C. Rossi"). Niente foto per ora; in futuro forse foto o avatar stile
@@ -57,7 +58,7 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
 - **Generatore di squadre**: parte dai convocati, bilancia un mix di media voto,
   percentuale vittorie, gol e **livello segreto** dato dall'admin; cerca anche di
   distribuire i badge fra le due squadre. Poi l'admin ritocca a mano.
-- **Livello segreto** (es. 1-5): uno per giocatore, condiviso fra tutti gli admin,
+- **Livello segreto** da 1 a 5, **5 = il piu' forte**: uno per giocatore, condiviso fra tutti gli admin,
   MAI visibile ai giocatori ("senza che nessuno si offenda"). Non deve uscire da
   nessuna API pubblica, nemmeno in un campo ignorato dall'interfaccia.
 - **Badge** (caratteristiche, positive e negative), assegnati dagli admin e
@@ -65,6 +66,14 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   positivi Corridore, Cecchino, Instancabile, Muro, Regista, Saracinesca
   (portiere), Dribblomane; negativi Turista (non torna in difesa), Egoista (non
   passa mai), Polemico, Ritardatario, Fragile. Gli admin possono crearne di nuovi.
+  Descrizioni approvate (30/09/2026): Corridore "brucia tutti in velocita'",
+  Cecchino "tiro preciso e potente", Instancabile "corre fino all'ultimo minuto",
+  Muro "in difesa non si passa", Regista "sa sempre a chi passarla", Saracinesca
+  "tra i pali para tutto", Dribblomane "non rinuncia mai al dribbling", Turista
+  "non torna in difesa", Egoista "non passa mai", Polemico "discute ogni fallo",
+  Ritardatario "arriva a partita iniziata", Fragile "sempre acciaccato".
+- **Classifiche**: nessun minimo di partite per media voto e % vittorie (compaiono
+  tutti subito; decisione dell'utente).
 - **Altre funzioni volute**: classifiche (gol, presenze, media voto, MVP), scheda
   giocatore, listone giocatori, statistiche divertenti.
 - **Stile**: animazioni importanti ma leggere; non e' un sito vetrina, deve essere
