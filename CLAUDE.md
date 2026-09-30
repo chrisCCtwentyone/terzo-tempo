@@ -26,9 +26,13 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
 
 - **Nome**: Terzo Tempo. Repository `chrisCCtwentyone/terzo-tempo`, privato.
 - **Hosting**: Cloudflare Pages + D1 (gratuito, ~20 utenti).
-- **Accesso**: parte pubblica senza password. Sezione admin (1-4 admin) protetta,
-  metodo proposto: Cloudflare Access con codice via email (le email degli admin NON
-  vanno in git: stanno in un secret). Da confermare quando si arriva li'.
+- **Accesso**: parte pubblica senza password. Sezione admin (/admin e /api/admin)
+  dietro Cloudflare Access con codice via email (OTP, come turni-plus), piu'
+  verifica del JWT nel backend. Le email degli admin NON vanno in git: stanno nella
+  policy di Access e nel secret EMAIL_AUTORIZZATE.
+- **Dati reali**: il sito online parte con i giocatori VERI forniti dall'utente
+  (30/09/2026), inseriti direttamente nel database di produzione e MAI in un file
+  tracciato. I dati finti di scripts/seed_prova.sql servono solo in locale e nei test.
 - **Partite**: squadre rifatte ogni volta, numero di giocatori per squadra variabile
   (5, 6, 7...). Tutto lo gestisce l'admin.
 - **Dati per partita**: risultato, gol, autogol, voti in pagella 1-10 (dall'admin),
@@ -49,7 +53,9 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
 - **Giocatori**: nome mostrato OVUNQUE nell'app (classifiche, listone, campo,
   pagelle) come **"Cognome I."**, iniziali attaccate col punto: "Rossi M.",
   "Rossi S.C.", "De Luca V." (decisione dell'utente, 30/09/2026; prima era
-  "S. C. Rossi"). Niente foto per ora; in futuro forse foto o avatar stile
+  "S. C. Rossi"). Alcuni giocatori veri hanno solo un nome o un nome provvisorio
+  (utente: "lasciali, in futuro si modificano o si eliminano"): le iniziali
+  possono mancare e allora si mostra il solo nome scritto. Niente foto per ora; in futuro forse foto o avatar stile
   fantacalcio. Lista sempre ampliabile. I giocatori veri li fornisce l'utente DOPO
   le prove con giocatori generici.
 - **Squadre**: per ora si chiamano sempre "Casaccati" contro "Smollicati"
