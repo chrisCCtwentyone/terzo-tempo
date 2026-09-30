@@ -43,7 +43,8 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
     se l'admin carica la partita in ritardo. Nessuno deve poter votare giorni dopo;
   - mentre e' aperta si vede solo quanti hanno votato; il risultato esce alla chiusura;
   - in caso di parita' decide l'admin fra i pari merito;
-  - se si chiude senza nessun voto, l'MVP lo sceglie l'admin (solo in quel caso).
+  - se si chiude senza nessun voto, l'MVP lo sceglie l'admin (solo in quel caso);
+  - un MVP scelto dall'admin (parita' o zero voti) conta in classifica come gli altri.
 - **Stagioni**: aperte e chiuse a mano dall'admin; classifiche per stagione e storico.
 - **Giocatori**: nome mostrato OVUNQUE nell'app (classifiche, listone, campo,
   pagelle) come **"Cognome I."**, iniziali attaccate col punto: "Rossi M.",
@@ -63,7 +64,8 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   (utente): se succede, ogni squadra usa i moduli del proprio numero.
 - **Generatore di squadre**: parte dai convocati, bilancia un mix di media voto,
   percentuale vittorie, gol e **livello segreto** dato dall'admin; cerca anche di
-  distribuire i badge fra le due squadre. Poi l'admin ritocca a mano.
+  distribuire i badge fra le due squadre. Poi l'admin ritocca a mano. Usa le
+  statistiche anche di chi ha giocato una sola volta: l'admin corregge col livello.
 - **Livello segreto** da 1 a 5, **5 = il piu' forte**: uno per giocatore, condiviso fra tutti gli admin,
   MAI visibile ai giocatori ("senza che nessuno si offenda"). Non deve uscire da
   nessuna API pubblica, nemmeno in un campo ignorato dall'interfaccia.
