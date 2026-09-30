@@ -5,6 +5,7 @@
  */
 
 import type { Ambiente } from './access';
+import { MAX_CORPO_BYTE } from './costanti';
 
 export type Env = Ambiente & { DB: D1Database };
 
@@ -51,7 +52,37 @@ export function perMetodo(gestori: Partial<Record<Metodo, (c: Contesto) => Promi
   };
 }
 
-/** Corpo JSON (deve essere un oggetto). Il Content-Type deve essere application/json. */
+/**
+ * Legge il corpo fermandosi a MAX_CORPO_BYTE: un corpo enorme non deve riempire la memoria del Worker
+ * (ne' con Content-Length dichiarato, ne' a pezzi senza dichiararlo).
+ */
+async function leggiCorpoLimitato(request: Request): Promise<string> {
+  const dichiarato = Number(request.headers.get('Content-Length'));
+  if (Number.isFinite(dichiarato) && dichiarato > MAX_CORPO_BYTE) throw new ErroreApi(413, 'corpo della richiesta troppo grande');
+  if (!request.body) return '';
+  const lettore = request.body.getReader();
+  const pezzi: Uint8Array[] = [];
+  let totale = 0;
+  for (;;) {
+    const { done, value } = await lettore.read();
+    if (done) break;
+    totale += value.byteLength;
+    if (totale > MAX_CORPO_BYTE) {
+      await lettore.cancel().catch(() => undefined);
+      throw new ErroreApi(413, 'corpo della richiesta troppo grande');
+    }
+    pezzi.push(value);
+  }
+  const tutto = new Uint8Array(totale);
+  let i = 0;
+  for (const p of pezzi) {
+    tutto.set(p, i);
+    i += p.byteLength;
+  }
+  return new TextDecoder().decode(tutto);
+}
+
+/** Corpo JSON (deve essere un oggetto, al massimo MAX_CORPO_BYTE). Il Content-Type deve essere application/json. */
 export async function leggiOggetto(request: Request): Promise<Record<string, unknown>> {
   // "Contiene" accettava "text/plain;application/json", che un altro sito puo'
   // inviare senza controllo preventivo (CORS): serve il tipo esatto.
@@ -59,8 +90,9 @@ export async function leggiOggetto(request: Request): Promise<Record<string, unk
   if (tipo !== 'application/json') throw new ErroreApi(415, 'serve Content-Type: application/json');
   let v: unknown;
   try {
-    v = await request.json();
-  } catch {
+    v = JSON.parse(await leggiCorpoLimitato(request));
+  } catch (e) {
+    if (e instanceof ErroreApi) throw e;
     throw new ErroreApi(400, 'JSON non valido');
   }
   if (!v || typeof v !== 'object' || Array.isArray(v)) throw new ErroreApi(400, 'il corpo deve essere un oggetto JSON');

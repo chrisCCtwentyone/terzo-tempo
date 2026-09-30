@@ -31,15 +31,23 @@ non si toccano.
 Si ferma al primo errore (`set -euo pipefail`, nessuna pipe sui comandi che devono poter fallire) e fa,
 in ordine: `tsc -b`, `vitest run` (compresa la guardia dei nomi reali), `vite build`, migrazioni D1
 `--remote`, `wrangler pages deploy app/dist --branch main`, poi `scripts/controlla_produzione.sh`.
-Esce con 0 solo se e' tutto verde. Servono nell'ambiente `CLOUDFLARE_API_TOKEN` e
+Esce con 0 solo se e' tutto verde. La build viene PRIMA dei test perche' `test/sicurezza_bundle.test.ts`
+controlla che nel bundle non ci sia nessun segreto. Servono nell'ambiente `CLOUDFLARE_API_TOKEN` e
 `CLOUDFLARE_ACCOUNT_ID` (vedi "Una sessione nuova").
 
 `scripts/controlla_produzione.sh [indirizzo-della-pubblicazione]` si puo' lanciare da solo quando si
 vuole. Controlla il sito VERO: pagine e API pubbliche danno 200; `/admin` e ogni `/api/admin/*`
 (elenco ricavato da `functions/api/admin`, GET e POST) rimandano al login di Access (302 verso
 `cloudflareaccess.com`) o danno 401/403, mai 200; "livello" non compare in nessuna risposta
-pubblica; intestazioni di sicurezza e CSP presenti; l'indirizzo della singola pubblicazione
-(`<hash>.terzo-tempo.pages.dev`) e' tutto dietro Access.
+pubblica; intestazioni di sicurezza e CSP presenti (senza `unsafe-*`, con HSTS); l'indirizzo della singola
+pubblicazione (`<hash>.terzo-tempo.pages.dev`) e' tutto dietro Access.
+
+Lo stesso script fa anche le **prove d'attacco NON distruttive** (solo GET, HEAD, OPTIONS, e POST/PUT/DELETE verso
+`/api/admin/*` senza credenziali; mai un voto, mai una scrittura): percorsi mascherati verso l'admin (maiuscole, `%61`,
+doppi slash, `;`, `%2F`, doppia codifica, percentuali malformate), JWT `alg: none`/HS256/RS256 contraffatti in intestazione e
+in cookie, `Cf-Access-Authenticated-User-Email` e `Host`/`X-Forwarded-*` falsificati, CORS, file sorgente e di configurazione
+non serviti, nessun segreto nel bundle JS pubblico, nessun 5xx ne' stack con id e parametri malevoli (SQL, numeri enormi,
+unicode). Si puo' lanciare quando si vuole, anche da solo, senza toccare i dati.
 
 Trappole gia' incontrate (dal progetto gemello):
 
@@ -49,6 +57,13 @@ Trappole gia' incontrate (dal progetto gemello):
   locali non bastano, dopo ogni pubblicazione si prova il sito vero.
 - Subito dopo la CREAZIONE del progetto il sito puo' rispondere 522 per qualche decina di secondi:
   il controllo ritenta i 5xx fino a 4 volte a distanza di 10 secondi.
+- Access chiede il codice solo se il browser chiede la PAGINA al server. Il pulsante "Area admin" del piede e' quindi un
+  `<a href="/admin">` normale (e `vai()`/`Link` del router fanno una navigazione di pagina vera verso /admin da fuori
+  dell'area): una navigazione della SPA mostrava il guscio dell'admin e poi "Non riesco a raggiungere il server",
+  perche' il fetch a `/api/admin/me` seguiva il 302 di Access verso un altro sito (bloccato da CORS e CSP). Ora le chiamate
+  admin usano `redirect: 'manual'`; un rinvio, un 401/403 o una risposta non JSON su `/api/admin/me` fanno UNA navigazione
+  di pagina vera (flag in `sessionStorage` contro i cicli), poi "Area riservata" con il pulsante per riprovare. Il guscio
+  dell'admin compare solo dopo `/api/admin/me` = 200. `npm run e2e:admin` lo prova con un finto Access (`e2e/access_simulato.ts`).
 - Il `.pages.dev` di un progetto nuovo e' `<nome>.pages.dev` solo se il nome e' libero: qui lo e'.
 
 ## Aggiungere o togliere un admin
@@ -104,6 +119,9 @@ npx wrangler d1 execute terzo-tempo --remote --command "SELECT id, nome, attivo 
 2. `git checkout` del ramo, `npm install` (il `.npmrc` ha `legacy-peer-deps=true`), `npm test`.
 3. `./scripts/pubblica.sh`. Senza `dati/giocatori_reali.tsv` la guardia dei nomi non ha niente da
    controllare e passa: non e' un errore, ma ricordare che i nomi veri non vanno mai in git.
+3b. In locale `.dev.vars` (copia di `.dev.vars.example`) apre l'admin solo con Access NON configurato: l'esempio azzera
+   `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD`, che altrimenti verrebbero da `wrangler.toml`. `npm run e2e:admin` li passa con `--binding`.
+   Le migrazioni si applicano anche alla base locale: `npm run db:migra` (la `0003` aggiunge `voti_mvp.hash_ip`).
 4. Dopo ogni pubblicazione, prova nel browser sul sito vero a 390x844 (`vite preview`/`wrangler pages dev`
    non bastano): console pulita, zero violazioni CSP, niente scroll orizzontale, `/admin` che porta al login
    di Access. Chromium e' gia' installato: mai `playwright install`.

@@ -18,50 +18,86 @@ import { errore, type Env } from './lib/risposta';
 /**
  * Il frontend deve stare dentro questa CSP: script, stili e caratteri solo dal
  * nostro sito (i font vanno self-hosted, es. @fontsource), immagini anche
- * data:/blob:. Se serve altro, si allarga qui e si dice perche'.
+ * data:/blob:. Niente 'unsafe-inline' e niente 'unsafe-eval': gli stili dei
+ * componenti React passano dal CSSOM (element.style), che la CSP non blocca.
+ * Se serve altro, si allarga qui e si dice perche'.
  */
 const CSP = [
   "default-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
+  "style-src 'self'",
   "img-src 'self' data: blob:",
   "connect-src 'self'",
+  "font-src 'self'",
+  "manifest-src 'self'",
   "object-src 'none'",
+  "frame-src 'none'",
+  "worker-src 'none'",
   "base-uri 'none'",
   "form-action 'self'",
   "frame-ancestors 'none'",
+  'upgrade-insecure-requests',
 ].join('; ');
 
 const INTESTAZIONI_SICUREZZA: Record<string, string> = {
+  'Strict-Transport-Security': 'max-age=31536000',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
   'X-Frame-Options': 'DENY',
-  'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+  'Permissions-Policy': 'geolocation=(), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Resource-Policy': 'same-origin',
   'Content-Security-Policy': CSP,
 };
 
-/** Il percorso, comunque scritto (maiuscole, %-codifiche, doppi slash), come elenco di segmenti. */
-function segmenti(percorso: string): string[][] {
-  let decodificato = percorso;
-  try {
-    decodificato = decodeURIComponent(decodeURIComponent(percorso));
-  } catch {
-    // percorso con percentuali malformate: si tiene quello grezzo
+/**
+ * Decodifica le %XX ASCII una a una, anche se altrove il percorso ha percentuali malformate:
+ * decodeURIComponent su tutto il percorso lancia al primo "%zz" e un percorso come
+ * "/api/%61dmin/%zz" resterebbe scritto in chiaro-cifrato, cioe' senza la parola "admin".
+ * Si ripete (doppia e tripla codifica).
+ */
+function decodifica(percorso: string): string {
+  let p = percorso;
+  for (let i = 0; i < 3; i++) {
+    const nuovo = p.replace(/%([0-9a-fA-F]{2})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+    if (nuovo === p) break;
+    p = nuovo;
   }
-  return [percorso, decodificato].map((p) => p.toLowerCase().split(/[/\\]+/).filter(Boolean));
+  return p;
+}
+
+/** Il percorso, comunque scritto (maiuscole, %-codifiche anche doppie o malformate, doppi slash, backslash), come elenco di segmenti. */
+function segmenti(percorso: string): string[][] {
+  return [percorso, decodifica(percorso)].map((p) => p.toLowerCase().split(/[/\\;]+/).filter(Boolean));
 }
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
+  try {
+    return await gestisci(ctx);
+  } catch (e) {
+    // Anche un guasto fuori dagli handler (o del middleware stesso) esce senza dettagli e con le intestazioni.
+    console.error('errore non gestito:', e instanceof Error ? e.message : 'sconosciuto');
+    return conIntestazioni(errore(500, 'errore interno del servizio: riprova fra poco'));
+  }
+};
+
+async function gestisci(ctx: EventContext<Env, string, Record<string, unknown>>): Promise<Response> {
   const url = new URL(ctx.request.url);
   const varianti = segmenti(url.pathname);
 
   if (varianti.some((s) => s[0] === 'lib')) return conIntestazioni(errore(404, 'non trovato'));
 
-  if (varianti.some((s) => s[0] === 'api')) {
+  if (varianti.some((s) => s.includes('api'))) {
     if (daAltroSito(ctx.request, url)) return conIntestazioni(errore(403, 'richiesta da un altro sito: rifiutata'));
     // "admin" in QUALUNQUE posizione del percorso: nel dubbio si chiede l'accesso.
     if (varianti.some((s) => s.includes('admin'))) {
       const esito = await verificaAccesso(ctx.request, ctx.env);
-      if (!esito.ok) return conIntestazioni(errore(esito.stato, esito.motivo));
+      if (!esito.ok) {
+        // All'esterno un messaggio uguale per tutti i rifiuti: niente indizi su configurazione o motivo
+        // (il motivo resta nei log, che non contengono mai token ne' email).
+        if (esito.stato !== 401) console.warn('accesso admin rifiutato:', esito.motivo);
+        return conIntestazioni(errore(esito.stato, MESSAGGIO_RIFIUTO[esito.stato]));
+      }
       (ctx.data as { utente?: string }).utente = esito.email;
     }
     const risposta = await esegui(ctx);
@@ -73,7 +109,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   }
 
   return conIntestazioni(await ctx.next());
-};
+}
+
+const MESSAGGIO_RIFIUTO = { 401: 'accesso richiesto', 403: 'accesso negato', 503: 'servizio momentaneamente non disponibile' } as const;
 
 /**
  * True se una scrittura arriva, secondo il browser, da un altro sito. Le

@@ -6,7 +6,7 @@
  * nuovo dispositivo.
  */
 
-import { COOKIE_DISPOSITIVO, COOKIE_DISPOSITIVO_DURATA_S } from './costanti';
+import { CIFRE_HASH_RETE, COOKIE_DISPOSITIVO, COOKIE_DISPOSITIVO_DURATA_S } from './costanti';
 
 const FORMA_TOKEN = /^[0-9a-f]{64}$/;
 
@@ -39,4 +39,25 @@ export function cookieDispositivo(token: string): string {
 export async function hashDelDispositivo(request: Request): Promise<string | null> {
   const t = leggiToken(request);
   return t ? hashToken(t) : null;
+}
+
+/** IPv4 cosi' com'e'; IPv6 ridotto al prefisso /64 (le "estensioni privacy" cambiano il resto a ogni ora). */
+export function reteDi(ip: string): string {
+  if (!ip.includes(':')) return ip;
+  const doppio = ip.split('::');
+  const testa = doppio[0] ? doppio[0].split(':') : [];
+  const coda = doppio.length > 1 && doppio[1] ? doppio[1].split(':') : [];
+  const gruppi = doppio.length > 1 ? [...testa, ...Array<string>(Math.max(0, 8 - testa.length - coda.length)).fill('0'), ...coda] : testa;
+  return gruppi.slice(0, 4).map((g) => g.toLowerCase().replace(/^0+(?=.)/, '')).join(':');
+}
+
+/**
+ * Impronta grossolana della rete di chi vota, per partita: i primi CIFRE_HASH_RETE caratteri di
+ * SHA-256(partita|rete). NON e' un identificativo (vedi migrations/0003): serve solo a contare i voti
+ * arrivati dalla stessa rete. null = intestazione assente (sviluppo locale): nessun limite.
+ */
+export async function hashRete(request: Request, partitaId: number): Promise<string | null> {
+  const ip = (request.headers.get('CF-Connecting-IP') ?? '').trim();
+  if (!ip || ip.length > 64) return null;
+  return (await hashToken(`${partitaId}|${reteDi(ip)}`)).slice(0, CIFRE_HASH_RETE);
 }

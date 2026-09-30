@@ -26,11 +26,14 @@
 /* moduli */
 .modulo{display:grid;gap:14px}
 .modulo fieldset{display:grid;gap:8px}
-.due{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fld{display:grid;gap:4px;min-width:0}
+.due{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+/* data/ora e select: un campo per riga (gli input nativi date/time hanno una larghezza minima intrinseca) */
+.due.impila{grid-template-columns:minmax(0,1fr)}
+.due>*{min-width:0}
+.fld{display:grid;gap:4px;min-width:0;max-width:100%}
 .fld label,.etich-campo{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .fld input,.fld select,.fld textarea,.voto-sel select{
-  width:100%;min-height:44px;padding:8px 10px;background:var(--card);color:var(--ink);border:2px solid var(--edge);border-radius:6px;
+  width:100%;min-width:0;max-width:100%;box-sizing:border-box;min-height:44px;padding:8px 10px;background:var(--card);color:var(--ink);border:2px solid var(--edge);border-radius:6px;
   font:inherit;font-weight:700;font-size:16px;box-shadow:inset 2px 2px 0 rgba(0,0,0,.08)
 }
 .fld textarea{min-height:110px;resize:vertical;line-height:1.4}

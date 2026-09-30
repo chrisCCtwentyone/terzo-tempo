@@ -1,6 +1,6 @@
 import './admin.css'
-import { useEffect, useRef } from 'react'
-import { ErroreApi } from '../lib/api'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import type { ErroreApi } from '../lib/api'
 import { cambiaTema } from '../lib/tema'
 import { useApi } from '../lib/useCarica'
 import { Link, useRotta, useTitolo } from '../router'
@@ -23,6 +23,46 @@ const SEZIONI: { chiave: string; verso: string; nome: string; icona: 'i-pitch' |
   { chiave: 'stagioni', verso: '/admin/stagioni', nome: 'Stagioni', icona: 'a-cal' },
 ]
 
+// --- accesso -----------------------------------------------------------------------------------------------
+// /admin sta dietro Cloudflare Access, che chiede il codice via email SOLO se il browser chiede la pagina al
+// server. Se invece la SPA si trova nell'area admin senza sessione (link vecchio, sessione scaduta), /api/admin/me
+// risponde con un rinvio al login (opaqueredirect) o 401/403: si fa UNA navigazione di pagina vera verso l'indirizzo
+// corrente, cosi' Access mostra il login e poi riporta qui. Un flag in sessionStorage impedisce i giri a vuoto: al
+// secondo rifiuto si mostra "Area riservata" con un pulsante che rifa' la navigazione piena.
+
+const CHIAVE_TENTATIVO = 'tt_admin_accesso'
+/** Un tentativo gia' fatto in questa scheda? Senza sessionStorage si presume di si': meglio non rischiare un ciclo. */
+function tentativoFatto(): boolean {
+  try {
+    return sessionStorage.getItem(CHIAVE_TENTATIVO) === '1'
+  } catch {
+    return true
+  }
+}
+function segnaTentativo(fatto: boolean) {
+  try {
+    if (fatto) sessionStorage.setItem(CHIAVE_TENTATIVO, '1')
+    else sessionStorage.removeItem(CHIAVE_TENTATIVO)
+  } catch {
+    // niente sessionStorage: resta la protezione di tentativoFatto()
+  }
+}
+/** Navigazione di pagina VERA verso la pagina in cui si e' (non la SPA): e' quella che Access intercetta. */
+const accediDaCapo = () => location.assign(location.pathname + location.search)
+
+/** Serve un accesso (e non e' un guasto): rinvio al login, 401/403, o rete irraggiungibile mentre si e' online. */
+const servAccesso = (e: ErroreApi | null) =>
+  !!e && (e.accesso || e.stato === 401 || e.stato === 403 || (e.stato === 0 && navigator.onLine !== false))
+
+/** Guscio minimo, senza menu ne' elenchi: e' tutto cio' che si vede finche' /api/admin/me non ha risposto 200. */
+function Attesa({ children }: { children: ReactNode }) {
+  return (
+    <div className="wrap adm">
+      <main id="contenuto" tabIndex={-1} className="er">{children}</main>
+    </div>
+  )
+}
+
 function Riservata() {
   useTitolo('Area riservata')
   return (
@@ -35,8 +75,11 @@ function Riservata() {
         <Intestazione kick="Terzo Tempo · Admin" titolo="Area riservata agli admin" />
         <Carta className="riservata">
           <p><strong>Non hai il permesso di entrare qui.</strong></p>
-          <p>Questa parte del sito serve a gestire giocatori, partite e voti, e la vedono solo gli admin. Se sei un admin, accedi con il tuo indirizzo email e ricarica la pagina.</p>
-          <div className="more"><PulsanteLink verso="/">Torna al sito</PulsanteLink></div>
+          <p>Questa parte del sito serve a gestire giocatori, partite e voti, e la vedono solo gli admin. Se sei un admin, accedi con il codice che ricevi via email al tuo indirizzo.</p>
+          <div className="more">
+            <button type="button" className="btn yes" onClick={accediDaCapo}><Icona id="i-lock" />Accedi con il codice via email</button>
+            <PulsanteLink verso="/">Torna al sito</PulsanteLink>
+          </div>
         </Carta>
       </main>
     </div>
@@ -66,13 +109,27 @@ export default function Admin() {
   const { percorso, segmenti } = useRotta()
   const me = useApi<{ email: string | null }>('/api/admin/me')
   const main = useRef<HTMLElement>(null)
+  // fotografia all'apertura: l'effetto qui sotto segna il tentativo, il disegno deve ricordare com'era PRIMA
+  const [giaProvato] = useState(tentativoFatto)
+  const accesso = servAccesso(me.errore)
   useEffect(() => {
     window.scrollTo(0, 0)
     main.current?.focus({ preventScroll: true })
   }, [percorso, me.dati])
+  useEffect(() => {
+    if (me.dati) segnaTentativo(false) // dentro: la prossima volta si potra' riprovare da capo
+    else if (accesso && !giaProvato) {
+      segnaTentativo(true)
+      accediDaCapo()
+    }
+  }, [me.dati, accesso, giaProvato])
 
-  const rifiutato = me.errore && (me.errore.stato === 401 || me.errore.stato === 403)
-  if (rifiutato) return <Riservata />
+  // Il guscio (menu, elenchi) compare SOLO dopo /api/admin/me = 200.
+  if (!me.dati) {
+    if (accesso) return giaProvato ? <Riservata /> : <Attesa><Caricamento testo="Apro l'accesso con codice via email…" /></Attesa>
+    if (me.errore) return <Attesa><Errore errore={me.errore} onRiprova={me.ricarica} /></Attesa>
+    return <Attesa><Caricamento testo="Verifica accesso…" /></Attesa>
+  }
   const attiva = segmenti[1] ?? 'partite'
 
   return (
@@ -89,7 +146,7 @@ export default function Admin() {
           <Link verso="/" className="indietro"><IconaAdmin id="a-back" />Torna al sito</Link>
         </div>
         <main id="contenuto" ref={main} tabIndex={-1} key={percorso} className="er">
-          {me.dati ? <Contenuto segmenti={segmenti} /> : me.errore ? <Errore errore={me.errore as ErroreApi} onRiprova={me.ricarica} /> : <Caricamento testo="Controllo l'accesso…" />}
+          <Contenuto segmenti={segmenti} />
         </main>
       </div>
       <nav className="nav adm" aria-label="Sezioni admin">

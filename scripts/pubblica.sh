@@ -29,8 +29,9 @@ if grep -v '^[[:space:]]*#' wrangler.toml | grep -q "DA_COMPILARE"; then
 fi
 
 echo "-> tipi (tsc -b)";   npx tsc -b
-echo "-> test";            npx vitest run
+# la build PRIMA dei test: test/sicurezza_bundle.test.ts controlla che nel bundle non ci sia nessun segreto
 echo "-> build";           npx vite build
+echo "-> test";            npx vitest run
 echo "-> migrazioni D1";   npx wrangler d1 migrations apply DB --remote </dev/null
 echo "-> pubblicazione"
 # L'uscita va anche in un file per leggere l'indirizzo della pubblicazione.

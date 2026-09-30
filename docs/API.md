@@ -8,7 +8,8 @@ Gli esempi vengono dai dati di prova (`scripts/seed_prova.sql`: nomi inventati).
 - **Errori**: sempre `{ "errore": "messaggio" }` con lo stato HTTP giusto. Il messaggio dei 400 inizia con il
   nome del campo (`"voto_pagella: a mezzi punti (7, 7.5, ...)"`) e si puo' mostrare cosi' com'e'.
   `404` id inesistente o malformato, `405` metodo non ammesso (con `Allow`), `409` conflitto (gia' votato,
-  votazione chiusa, doppione...), `415` manca `Content-Type: application/json`, `500` errore interno (senza dettagli).
+  votazione chiusa, doppione...), `413` corpo oltre 64 KB, `415` manca `Content-Type: application/json`,
+  `429` troppi voti dalla stessa rete per la stessa partita (solo il voto MVP), `500` errore interno (senza dettagli).
 - **Date e ore**: `data_ora` e' sempre ISO UTC `"2026-10-01T19:00:00Z"`. L'orario che gli utenti hanno in mente
   e' **Europe/Rome**: il frontend lo mostra con `timeZone: 'Europe/Rome'`. In scrittura `data_ora` accetta
   `"2026-10-01T21:00"` **senza fuso = ora di Roma** (va bene l'`<input type="datetime-local">`), oppure un
@@ -30,8 +31,18 @@ Gli esempi vengono dai dati di prova (`scripts/seed_prova.sql`: nomi inventati).
 - **Livello segreto**: non esce mai dalle rotte pubbliche (nemmeno come campo nullo; un test lo garantisce). Esiste
   solo in `/api/admin/giocatori*`.
 - **Cache**: tutte le risposte sono `no-store`. **CSP**: il sito puo' caricare solo risorse proprie (font self-hosted,
-  es. `@fontsource`; niente Google Fonts, niente CDN). Si allarga in `functions/_middleware.ts` se serve.
-- Le scritture (POST/PUT/PATCH/DELETE) dal browser devono partire dallo stesso sito (altrimenti 403).
+  es. `@fontsource`; niente Google Fonts, niente CDN), senza `unsafe-inline` ne' `unsafe-eval`
+  (`script-src 'self'`, `style-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`...).
+  Si allarga in `functions/_middleware.ts` se serve, e si dice perche'. Ogni risposta porta anche HSTS,
+  `X-Content-Type-Options`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, `Permissions-Policy`,
+  `Cross-Origin-Opener-Policy` e `Cross-Origin-Resource-Policy` (`same-origin`).
+- Le scritture (POST/PUT/PATCH/DELETE) dal browser devono partire dallo stesso sito (altrimenti 403): il middleware
+  controlla `Origin` e `Sec-Fetch-Site` su tutte le scritture di `/api`, voto MVP compreso.
+- **Limiti degli ingressi** (`functions/lib/costanti.ts`, `functions/lib/valida.ts`): corpo JSON al massimo 64 KB (`413`);
+  nome badge 40, descrizione badge 120, nome stagione 60, cognome 40, iniziali 3, cronaca 5000 caratteri; elenchi
+  (convocati, giocatori di una partita, badge di un giocatore) al massimo 60 elementi (`400` col nome del campo);
+  nei testi sono vietati i caratteri di controllo e quelli invisibili che ribaltano il verso di scrittura
+  (i soli a capo e tabulazioni ammessi sono quelli della cronaca).
 
 ## Autenticazione
 
@@ -39,10 +50,16 @@ Gli esempi vengono dai dati di prova (`scripts/seed_prova.sql`: nomi inventati).
 - **Admin** (`/api/admin/*`): Cloudflare Access. Il backend verifica da solo `Cf-Access-Jwt-Assertion` contro
   `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD` (in `wrangler.toml`, ora `DA_COMPILARE`) e l'email contro il secret
   `EMAIL_AUTORIZZATE`. Il browser di un admin loggato manda tutto da solo.
-  Senza token `401`; token non valido, email non autorizzata o configurazione mancante `403`; chiavi di Access
-  irraggiungibili `503`. **Mai aperto.** Non esistono ruoli: tutti gli admin possono tutto.
+  Senza token `401` (`"accesso richiesto"`); token non valido, email non autorizzata o configurazione mancante `403`
+  (`"accesso negato"`, sempre lo stesso messaggio: il motivo resta nei log del server, non arriva a chi bussa); chiavi di
+  Access irraggiungibili `503`. **Mai aperto.** Non esistono ruoli: tutti gli admin possono tutto.
+  Il controllo vale per QUALSIASI percorso che contenga i segmenti `api` e `admin`, comunque scritti (maiuscole,
+  `%`-codifiche anche doppie o malformate, doppi slash, `;`, `\`).
 - **Sviluppo locale**: in `.dev.vars` (copiare `.dev.vars.example`) `DEV_ADMIN_BYPASS=1` apre l'admin, ma solo se
-  la richiesta arriva da `localhost` / `127.0.0.1` / `[::1]`.
+  TUTTE queste condizioni valgono: la richiesta arriva da `localhost` / `127.0.0.1` / `[::1]`, Access NON e' configurato
+  (l'esempio azzera `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD`, che altrimenti verrebbero da `wrangler.toml`) e la richiesta non
+  porta `Cf-Ray` (lo mette l'edge di Cloudflare su ogni richiesta vera). In produzione il bypass non si apre mai, nemmeno
+  se la variabile ci finisse per errore: Access li' e' configurato.
 
 `GET /api/admin/me` -> `{ "email": "admin@example.org" }` (in locale col bypass: `"sviluppo@locale"`). Il frontend lo
 usa per sapere se mostrare l'area admin (401/403 = non sono admin).
@@ -183,7 +200,13 @@ POST /api/partite/12/mvp   Content-Type: application/json   { "giocatore_id": 2 
   Incognito o un altro browser = un altro dispositivo (limite accettato).
 - Si puo' votare **chiunque sia nel listone** (giocatori attivi), anche se stessi e anche chi non ha giocato.
 - Errori: `409` `"hai gia' votato per questa partita"`; `409` `"votazione chiusa"`; `409` `"la partita non e' ancora stata giocata"`;
-  `400` `"giocatore_id: non e' nel listone"`; `404` partita inesistente.
+  `400` `"giocatore_id: non e' nel listone"` (inesistente o archiviato); `404` partita inesistente;
+  `429` `"troppi voti da questa rete per questa partita..."`.
+- **Freno agli script**: al massimo `LIMITE_VOTI_PER_IP` (10) voti per rete e per partita, cosi' una famiglia sullo stesso
+  wifi vota senza problemi. La rete e' l'intestazione `CF-Connecting-IP` (la mette Cloudflare, il client non la puo'
+  falsificare); un IPv6 vale per il suo prefisso /64. Nel DB (`voti_mvp.hash_ip`, migrazione `0003`) non c'e' l'indirizzo:
+  ci sono 4 caratteri di un hash SHA-256 di partita+rete (16 bit, ~65 mila indirizzi per valore: non si risale a nessuno).
+  Chi ha gia' votato dal suo telefono riceve `409`, non `429`. Senza l'intestazione (solo sviluppo locale) il limite non si applica.
 
 ## `GET /api/giocatori[?tutti=1]`
 

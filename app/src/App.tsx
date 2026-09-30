@@ -75,11 +75,12 @@ export function App() {
           <Pagina segmenti={segmenti} />
         </main>
         <footer className="pie">
-          <Link verso="/admin" className="admin-cta">
+          {/* Link NORMALE, non del router: e' una navigazione di pagina vera, cosi' Cloudflare Access chiede il codice */}
+          <a href="/admin" className="admin-cta">
             <Icona id="i-lock" />
             <span className="txt"><b>Area admin</b><small>Solo per gli admin · accesso con codice via email</small></span>
             <Icona id="i-arrow" />
-          </Link>
+          </a>
           <Link verso="/info" className="btn piccolo">Info</Link>
         </footer>
       </div>
