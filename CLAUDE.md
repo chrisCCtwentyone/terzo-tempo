@@ -48,11 +48,25 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   "S. C. Rossi"). Niente foto per ora; in futuro forse foto o avatar stile
   fantacalcio. Lista sempre ampliabile. I giocatori veri li fornisce l'utente DOPO
   le prove con giocatori generici.
-- **Funzioni volute**: classifiche (gol, presenze, media voto, MVP), scheda
-  giocatore, formazioni schierate sul campo stile "leghe Fantagazzetta",
-  statistiche divertenti, generatore di squadre bilanciate, presenze alla prossima
-  partita ("ci sono / non ci sono": da tenere facilmente rimovibile, il gruppo
-  potrebbe continuare a usare WhatsApp).
+- **Squadre**: per ora si chiamano sempre "Casaccati" contro "Smollicati"
+  (decisione dell'utente, 30/09/2026; potra' cambiare: tenerlo in un solo punto).
+- **Convocati**: la lista la inserisce l'admin (il gruppo si organizza su
+  WhatsApp, nessuno userebbe un "ci sono" nell'app). Niente risposte dei giocatori.
+- **Formazioni sul campo** stile "leghe Fantagazzetta": le pedine le TRASCINA
+  l'admin col dito; la posizione si salva e si mostra a tutti.
+- **Generatore di squadre**: parte dai convocati, bilancia un mix di media voto,
+  percentuale vittorie, gol e **livello segreto** dato dall'admin; cerca anche di
+  distribuire i badge fra le due squadre. Poi l'admin ritocca a mano.
+- **Livello segreto** (es. 1-5): uno per giocatore, condiviso fra tutti gli admin,
+  MAI visibile ai giocatori ("senza che nessuno si offenda"). Non deve uscire da
+  nessuna API pubblica, nemmeno in un campo ignorato dall'interfaccia.
+- **Badge** (caratteristiche, positive e negative), assegnati dagli admin e
+  visibili a tutti sulla figurina e nel listone giocatori. Lista iniziale:
+  positivi Corridore, Cecchino, Instancabile, Muro, Regista, Saracinesca
+  (portiere), Dribblomane; negativi Turista (non torna in difesa), Egoista (non
+  passa mai), Polemico, Ritardatario, Fragile. Gli admin possono crearne di nuovi.
+- **Altre funzioni volute**: classifiche (gol, presenze, media voto, MVP), scheda
+  giocatore, listone giocatori, statistiche divertenti.
 - **Stile**: animazioni importanti ma leggere; non e' un sito vetrina, deve essere
   rapido. **Stile scelto: B "Figurine"** (30/09/2026): carta avorio con grana,
   colori pieni da stampa, ombre stampate, giocatori come figurine con iniziali,
