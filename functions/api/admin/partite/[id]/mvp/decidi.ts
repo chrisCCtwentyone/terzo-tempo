@@ -1,4 +1,4 @@
-/** POST /api/admin/partite/:id/mvp/decidi   { giocatore_id }  sceglie fra i pari merito (stato "parita_da_decidere"). */
+/** POST /api/admin/partite/:id/mvp/decidi   { giocatore_id }  sceglie fra i pari merito ("parita_da_decidere") o, se nessuno ha votato ("nessun_voto"), fra i giocatori della partita. */
 import { bloccoMvp, decidiParita, sincronizza } from '../../../../../lib/mvp';
 import { ErroreApi, idDa, json, leggiOggetto, perMetodo } from '../../../../../lib/risposta';
 import { intero } from '../../../../../lib/valida';

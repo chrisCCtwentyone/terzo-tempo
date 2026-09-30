@@ -121,14 +121,28 @@ export async function bloccoMvp(db: D1Database, p: PartitaDb, hashDispositivo: s
   };
 }
 
-/** L'admin sceglie fra i pari merito. */
+/**
+ * Chi l'admin puo' scegliere quando la votazione e' chiusa SENZA voti: i giocatori della partita
+ * (quelli con una squadra). Scelta provvisoria, da confermare (docs/DOMANDE_APERTE.md): per
+ * "tutti gli attivi" basta cambiare questa query.
+ */
+const CANDIDATI_SENZA_VOTI =
+  'SELECT giocatore_id FROM partecipazioni WHERE partita_id = ? AND squadra IS NOT NULL';
+
+/** L'admin sceglie l'MVP: fra i pari merito, oppure (solo se nessuno ha votato) fra i giocatori della partita. */
 export async function decidiParita(db: D1Database, p: PartitaDb, giocatoreId: number): Promise<void> {
-  if (p.mvp_stato !== 'parita_da_decidere') throw new ErroreApi(409, 'non c\'e\' nessuna parita\' da decidere');
-  if (!esitoVoti(await conteggi(db, p.id)).candidati.includes(giocatoreId)) {
-    throw new ErroreApi(400, 'giocatore_id: non e\' fra i pari merito');
+  if (p.mvp_stato !== 'parita_da_decidere' && p.mvp_stato !== 'nessun_voto') {
+    throw new ErroreApi(409, 'non c\'e\' nessuna parita\' ne\' votazione senza voti da decidere');
+  }
+  const senzaVoti = p.mvp_stato === 'nessun_voto';
+  const candidati = senzaVoti
+    ? (await db.prepare(CANDIDATI_SENZA_VOTI).bind(p.id).all<{ giocatore_id: number }>()).results.map((r) => r.giocatore_id)
+    : esitoVoti(await conteggi(db, p.id)).candidati;
+  if (!candidati.includes(giocatoreId)) {
+    throw new ErroreApi(400, senzaVoti ? 'giocatore_id: non ha giocato questa partita' : 'giocatore_id: non e\' fra i pari merito');
   }
   await db.batch([
-    db.prepare("UPDATE partite SET mvp_stato = 'assegnato' WHERE id = ? AND mvp_stato = 'parita_da_decidere'").bind(p.id),
+    db.prepare("UPDATE partite SET mvp_stato = 'assegnato' WHERE id = ? AND mvp_stato = ?").bind(p.id, p.mvp_stato),
     db.prepare('INSERT OR IGNORE INTO mvp_vincitori (partita_id, giocatore_id) VALUES (?, ?)').bind(p.id, giocatoreId),
   ]);
 }

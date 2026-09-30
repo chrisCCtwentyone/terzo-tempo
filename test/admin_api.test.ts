@@ -57,6 +57,16 @@ describe('badge', () => {
     expect(json.badge.filter((b: any) => b.tipo === 'negativo').map((b: any) => b.nome).sort()).toEqual(['Egoista', 'Fragile', 'Polemico', 'Ritardatario', 'Turista']);
   });
 
+  it('i 12 badge iniziali hanno la descrizione approvata (migrazione 0002)', async () => {
+    const { json } = await ad(new D1Finto(), 'GET', '/api/admin/badge');
+    const d = Object.fromEntries(json.badge.map((b: any) => [b.nome, b.descrizione]));
+    expect(Object.keys(d)).toHaveLength(12);
+    expect(d.Corridore).toBe("Brucia tutti in velocita'");
+    expect(d.Turista).toBe('Non torna in difesa');
+    expect(d.Fragile).toBe('Sempre acciaccato');
+    expect(Object.values(d).every((v) => typeof v === 'string' && v.length > 0)).toBe(true);
+  });
+
   it('crea, modifica, cancella; assegna e toglie ai giocatori', async () => {
     const db = new D1Finto(true);
     const nuovo = await ad(db, 'POST', '/api/admin/badge', { nome: 'Jolly', descrizione: 'Gioca ovunque', tipo: 'positivo' });

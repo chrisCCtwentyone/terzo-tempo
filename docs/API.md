@@ -88,7 +88,7 @@ Ultima partita giocata, prossima partita, top marcatori della stagione aperta.
 ```json
 {
   "stagione": { "id": 2, "nome": "Stagione 2026-27", "aperta": true },
-  "minimo_partite": 3,
+  "minimo_partite": 0,
   "gol":          [ { "posizione": 1, "giocatore_id": 11, "nome": "T. Bruno", "attivo": true, "valore": 8, "presenze": 7 } ],
   "presenze":     [ { "posizione": 1, "giocatore_id": 11, "nome": "T. Bruno", "attivo": true, "valore": 7, "presenze": 7 } ],
   "media_voto":   [ { "posizione": 1, "giocatore_id": 1,  "nome": "M. Rossi", "attivo": true, "valore": 8.33, "presenze": 7 } ],
@@ -99,10 +99,11 @@ Ultima partita giocata, prossima partita, top marcatori della stagione aperta.
 
 - `stagione` e' `null` per "sempre".
 - Ordine per `valore` decrescente, poi per cognome. A pari valore stessa `posizione` (1, 1, 3).
-- `gol` e `mvp` non elencano chi ha 0. `media_voto` (partite **con pagella**) e `pct_vittorie` (presenze) elencano solo
-  chi ha almeno `minimo_partite` partite: costante `MIN_PARTITE_CLASSIFICA` in `functions/lib/costanti.ts`.
+- `gol` e `mvp` non elencano chi ha 0. `media_voto` (partite **con pagella**) e `pct_vittorie` (presenze): **nessun minimo di partite**
+  (decisione dell'utente, 30/09/2026), compaiono tutti subito; `media_voto` solo chi ha almeno una pagella. `minimo_partite` e' `0`
+  (costante `MIN_PARTITE_CLASSIFICA` in `functions/lib/costanti.ts`; se un giorno torna un minimo, il frontend lo spiega solo se e' > 0).
 - `media_voto` a 2 decimali; `pct_vittorie` a 1 decimale (0-100); una vittoria = piu' gol della squadra avversaria (il pareggio non e' vittoria).
-- `mvp` conta solo le votazioni chiuse con un vincitore (una parita' non ancora decisa non da' MVP a nessuno).
+- `mvp` conta solo le votazioni chiuse con un vincitore (una parita' non ancora decisa non da' MVP a nessuno); conta anche l'MVP assegnato a mano dall'admin dopo zero voti.
 
 ## `GET /api/partite?stagione=<id>|sempre`
 
@@ -147,9 +148,13 @@ Stato della votazione. Stesso oggetto del campo `mvp` del dettaglio.
 |---|---|---|
 | `non_aperto` | partita ancora in convocazione | `voti_totali` (0), `ha_votato` (false), `chiude_il` (null) |
 | `aperto` | giocata, non chiusa dall'admin e adesso < `data_ora` + 24 h | `voti_totali`, `ha_votato`, `chiude_il` |
-| `assegnato` | chiusa, un vincitore | + `chiuso_il`, `risultati`, `vincitore`, `candidati: []` |
+| `assegnato` | chiusa, un vincitore (dal voto, dalla scelta fra i pari merito, o scelto dall'admin dopo zero voti) | + `chiuso_il`, `risultati`, `vincitore`, `candidati: []` |
 | `parita_da_decidere` | chiusa, pari merito: decide l'admin | + `chiuso_il`, `risultati`, `vincitore: null`, `candidati: [{giocatore_id, nome}, ...]` |
-| `nessun_voto` | chiusa senza nessun voto | + `chiuso_il`, `risultati: []`, `vincitore: null`, `candidati: []` |
+| `nessun_voto` | chiusa senza nessun voto: l'admin puo' scegliere l'MVP a mano (`mvp/decidi`) | + `chiuso_il`, `risultati: []`, `vincitore: null`, `candidati: []` |
+
+**MVP scelto dall'admin dopo zero voti**: diventa `assegnato` con `voti_totali: 0` e `risultati: []`. Un `assegnato` dal voto ha sempre
+almeno un voto, quindi `stato === "assegnato" && voti_totali === 0` significa "scelto dall'admin": il frontend lo dice ("Scelto
+dall'admin: nessun voto ricevuto") senza mostrare un risultato di voto.
 
 **Mentre e' `aperto` non c'e' nessun conteggio per giocatore**: solo `voti_totali` e `ha_votato` (questo dispositivo ha
 gia' votato). `risultati` = `[{ giocatore_id, nome, voti }]` dal piu' votato. `chiude_il` e' l'ora della chiusura automatica
@@ -181,12 +186,12 @@ Il listone, con badge e totali (su tutte le stagioni), per cognome. Di default s
 ```json
 { "giocatori": [
   { "id": 2, "nome": "L. Bianchi", "attivo": true,
-    "badge": [ { "id": 7, "nome": "Dribblomane", "descrizione": null, "tipo": "positivo" } ],
+    "badge": [ { "id": 7, "nome": "Dribblomane", "descrizione": "Non rinuncia mai al dribbling", "tipo": "positivo" } ],
     "totali": { "presenze": 6, "gol": 4, "media_voto": 7.6, "mvp": 0 } }
 ] }
 ```
 
-`badge[].descrizione` puo' essere `null` (vedi `docs/DOMANDE_APERTE.md`). `media_voto` e' `null` senza pagelle.
+`badge[].descrizione` e' valorizzata per i 12 badge iniziali (migrazione `0002_descrizioni_badge.sql`); per quelli creati dagli admin puo' essere `null`. `media_voto` e' `null` senza pagelle.
 
 ## `GET /api/giocatori/:id[?stagione=<id>|sempre]`
 
@@ -195,7 +200,7 @@ Scheda giocatore (funziona anche per gli archiviati). `stagione` assente = `semp
 ```json
 {
   "giocatore": { "id": 1, "nome": "M. Rossi", "attivo": true,
-                 "badge": [ { "id": 2, "nome": "Cecchino", "descrizione": null, "tipo": "positivo" } ] },
+                 "badge": [ { "id": 2, "nome": "Cecchino", "descrizione": "Tiro preciso e potente", "tipo": "positivo" } ] },
   "stagione": null,
   "totali": { "presenze": 8, "gol": 8, "autogol": 0, "gol_a_partita": 1, "partite_con_voto": 7, "media_voto": 8.43,
               "vittorie": 6, "pareggi": 0, "sconfitte": 2, "pct_vittorie": 75, "mvp": 3 },
@@ -228,7 +233,7 @@ Tutte richiedono l'accesso (sopra). Corpo JSON con `Content-Type: application/js
 
 ## Badge
 
-- `GET /api/admin/badge` -> `{ "badge": [ { "id": 1, "nome": "Corridore", "descrizione": null, "tipo": "positivo" } ] }`
+- `GET /api/admin/badge` -> `{ "badge": [ { "id": 1, "nome": "Corridore", "descrizione": "Brucia tutti in velocita'", "tipo": "positivo" } ] }`
 - `POST /api/admin/badge` `{ "nome": "Jolly", "descrizione": "Gioca ovunque", "tipo": "positivo" | "negativo" }` -> `201`. `descrizione` facoltativa.
 - `PATCH /api/admin/badge/:id` `{ "nome"?, "descrizione"? (null la toglie), "tipo"? }`
 - `DELETE /api/admin/badge/:id` lo toglie anche a chi lo ha.
@@ -288,16 +293,18 @@ il server non inventa mai un gol per far tornare i conti; si mostrano all'admin.
 - Due squadre di dimensione uguale o con differenza 1. Stesso seed = stessa proposta; senza seed ne sceglie uno a caso e lo
   restituisce (per "rigenera" basta richiamare senza seed). `media` e' il punteggio medio (0-1) della squadra.
 - Bilancia un punteggio che mescola media voto, % vittorie, gol a partita e livello segreto, e cerca di non mettere lo stesso badge
-  tutto da una parte. Pesi e regole: `functions/lib/costanti.ts` e `functions/lib/generatore.ts`. Il livello non compare nella risposta.
+  tutto da una parte. Pesi e regole: `functions/lib/costanti.ts` e `functions/lib/generatore.ts`. Il livello non compare nella risposta. **Livello 5 = il piu' forte, 1 = il piu' debole** (deciso dall'utente).
 - `400` con meno di 2 convocati o piu' di 24.
 
 ## Voto MVP (admin)
 
 - `POST /api/admin/partite/:id/mvp/chiudi` chiude subito la votazione e calcola vincitore o parita' -> il blocco `mvp` con i risultati.
   `409` se la partita non e' giocata o la votazione e' gia' chiusa (anche in automatico).
-- `POST /api/admin/partite/:id/mvp/decidi` `{ "giocatore_id": 13 }` sceglie il vincitore fra i pari merito
-  (`mvp.stato === "parita_da_decidere"`, candidati in `mvp.candidati`) -> il blocco `mvp` (`assegnato`).
-  `400` se non e' fra i pari merito, `409` se non c'e' nessuna parita' da decidere. Il vincitore e' sempre uno solo.
+- `POST /api/admin/partite/:id/mvp/decidi` `{ "giocatore_id": 13 }` assegna l'MVP -> il blocco `mvp` (`assegnato`). Ammesso solo in due casi:
+  - `mvp.stato === "parita_da_decidere"`: si sceglie fra i pari merito (`mvp.candidati`); `400` se non e' fra loro;
+  - `mvp.stato === "nessun_voto"` (votazione chiusa senza nessun voto): si sceglie fra i **giocatori della partita** (quelli con una squadra);
+    `400` se non ha giocato. *Scelta provvisoria, da confermare* (alternativa: tutti gli attivi; `CANDIDATI_SENZA_VOTI` in `functions/lib/mvp.ts`).
+  - In ogni altro stato (`non_aperto`, `aperto`, `assegnato`) `409`. Il vincitore e' sempre uno solo.
 
 ---
 

@@ -18,11 +18,10 @@ export const FINESTRA_VOTO_MVP_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Minimo di partite per comparire nelle classifiche "media voto" (partite CON
- * voto) e "% vittorie" (presenze). Vale anche per il generatore di squadre:
- * sotto questa soglia una statistica non conta. Valore provvisorio, da
- * confermare (docs/DOMANDE_APERTE.md).
+ * voto) e "% vittorie" (presenze). Vale anche per il generatore di squadre.
+ * 0 = nessun minimo (decisione dell'utente, 30/09/2026: compaiono tutti subito).
  */
-export const MIN_PARTITE_CLASSIFICA = 3;
+export const MIN_PARTITE_CLASSIFICA = 0;
 
 /** Quanti marcatori mostra la home. */
 export const TOP_MARCATORI_HOME = 5;

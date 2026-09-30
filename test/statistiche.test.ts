@@ -56,12 +56,13 @@ describe('classifiche: scenario calcolato a mano', () => {
     expect((await chiama(db, 'GET', '/api/classifiche')).json).toEqual(json);
   });
 
-  it('il minimo di partite esclude da media voto e % vittorie, ma non da gol e presenze', async () => {
+  it('nessun minimo di partite: media voto e % vittorie elencano subito chi ha 1 sola partita', async () => {
     const db = new D1Finto();
     const { s1 } = scenarioStatistiche(db);
     const { json } = await chiama(db, 'GET', `/api/classifiche?stagione=${s1}`); // 1 sola partita
-    expect(json.media_voto).toEqual([]);
-    expect(json.pct_vittorie).toEqual([]);
+    expect(json.minimo_partite).toBe(0);
+    expect(json.media_voto.length).toBeGreaterThan(0);
+    expect(json.pct_vittorie).toHaveLength(4); // tutti i presenti, con 1 sola partita
     expect(nomi(json.presenze)).toHaveLength(4);
     expect(json.gol).toHaveLength(1);
   });

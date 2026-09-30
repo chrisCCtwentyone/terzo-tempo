@@ -51,6 +51,10 @@ function preparaDati() {
       // 101: giocata 3 giorni fa, votazione chiusa SENZA voti, senza cronaca.
       `INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, mvp_stato, mvp_chiuso_il) VALUES (101, 2, '${iso(ora - 72 * H)}', 'giocata', 1, 1, 'nessun_voto', '${iso(ora - 48 * H)}');`,
       conv(`(101,7,'A',50,25,1,0,7),(101,8,'B',50,75,1,0,7)`),
+      // 110: piu' vecchia, zero voti ma MVP assegnato a mano dall'admin.
+      `INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, mvp_stato, mvp_chiuso_il) VALUES (110, 2, '${iso(ora - 96 * H)}', 'giocata', 1, 0, 'assegnato', '${iso(ora - 72 * H)}');`,
+      conv(`(110,7,'A',50,25,1,0,7),(110,8,'B',50,75,0,0,6)`),
+      `INSERT INTO mvp_vincitori (partita_id, giocatore_id) VALUES (110, 7);`,
     ].join('\n'),
   )
 }
@@ -160,7 +164,7 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
     await p.getByRole('button', { name: cat === 'media_voto' ? 'Media voto' : cat === 'pct_vittorie' ? '% vittorie' : cat === 'mvp' ? 'MVP' : 'Presenze', exact: true }).click()
     await p.waitForURL(new RegExp(`cat=${cat}`))
     await assesta(p, `${tema} classifiche ${cat}`)
-    if (cat === 'media_voto') verifica(await p.getByText(/almeno 3 partite/).first().isVisible(), `${tema} classifiche: spiegato il minimo di partite`)
+    if (cat === 'media_voto') verifica((await p.getByText(/almeno \d+ partite/).count()) === 0, `${tema} classifiche: nessun minimo di partite da spiegare`)
     await foto(p, `${tema}-classifiche-${nome}-stagione`)
   }
   await p.getByRole('button', { name: 'Sempre', exact: true }).click()
@@ -191,6 +195,8 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   await vai(p, '/partite/101', 'partita-nessun-voto-senza-cronaca', tema)
   verifica(await p.getByText('Nessun voto').first().isVisible(), `${tema} partita 101: nessun voto`)
   verifica((await p.getByRole('heading', { name: 'Cronaca' }).count()) === 0, `${tema} partita 101: senza cronaca la pagina sta bene`)
+  await vai(p, '/partite/110', 'partita-mvp-scelto-dall-admin', tema)
+  verifica((await p.getByText('Scelto dall\'admin: nessun voto ricevuto').count()) >= 1, `${tema} partita 110: MVP scelto dall'admin dopo zero voti, detto chiaramente`)
   await vai(p, '/partite/11', 'partita-convocazione', tema)
   verifica(await p.getByRole('heading', { name: 'Convocati' }).isVisible(), `${tema} partita 11: convocati`)
   verifica((await p.getByRole('heading', { name: 'Voto MVP' }).count()) === 0, `${tema} partita 11: nessun voto MVP prima della partita`)

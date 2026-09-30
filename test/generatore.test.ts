@@ -19,6 +19,13 @@ describe('punteggio', () => {
     expect(punteggio(cand(1, 5))).toBe(1);
   });
 
+  it('livello segreto: 5 = il piu\' forte (decisione dell\'utente, 30/09/2026)', () => {
+    for (const livello of [1, 2, 3, 4]) expect(punteggio(cand(1, livello + 1))).toBeGreaterThan(punteggio(cand(1, livello)));
+    // a parita' di tutto il resto, il 5 batte l'1 anche fra le statistiche
+    const stat = { media_voto: 7, pct_vittorie: 50, gol_a_partita: 0.5 };
+    expect(punteggio(cand(1, 5, stat))).toBeGreaterThan(punteggio(cand(1, 1, stat)));
+  });
+
   it('senza statistiche e senza livello: il valore neutro dichiarato', () => {
     expect(punteggio(cand(1, null))).toBe(PUNTEGGIO_NEUTRO);
   });

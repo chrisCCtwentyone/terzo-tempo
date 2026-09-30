@@ -16,13 +16,13 @@ const CAT: Record<Categoria, { etichetta: string; unita: string; colore: string;
   pct_vittorie: { etichetta: '% vittorie', unita: 'vittorie', colore: 'var(--blue)', formato: (v) => `${numero(v, 1)}%`, scala: 100 },
 }
 
-function nota(cat: Categoria, minimo: number): string {
+function nota(cat: Categoria, minimo: number): string | null {
   switch (cat) {
     case 'gol': return 'Non compare chi non ha segnato.'
     case 'presenze': return 'Presenza = in campo, con una squadra, in una partita giocata.'
-    case 'media_voto': return `Solo chi ha almeno ${minimo} partite con il voto in pagella.`
+    case 'media_voto': return minimo > 0 ? `Solo chi ha almeno ${minimo} partite con il voto in pagella.` : null
     case 'mvp': return 'Conta solo il voto chiuso con un vincitore: una parita\' non ancora decisa non da\' MVP a nessuno.'
-    case 'pct_vittorie': return `Solo chi ha almeno ${minimo} presenze. Vittoria = piu' gol della squadra avversaria: il pareggio non conta.`
+    case 'pct_vittorie': return `${minimo > 0 ? `Solo chi ha almeno ${minimo} presenze. ` : ''}Vittoria = piu' gol della squadra avversaria: il pareggio non conta.`
   }
 }
 
@@ -31,10 +31,11 @@ function Elenco({ dati, cat }: { dati: Dati; cat: Categoria }) {
   const c = CAT[cat]
   const righe = dati[cat]
   const max = righe.length ? righe[0].valore : 1
-  const filtrata = cat === 'media_voto' || cat === 'pct_vittorie'
+  const filtrata = dati.minimo_partite > 0 && (cat === 'media_voto' || cat === 'pct_vittorie')
+  const spiegazione = nota(cat, dati.minimo_partite)
   return (
     <>
-      <p className="note">{nota(cat, dati.minimo_partite)}</p>
+      {spiegazione && <p className="note">{spiegazione}</p>}
       {righe.length === 0 ? (
         <Carta className="vuota">{filtrata ? `Ancora nessuno con almeno ${dati.minimo_partite} partite.` : 'Ancora nessun dato per questo periodo.'}</Carta>
       ) : (

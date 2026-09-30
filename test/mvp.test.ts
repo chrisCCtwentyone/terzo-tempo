@@ -267,6 +267,53 @@ describe('parita\'', () => {
   });
 });
 
+describe('nessun voto: l\'admin assegna l\'MVP a mano', () => {
+  /** partita chiusa senza voti; N e' nel listone ma non ha giocato. */
+  async function senzaVoti() {
+    const s = scenario();
+    a(30 * H);
+    expect((await telefono(s.db).stato(s.id)).json.stato).toBe('nessun_voto');
+    return s;
+  }
+  const decidi = (db: D1Finto, id: number, g: number) => admin(db, 'POST', `/api/admin/partite/${id}/mvp/decidi`, { giocatore_id: g });
+
+  it('sceglie fra i giocatori della partita: diventa assegnato, senza voti', async () => {
+    const { db, B, id } = await senzaVoti();
+    const r = await decidi(db, id, B);
+    expect(r.stato).toBe(200);
+    expect(r.json).toMatchObject({ stato: 'assegnato', voti_totali: 0, vincitore: { giocatore_id: B } });
+    expect(db_vincitori(db)).toEqual([{ partita_id: id, giocatore_id: B }]);
+    expect((await telefono(db).stato(id)).json).toMatchObject({ stato: 'assegnato', voti_totali: 0, risultati: [] });
+    expect((await decidi(db, id, B)).stato).toBe(409); // una sola volta
+  });
+
+  it('chi non ha giocato (anche se nel listone) non si puo\' scegliere: 400', async () => {
+    const { db, N, id } = await senzaVoti();
+    expect((await decidi(db, id, N)).stato).toBe(400);
+    expect(db_vincitori(db)).toEqual([]);
+  });
+
+  it('votazione aperta o gia\' assegnata dal voto: 409', async () => {
+    const aperta = scenario();
+    a(H);
+    expect((await decidi(aperta.db, aperta.id, aperta.R)).stato).toBe(409);
+    const vinta = scenario();
+    a(H);
+    await telefono(vinta.db).vota(vinta.id, vinta.R);
+    a(30 * H);
+    expect((await decidi(vinta.db, vinta.id, vinta.B)).stato).toBe(409);
+    expect(db_vincitori(vinta.db)).toEqual([{ partita_id: vinta.id, giocatore_id: vinta.R }]);
+  });
+
+  it('chi non e\' admin: 401/403, e non cambia niente', async () => {
+    const { db, B, id } = await senzaVoti();
+    const r = await chiama(db, 'POST', `/api/admin/partite/${id}/mvp/decidi`, { corpo: { giocatore_id: B } });
+    expect([401, 403]).toContain(r.stato);
+    expect(db_vincitori(db)).toEqual([]);
+    expect((await telefono(db).stato(id)).json.stato).toBe('nessun_voto');
+  });
+});
+
 function db_vincitori(db: D1Finto) {
   return db.tutti('SELECT partita_id, giocatore_id FROM mvp_vincitori');
 }

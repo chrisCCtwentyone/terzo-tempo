@@ -8,6 +8,9 @@ import { Bollino, Carta, Errore, Figurina, Icona, Pulsante, Sezione } from '../u
 
 type ConBadge = (id: number) => Badge[] | undefined
 
+/** MVP assegnato senza nessun voto = l'ha scelto l'admin (con voti, l'assegnato viene sempre dal voto o dalla parita'). */
+const SCELTO_DALL_ADMIN = 'Scelto dall\'admin: nessun voto ricevuto'
+
 /** Con #voto-mvp nell'URL (es. da "Vota ora" in home) porta il blocco in cima alla schermata. */
 const vaiAlBlocco = () => {
   if (location.hash === '#voto-mvp') document.getElementById('voto-mvp')?.scrollIntoView()
@@ -36,6 +39,7 @@ export function EsitoMvp({ partita, dentro = false }: { partita: Partita; dentro
         <div>
           <small>MVP della partita</small>
           <strong>{m.vincitore.nome}</strong>
+          {m.voti_totali === 0 && <small>{SCELTO_DALL_ADMIN}</small>}
         </div>
       </div>
     )
@@ -217,6 +221,7 @@ function Chiuso({ mvp, badge }: { mvp: Extract<Mvp, { risultati: unknown }>; bad
           <div>
             <small>MVP della partita</small>
             <strong>{mvp.vincitore.nome}</strong>
+            {mvp.voti_totali === 0 && <small>{SCELTO_DALL_ADMIN}</small>}
           </div>
           <Bollino />
         </div>

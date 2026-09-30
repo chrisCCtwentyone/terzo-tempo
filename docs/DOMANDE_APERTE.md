@@ -6,22 +6,22 @@ Chi risponde puo' cambiare la scelta nel punto indicato.
 
 ## Da chiedere all'utente
 
-1. **Cosa significa il livello segreto: 5 e' il piu' forte o il piu' debole?**
-   Scelta: 5 = piu' forte, 1 = piu' debole (`punteggio()` in `functions/lib/generatore.ts`). Se e' il contrario le squadre
-   generate sarebbero sbilanciate al contrario: **da confermare prima di usare il generatore**.
+1. **Livello segreto.** RISOLTA (30/09/2026): 5 = il piu' forte, 1 = il piu' debole (`punteggio()` in `functions/lib/generatore.ts`,
+   fissato da un test in `test/generatore.test.ts`).
 
-2. **Descrizioni dei badge.** Il CLAUDE.md ne da solo tre: Saracinesca ("portiere"), Turista ("non torna in difesa"),
-   Egoista ("non passa mai"). Gli altri nove (Corridore, Cecchino, Instancabile, Muro, Regista, Dribblomane, Polemico,
-   Ritardatario, Fragile) hanno `descrizione = NULL` nella migrazione, per non inventare. L'admin le compila con
-   `PATCH /api/admin/badge/:id`. Vuole dettarle lui?
+2. **Descrizioni dei badge.** RISOLTA (30/09/2026): le 12 descrizioni approvate sono in CLAUDE.md e nella migrazione
+   `migrations/0002_descrizioni_badge.sql` (la 0001 non e' stata toccata). Le maiuscole iniziali e l'apostrofo al posto
+   dell'accento seguono lo stile del resto dell'app.
 
-3. **Minimo di partite nelle classifiche.** Valore provvisorio **3** (`MIN_PARTITE_CLASSIFICA`). Vale per `media_voto`
-   (conta le partite *con pagella*) e per `pct_vittorie` (conta le presenze), e anche affinche' il generatore usi le statistiche di
-   un giocatore. Sotto soglia il giocatore non compare in quelle due classifiche (non vale 0, semplicemente non c'e').
-   Quanto vuole che sia? Serve anche una soglia diversa per la % vittorie?
+3. **Minimo di partite nelle classifiche.** RISOLTA (30/09/2026): nessun minimo per media voto e % vittorie (`MIN_PARTITE_CLASSIFICA = 0`,
+   l'API dice `minimo_partite: 0` e il frontend non mostra la spiegazione). Attenzione: la stessa costante e' usata anche dal generatore
+   di squadre, che quindi ora usa le statistiche di chiunque abbia almeno una partita. Va bene, o il generatore vuole un minimo suo?
 
-4. **Votazione chiusa senza nessun voto.** Stato `nessun_voto`, nessun MVP; l'admin **non** puo' assegnarlo a mano
-   (decide solo fra pari merito, come da CLAUDE.md). Va bene, o l'admin deve poterlo assegnare comunque?
+4. **Votazione chiusa senza nessun voto.** RISOLTA (30/09/2026): l'admin puo' assegnare l'MVP a mano, solo in `nessun_voto` (e la
+   scelta fra pari merito in `parita_da_decidere`), con `POST .../mvp/decidi`. **DA CONFERMARE: fra chi puo' scegliere?** Scelto
+   "i giocatori della partita" (quelli con una squadra); l'alternativa e' "tutti gli attivi". Per cambiare: `CANDIDATI_SENZA_VOTI`
+   in `functions/lib/mvp.ts`. Il frontend pubblico mostra "Scelto dall'admin: nessun voto ricevuto" (`assegnato` con `voti_totali` 0).
+   L'MVP scelto cosi' conta nella classifica MVP: va bene?
 
 5. **Pesi del generatore.** Provvisori, in `functions/lib/costanti.ts`: voto 0.35, vittorie 0.20, gol 0.15, livello 0.30;
    1 gol a partita = punteggio massimo della componente gol; peso dell'equilibrio badge 0.3 contro 1 per l'equilibrio del
