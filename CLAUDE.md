@@ -22,6 +22,15 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   si prova con la build di produzione (`vite preview`) e, dopo ogni pubblicazione,
   sul sito vero. Mai passare in una pipe un comando che deve poter fallire.
 
+- **Controlli su misura** (decisione dell'utente, 30/09/2026, per pubblicare piu'
+  in fretta): mentre si lavora si lanciano SOLO i controlli che riguardano la
+  modifica (i test del modulo toccato, l'e2e della schermata toccata, il rilevatore
+  di trabocchi solo sulle schermate cambiate). Il giro COMPLETO (tsc -b, tutti i
+  test, e2e, e2e:admin, rilevatore intero) si fa UNA volta, alla fine, dentro
+  `scripts/pubblica.sh`, che resta l'unico modo di pubblicare e non si alleggerisce.
+  Se il giro completo fallisce si corregge e si rilancia solo cio' che e' fallito,
+  poi di nuovo pubblica.sh.
+
 ## Decisioni prese (30/09/2026)
 
 - **Nome**: Terzo Tempo. Repository `chrisCCtwentyone/terzo-tempo`: l'utente vuole
