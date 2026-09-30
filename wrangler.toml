@@ -1,0 +1,24 @@
+# Configurazione di Cloudflare Pages per Terzo Tempo.
+# Nessun segreto qui: la lista delle email admin e' il secret EMAIL_AUTORIZZATE
+#   npx wrangler pages secret put EMAIL_AUTORIZZATE --project-name terzo-tempo
+name = "terzo-tempo"
+pages_build_output_dir = "app/dist"
+compatibility_date = "2026-09-30"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "terzo-tempo"
+# DA_COMPILARE: il progetto Cloudflare non esiste ancora. Si ottiene con
+#   npx wrangler d1 create terzo-tempo
+# Finche' e' un segnaposto, `wrangler d1 ... --remote` e la pubblicazione falliscono.
+database_id = "DA_COMPILARE-id-del-database"
+
+# Cloudflare Access protegge /api/admin/*. Il backend riverifica il JWT da solo.
+# Finche' una di queste due vale "DA_COMPILARE" (o manca EMAIL_AUTORIZZATE)
+# l'admin risponde 403: chiuso, mai aperto.
+[vars]
+# dominio Zero Trust, senza https:// (es. "nome.cloudflareaccess.com")
+ACCESS_TEAM_DOMAIN = "DA_COMPILARE"
+# "Application Audience (AUD) Tag" dell'applicazione Access
+ACCESS_AUD = "DA_COMPILARE"

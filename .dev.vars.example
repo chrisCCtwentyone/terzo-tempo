@@ -1,0 +1,4 @@
+# Copiare in .dev.vars (ignorato da git). Solo per lo sviluppo locale.
+# Con DEV_ADMIN_BYPASS=1 le rotte /api/admin/* si aprono SOLO per richieste
+# che arrivano da localhost. In produzione questa variabile non va mai messa.
+DEV_ADMIN_BYPASS=1
