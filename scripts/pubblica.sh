@@ -32,6 +32,9 @@ echo "-> tipi (tsc -b)";   npx tsc -b
 # la build PRIMA dei test: test/sicurezza_bundle.test.ts controlla che nel bundle non ci sia nessun segreto
 echo "-> build";           npx vite build
 echo "-> test";            npx vitest run
+# giro completo nel browser (CLAUDE.md, "Controlli su misura"): e2e pubblico e admin, rilevatore di trabocchi compreso
+echo "-> e2e pubblico";     npm run e2e
+echo "-> e2e admin";        npm run e2e:admin
 echo "-> migrazioni D1";   npx wrangler d1 migrations apply DB --remote </dev/null
 echo "-> pubblicazione"
 # L'uscita va anche in un file per leggere l'indirizzo della pubblicazione.
