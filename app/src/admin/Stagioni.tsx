@@ -14,6 +14,7 @@ export function StagioniAdmin() {
   const carico = useApi<{ stagioni: Stagione[] }>('/api/stagioni')
   const [nuova, setNuova] = useState(false)
   const { esito, esegui, occupato } = useEsito()
+  const [inModifica, setInModifica] = useState<number | null>(null)
   return (
     <>
       <Intestazione kick="Admin · Il calendario" titolo="Stagioni" />
@@ -49,7 +50,12 @@ export function StagioniAdmin() {
                       </div>
                       <i className={`tu${s.aperta ? '' : ' chiusa'}`}>{s.aperta ? 'Aperta' : 'Chiusa'}</i>
                     </div>
+                    {inModifica === s.id && (
+                      <RinominaStagione stagione={s} occupato={occupato} spiega={spiega} esegui={esegui}
+                        onFatto={() => { carico.ricarica(); setInModifica(null) }} onAnnulla={() => setInModifica(null)} />
+                    )}
                     <div className="azioni-modulo">
+                      <Pulsante variante="ghost" aria-expanded={inModifica === s.id} onClick={() => setInModifica(inModifica === s.id ? null : s.id)} disabled={occupato}>Rinomina</Pulsante>
                       {s.aperta
                         ? <Pulsante onClick={() => cambia(s, 'chiudi')} disabled={occupato}>Chiudi la stagione</Pulsante>
                         : <Pulsante variante="yes" onClick={() => cambia(s, 'apri')} disabled={occupato}>Apri la stagione</Pulsante>}
@@ -80,7 +86,7 @@ function NuovaStagione({ aperta, spiega, esegui, occupato, onFatto }: { aperta: 
     <form className="modulo" onSubmit={(e) => { e.preventDefault(); void crea() }} noValidate>
       <h2 className="sr">Nuova stagione</h2>
       <Fld etichetta="Nome della stagione">
-        {(p) => <input {...p} type="text" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} placeholder="Stagione 2026-27" autoComplete="off" />}
+        {(p) => <input {...p} type="text" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} placeholder="Stagione 2026/2027" autoComplete="off" />}
       </Fld>
       <Fld etichetta="Data di inizio">
         {(p) => <input {...p} type="date" value={inizio} onChange={(e) => setInizio(e.target.value)} />}
@@ -93,6 +99,28 @@ function NuovaStagione({ aperta, spiega, esegui, occupato, onFatto }: { aperta: 
       </p>
       <div className="azioni-modulo">
         <button type="submit" className="btn yes" disabled={!valido || occupato} aria-busy={occupato}><Icona id="i-check" />{occupato ? 'Attendi…' : 'Crea la stagione'}</button>
+      </div>
+    </form>
+  )
+}
+
+function RinominaStagione({ stagione, spiega, esegui, occupato, onFatto, onAnnulla }: { stagione: Stagione; spiega: (e: ErroreApi) => string | undefined; esegui: ReturnType<typeof useEsito>['esegui']; occupato: boolean; onFatto: () => void; onAnnulla: () => void }) {
+  const [nome, setNome] = useState(stagione.nome)
+  const valido = nome.trim() !== '' && nome.trim() !== stagione.nome
+  async function salva() {
+    if (!valido || occupato) return
+    const ok = await esegui('Rinomino la stagione', () => scrivi('PATCH', `/api/admin/stagioni/${stagione.id}`, { nome: nome.trim() }), `Stagione rinominata: ${nome.trim()}`,
+      (e) => (e.stato === 409 ? 'Esiste già una stagione con questo nome: scegline un altro.' : spiega(e)))
+    if (ok) onFatto()
+  }
+  return (
+    <form className="modulo" onSubmit={(e) => { e.preventDefault(); void salva() }} noValidate>
+      <Fld etichetta={`Nuovo nome di "${stagione.nome}"`}>
+        {(p) => <input {...p} type="text" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} autoComplete="off" />}
+      </Fld>
+      <div className="azioni-modulo">
+        <button type="submit" className="btn yes" disabled={!valido || occupato} aria-busy={occupato}><Icona id="i-check" />{occupato ? 'Attendi…' : 'Salva il nome'}</button>
+        <Pulsante onClick={onAnnulla} disabled={occupato}>Annulla</Pulsante>
       </div>
     </form>
   )

@@ -149,6 +149,22 @@ describe('stagioni', () => {
     expect((await ad(db, 'POST', '/api/admin/stagioni', { nome: 'Tre', data_inizio: '2026-02-30' })).stato).toBe(400);
     expect((await chiama(db, 'GET', '/api/stagioni')).json.stagioni.map((s: any) => s.nome)).toEqual(['Due', 'Uno']);
   });
+
+  it('rinomina: solo il nome, senza toccare il resto', async () => {
+    const db = new D1Finto();
+    const a = await ad(db, 'POST', '/api/admin/stagioni', { nome: 'Uno', data_inizio: '2026-01-01' });
+    const b = await ad(db, 'POST', '/api/admin/stagioni', { nome: 'Due', data_inizio: '2026-06-01', aperta: false });
+    const r = await ad(db, 'PATCH', `/api/admin/stagioni/${a.json.id}`, { nome: '  Stagione 2026/2027 ' });
+    expect(r).toMatchObject({ stato: 200, json: { id: a.json.id, nome: 'Stagione 2026/2027', aperta: true, data_inizio: '2026-01-01', data_fine: null } });
+    expect((await chiama(db, 'GET', '/api/stagioni')).json.stagioni.map((s: any) => s.nome)).toEqual(['Due', 'Stagione 2026/2027']);
+    // nome gia' usato (anche con altre maiuscole), vuoto, campo mancante, id inesistente
+    expect((await ad(db, 'PATCH', `/api/admin/stagioni/${a.json.id}`, { nome: 'DUE' })).stato).toBe(409);
+    expect((await ad(db, 'PATCH', `/api/admin/stagioni/${b.json.id}`, { nome: '   ' })).stato).toBe(400);
+    expect((await ad(db, 'PATCH', `/api/admin/stagioni/${b.json.id}`, {})).stato).toBe(400);
+    expect((await ad(db, 'PATCH', '/api/admin/stagioni/99', { nome: 'Nuova' })).stato).toBe(404);
+    // rinominare la stessa stagione con lo stesso nome non e' un conflitto
+    expect((await ad(db, 'PATCH', `/api/admin/stagioni/${b.json.id}`, { nome: 'Due' })).stato).toBe(200);
+  });
 });
 
 describe('partita: dal convocato alla cronaca', () => {

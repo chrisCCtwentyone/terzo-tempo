@@ -75,7 +75,7 @@ aperto() {
   if [ "$codice" = "200" ]; then bene "$url -> 200"; else male "$url -> $codice (atteso 200)"; fi
 }
 
-PAGINE_PUBBLICHE=(/ /classifiche /partite /giocatori)
+PAGINE_PUBBLICHE=(/ /classifiche /partite /giocatori /info)
 API_PUBBLICHE=(/api/home /api/classifiche /api/partite /api/giocatori /api/stagioni)
 
 # Ogni rotta admin, ricavata dai file di functions/api/admin: l'elenco non si dimentica di niente.

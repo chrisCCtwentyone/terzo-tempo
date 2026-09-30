@@ -103,7 +103,7 @@ Ultima partita giocata, prossima partita, top marcatori della stagione aperta.
 }
 ```
 
-- `stagione` e' `null` per "sempre".
+- `stagione` e' `null` per "sempre" (nell'interfaccia la voce si chiama "Tutte le stagioni": "sempre" resta solo il valore del parametro).
 - Ordine per `valore` decrescente, poi per cognome. A pari valore stessa `posizione` (1, 1, 3).
 - `gol` e `mvp` non elencano chi ha 0. `media_voto` (partite **con pagella**) e `pct_vittorie` (presenze): **nessun minimo di partite**
   (decisione dell'utente, 30/09/2026), compaiono tutti subito; `media_voto` solo chi ha almeno una pagella. `minimo_partite` e' `0`
@@ -252,6 +252,8 @@ L'elenco e' pubblico (`GET /api/stagioni`). **Una sola stagione alla volta puo' 
 
 - `POST /api/admin/stagioni` `{ "nome": "Stagione 2026-27", "data_inizio": "2026-07-01", "data_fine"?: "...", "aperta"?: true }` -> `201`.
   `aperta` vale `true` se omesso: se ce n'e' gia' un'altra aperta, `409` (chiudila prima, o manda `"aperta": false`).
+- `PATCH /api/admin/stagioni/:id` `{ "nome": "Stagione 2026/2027" }` -> la stagione `{ id, nome, aperta, data_inizio, data_fine }`. Rinomina soltanto: date e stato
+  non si toccano da qui. `400` nome vuoto o corpo senza campi, `404` id inesistente, `409` nome gia' usato (senza distinguere maiuscole).
 - `POST /api/admin/stagioni/:id/apri` -> `{ "id": 2, "aperta": true }`. `409` se un'altra e' aperta.
 - `POST /api/admin/stagioni/:id/chiudi` `{ "data_fine"?: "2026-06-30" }` (corpo facoltativo; default: oggi a Roma) -> `{ "id", "aperta": false, "data_fine" }`.
 

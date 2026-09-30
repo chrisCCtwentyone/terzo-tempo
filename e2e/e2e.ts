@@ -60,6 +60,13 @@ async function vai(p: Page, percorso: string, nome: string, tema: string) {
   await p.goto(BASE + percorso)
   await p.locator('main h1').waitFor()
   await assesta(p, `${tema} ${nome}`)
+  if (!percorso.startsWith('/admin')) {
+    // il piede di ogni pagina pubblica: pulsante "Area admin" (verso /admin, area di tocco >= 44 px) e chip "Info"
+    const cta = p.locator('footer.pie a.admin-cta')
+    const riquadro = await cta.boundingBox()
+    verifica((await cta.count()) === 1 && (await cta.getAttribute('href')) === '/admin' && (riquadro?.height ?? 0) >= 44, `${tema} ${nome}: pulsante "Area admin" nel piede, verso /admin`)
+    verifica((await p.locator('footer.pie a[href="/info"]').count()) === 1, `${tema} ${nome}: link "Info" nel piede`)
+  }
   await foto(p, `${tema}-${nome}`)
 }
 
@@ -77,6 +84,11 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica(await p.getByText('Voto MVP aperto').isVisible(), `${tema} home: l'ultima partita ha il voto aperto e invita a votare`)
   verifica(await p.getByRole('link', { name: 'Vota ora' }).isVisible(), `${tema} home: link "Vota ora"`)
   verifica(!(await p.locator('body').innerText()).toLowerCase().includes('assist'), `${tema}: nessun assist da nessuna parte`)
+  // il piede in fondo alla Home, visto come lo vede il telefono (con la barra di navigazione)
+  await p.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+  await p.waitForTimeout(300)
+  await p.screenshot({ path: join(SCHERMATE, `${tema}-home-piede.png`) })
+  await p.evaluate(() => window.scrollTo(0, 0))
 
   await vai(p, '/classifiche', 'classifiche-gol-stagione', tema)
   verifica(/stagione=2/.test(p.url()) === false, `${tema} classifiche: l'URL di partenza e' pulito`)
@@ -87,12 +99,19 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
     if (cat === 'media_voto') verifica((await p.getByText(/almeno \d+ partite/).count()) === 0, `${tema} classifiche: nessun minimo di partite da spiegare`)
     await foto(p, `${tema}-classifiche-${nome}-stagione`)
   }
-  await p.getByRole('button', { name: 'Sempre', exact: true }).click()
+  // un solo selettore: ogni stagione col suo nome + "Tutte le stagioni"; niente piu' "Sempre" ne' tendina a parte
+  const periodo = p.getByRole('group', { name: 'Periodo' })
+  verifica((await periodo.getByRole('button').allInnerTexts()).join('|') === 'Stagione 2026-27|Stagione 2025-26|Tutte le stagioni', `${tema} classifiche: il periodo elenca ogni stagione e "Tutte le stagioni"`)
+  verifica((await periodo.getByRole('button', { name: 'Stagione 2026-27' }).getAttribute('aria-pressed')) === 'true', `${tema} classifiche: di default la stagione aperta`)
+  verifica((await p.getByRole('button', { name: 'Sempre', exact: true }).count()) === 0 && (await p.locator('select.tendina').count()) === 0, `${tema} classifiche: nessun "Sempre" e nessuna tendina a parte`)
+  await periodo.getByRole('button', { name: 'Tutte le stagioni' }).click()
   await p.waitForURL(/stagione=sempre/)
-  await assesta(p, `${tema} classifiche sempre`)
-  await foto(p, `${tema}-classifiche-sempre`)
-  await p.locator('select.tendina').selectOption({ label: 'Stagione 2025-26' })
+  await assesta(p, `${tema} classifiche tutte le stagioni`)
+  verifica(await p.getByText('Terzo Tempo · Tutte le stagioni').isVisible(), `${tema} classifiche: "Tutte le stagioni" nel sopratitolo`)
+  await foto(p, `${tema}-classifiche-tutte-le-stagioni`)
+  await periodo.getByRole('button', { name: 'Stagione 2025-26' }).click()
   await p.waitForURL(/stagione=1/)
+  verifica((await periodo.getByRole('button', { name: 'Stagione 2025-26' }).getAttribute('aria-pressed')) === 'true', `${tema} classifiche: la stagione scelta e' evidenziata e sta nell'URL`)
   await assesta(p, `${tema} classifiche stagione chiusa`)
   await foto(p, `${tema}-classifiche-stagione-chiusa`)
 
@@ -135,6 +154,18 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   await vai(p, '/giocatori/999', 'errore-giocatore-inesistente', tema)
   verifica(await p.getByRole('alert').isVisible(), `${tema} giocatore inesistente: errore testuale`)
   await vai(p, '/pagina-che-non-c-e', 'pagina-non-trovata', tema)
+  // ---- Info: link nel piede e credits (solo il nickname, link al profilo e al codice) ----
+  await p.goto(BASE + '/')
+  await p.locator('main h1').waitFor()
+  verifica(await p.locator('footer.pie').getByRole('link', { name: 'Info' }).isVisible(), `${tema} piede: link "Info"`)
+  await p.locator('footer.pie').getByRole('link', { name: 'Info' }).click()
+  await p.waitForURL('**/info')
+  await vai(p, '/info', 'info', tema)
+  verifica(await p.getByText('chrisCCtwentyone').first().isVisible(), `${tema} info: il nickname`)
+  const profilo = p.locator('a[href="https://github.com/chrisCCtwentyone"]')
+  const codice = p.locator('a[href="https://github.com/chrisCCtwentyone/terzo-tempo"]')
+  verifica((await profilo.count()) === 1 && (await codice.count()) === 1, `${tema} info: link al profilo e al codice sorgente`)
+  verifica((await profilo.getAttribute('target')) === '_blank' && /noopener/.test((await profilo.getAttribute('rel')) ?? ''), `${tema} info: link esterni con target _blank e rel noopener`)
   await vai(p, '/admin', 'admin-area-riservata', tema)
   verifica(await p.getByRole('heading', { name: /Area riservata agli admin/ }).isVisible(), `${tema} /admin senza accesso: "Area riservata agli admin"`)
   verifica((await p.locator('input[type=password], input[type=email]').count()) === 0, `${tema} /admin senza accesso: nessun form di password`)
@@ -147,7 +178,7 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
     await p.waitForURL((u) => u.pathname === url)
     verifica((await p.locator(`nav.nav a[aria-current="page"]`).textContent())?.trim() === nome, `${tema} navigazione: ${nome} attiva`)
   }
-  await p.getByRole('link', { name: 'Area admin' }).click()
+  await p.locator('footer.pie a.admin-cta').click()
   await p.waitForURL('**/admin')
   await p.goBack()
   await p.waitForURL((u) => u.pathname === '/')

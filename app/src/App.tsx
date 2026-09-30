@@ -3,6 +3,7 @@ import { cambiaTema } from './lib/tema'
 import { Classifiche } from './pagine/Classifiche'
 import { Giocatori } from './pagine/Giocatori'
 import { Home } from './pagine/Home'
+import { Info } from './pagine/Info'
 import { NonTrovata } from './pagine/NonTrovata'
 import { Partita } from './pagine/Partita'
 import { Partite } from './pagine/Partite'
@@ -29,6 +30,7 @@ function Pagina({ segmenti }: { segmenti: string[] }) {
     case 'classifiche': return id ? <NonTrovata /> : <Classifiche />
     case 'partite': return id ? <Partita id={id} /> : <Partite />
     case 'giocatori': return id ? <Scheda id={id} /> : <Giocatori />
+    case 'info': return id ? <NonTrovata /> : <Info />
     default: return <NonTrovata />
   }
 }
@@ -72,7 +74,14 @@ export function App() {
         <main id="contenuto" ref={main} tabIndex={-1} key={percorso} className={prec.current.verso}>
           <Pagina segmenti={segmenti} />
         </main>
-        <footer className="pie"><Link verso="/admin">Area admin</Link></footer>
+        <footer className="pie">
+          <Link verso="/admin" className="admin-cta">
+            <Icona id="i-lock" />
+            <span className="txt"><b>Area admin</b><small>Solo per gli admin · accesso con codice via email</small></span>
+            <Icona id="i-arrow" />
+          </Link>
+          <Link verso="/info" className="btn piccolo">Info</Link>
+        </footer>
       </div>
       <nav className="nav" aria-label="Schermate">
         <div className="nav-in">

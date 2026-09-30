@@ -208,6 +208,8 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   await schermata(p, 'stagioni-elenco', tema)
   const nomeStag = `Stagione prova ${tema}`
   await p.getByRole('button', { name: 'Nuova stagione' }).click()
+  // il campo parte VUOTO, col solo suggerimento: nessun nome inventato e precompilato
+  verifica((await p.getByLabel('Nome della stagione').inputValue()) === '' && (await p.getByLabel('Nome della stagione').getAttribute('placeholder')) === 'Stagione 2026/2027', `${tema} nuova stagione: nome vuoto con il suggerimento "Stagione 2026/2027"`)
   await p.getByLabel('Nome della stagione').fill(nomeStag)
   await p.getByLabel('Data di inizio').fill('2026-10-01')
   await p.getByRole('button', { name: 'Aprila subito' }).click() // di base spenta: c'è già un'altra aperta
@@ -226,6 +228,16 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   verifica(aperte.length === 1 && aperte[0].nome === nomeStag, `${tema} una sola stagione aperta, quella nuova (${aperte.map((x) => x.nome)})`)
   await schermata(p, 'stagioni-dopo', tema)
   const stagioneId = aperte[0].id
+
+  // rinomina: dalla scheda della stagione, il nome nuovo compare subito e nell'API pubblica
+  const rinominata = `${nomeStag} bis`
+  await p.locator('.stagione', { hasText: nomeStag }).getByRole('button', { name: 'Rinomina' }).click()
+  await p.getByLabel(`Nuovo nome di "${nomeStag}"`).fill(rinominata)
+  await p.getByRole('button', { name: 'Salva il nome' }).click()
+  await p.getByRole('status').filter({ hasText: `Stagione rinominata: ${rinominata}` }).waitFor()
+  await p.locator('.stagione', { hasText: rinominata }).waitFor()
+  verifica((await api<{ stagioni: any[] }>(p, '/api/stagioni')).json.stagioni.some((x) => x.id === stagioneId && x.nome === rinominata), `${tema} stagione rinominata dall'admin (${rinominata})`)
+  await schermata(p, 'stagioni-rinominata', tema)
 
   // ---------- nuova partita ----------
   await nav.getByRole('link', { name: 'Partite' }).click()

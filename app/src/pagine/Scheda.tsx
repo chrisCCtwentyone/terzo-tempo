@@ -25,7 +25,7 @@ function Statistiche({ stagione, sempre }: { stagione: Dati | null; sempre: Dati
           <div key={s.et} className={`stat ${s.cls} att`} style={{ '--i': i } as React.CSSProperties}>
             {principale === null ? <b className="nd" aria-label="non disponibile">n.d.</b> : <b>{principale}</b>}
             <span>{s.et}</span>
-            {stagione && <small>sempre {tot ?? 'n.d.'}</small>}
+            {stagione && <small>tutte le stagioni {tot ?? 'n.d.'}</small>}
           </div>
         )
       })}
@@ -54,7 +54,7 @@ function Contenuto({ sempre, stagione }: { sempre: Dati; stagione: Dati | null }
 
       <Sezione>{stagione?.stagione?.nome ?? 'Statistiche'}</Sezione>
       <Statistiche stagione={stagione} sempre={sempre} />
-      {!stagione && <p className="note">Nessuna stagione aperta: qui ci sono i numeri di sempre.</p>}
+      {!stagione && <p className="note">Nessuna stagione aperta: qui ci sono i numeri di tutte le stagioni.</p>}
 
       <Sezione>Ultime 5 partite</Sezione>
       <Carta>

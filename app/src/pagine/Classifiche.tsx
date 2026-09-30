@@ -5,7 +5,9 @@ import { useApi } from '../lib/useCarica'
 import { useRotta, useTitolo, vai } from '../router'
 import { Attesa, Carta, Errore, Intestazione, Riga, Scelta } from '../ui'
 
-const SEMPRE = 'sempre'
+const SEMPRE = 'sempre' // valore del parametro dell'API e dell'URL
+const TUTTE = 'Tutte le stagioni' // come si chiama per gli utenti
+const MAX_PILLOLE = 4 // oltre, il selettore diventa una tendina
 
 // Etichetta, unita' sotto il valore, colore della barra, formato del valore e scala della barra (null = relativa al primo).
 const CAT: Record<Categoria, { etichetta: string; unita: string; colore: string; formato: (v: number) => string; scala: number | null }> = {
@@ -58,29 +60,28 @@ export function Classifiche() {
   const stagioni = useApi<{ stagioni: Stagione[] }>('/api/stagioni')
   const elenco = stagioni.dati?.stagioni ?? []
   const aperta = elenco.find((s) => s.aperta)
-  // periodo dall'URL (condivisibile); senza, la stagione aperta se c'e', altrimenti "sempre"
+  // periodo dall'URL (condivisibile); senza, la stagione aperta se c'e', altrimenti tutte le stagioni
   const periodo = parametri.get('stagione') ?? (stagioni.dati ? (aperta ? String(aperta.id) : SEMPRE) : null)
   const cat = (CATEGORIE as readonly string[]).includes(parametri.get('cat') ?? '') ? (parametri.get('cat') as Categoria) : 'gol'
   const carico = useApi<Dati>(periodo === null ? null : `/api/classifiche?stagione=${encodeURIComponent(periodo)}`)
 
   const scegli = (p: string, c: Categoria) => vai(`/classifiche?stagione=${encodeURIComponent(p)}&cat=${c}`, { sostituisci: true })
-  const chiuse = elenco.filter((s) => !s.aperta)
-  const voci = [...(aperta ? [{ valore: String(aperta.id), etichetta: aperta.nome }] : []), { valore: SEMPRE, etichetta: 'Sempre' }]
-  const inChiuse = chiuse.some((s) => String(s.id) === periodo)
+  // un solo controllo: ogni stagione col suo nome (la piu' recente per prima, come le manda l'API), poi "Tutte le stagioni"
+  const voci = [...elenco.map((s) => ({ valore: String(s.id), etichetta: s.nome })), { valore: SEMPRE, etichetta: TUTTE }]
 
   return (
     <>
-      <Intestazione kick={`Terzo Tempo · ${carico.dati ? (carico.dati.stagione?.nome ?? 'Sempre') : 'Classifiche'}`} titolo="Classifiche" />
+      <Intestazione kick={`Terzo Tempo · ${carico.dati ? (carico.dati.stagione?.nome ?? TUTTE) : 'Classifiche'}`} titolo="Classifiche" />
       {stagioni.errore && <Errore errore={stagioni.errore} onRiprova={stagioni.ricarica} />}
       {stagioni.caricando && <Carta className="vuota">Carico le stagioni…</Carta>}
       {periodo !== null && (
         <>
-          <Scelta tipo="seg" etichetta="Periodo" voci={voci} valore={inChiuse ? null : periodo} onScegli={(p) => scegli(p, cat)} />
-          {chiuse.length > 0 && (
-            <select className="tendina" aria-label="Altre stagioni" aria-current={inChiuse} value={inChiuse ? (periodo ?? '') : ''} onChange={(e) => e.target.value && scegli(e.target.value, cat)}>
-              <option value="">Altre stagioni…</option>
-              {chiuse.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+          {elenco.length > MAX_PILLOLE ? (
+            <select className="tendina" aria-label="Periodo" value={periodo} onChange={(e) => scegli(e.target.value, cat)}>
+              {voci.map((v) => <option key={v.valore} value={v.valore}>{v.etichetta}</option>)}
             </select>
+          ) : (
+            <Scelta etichetta="Periodo" voci={voci} valore={periodo} onScegli={(p) => scegli(p, cat)} scorri />
           )}
           <Scelta etichetta="Classifica" voci={CATEGORIE.map((c) => ({ valore: c, etichetta: CAT[c].etichetta }))} valore={cat} onScegli={(c) => scegli(periodo, c)} />
           <Attesa carico={carico} testo="Carico la classifica…" figli={(d) => <Elenco dati={d} cat={cat} />} />
