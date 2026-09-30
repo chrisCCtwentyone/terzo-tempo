@@ -9,7 +9,7 @@ import { Partita } from './pagine/Partita'
 import { Partite } from './pagine/Partite'
 import { Scheda } from './pagine/Scheda'
 import { Link, useRotta } from './router'
-import { Caricamento, Icona, Pallone, Sprite, type IdIcona } from './ui'
+import { Caricamento, Icona, Marchio, Sprite, type IdIcona } from './ui'
 
 // L'area admin e' un pezzo a parte: chi guarda solo i turni non la scarica.
 const Admin = lazy(() => import('./admin/Admin'))
@@ -68,7 +68,7 @@ export function App() {
       <a className="salta" href="#contenuto" onClick={(e) => { e.preventDefault(); main.current?.focus() }}>Vai al contenuto</a>
       <div className="wrap">
         <header className="brand">
-          <Link verso="/" className="mark" aria-label="Terzo Tempo, vai alla home"><Pallone size={26} /><b>Terzo Tempo</b></Link>
+          <Link verso="/" className="mark" aria-label="Terzo Tempo, vai alla home"><Marchio /><b>Terzo Tempo</b></Link>
           <button className="tbtn" type="button" onClick={cambiaTema} aria-label="Cambia tema chiaro o scuro"><Icona id="i-theme" /></button>
         </header>
         <main id="contenuto" ref={main} tabIndex={-1} key={percorso} className={prec.current.verso}>

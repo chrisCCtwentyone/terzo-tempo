@@ -17,7 +17,7 @@ import { join, resolve } from 'node:path'
 import { chromium, type Browser, type Page } from 'playwright-core'
 import { schermatePubbliche } from './schermate_trabocchi.ts'
 import { provaRilevatore, provaTrabocchi } from './trabocchi.ts'
-import { DATI, RADICE, aggiungiDatiEstremi, apri as apriContesto, assesta, avviaServer, chiudiSessione, concludi, falliti, foto as fotoIn, iso, preparaBase, sql, verifica } from './impianto.ts'
+import { DATI, RADICE, aggiungiDatiEstremi, apri as apriContesto, assesta, avviaServer, chiudiSessione, concludi, falliti, foto as fotoIn, iso, preparaBase, provaIconeServite, sql, verifica, verificaMarchio } from './impianto.ts'
 
 const PORTA = Number(process.env.E2E_PORT ?? 8799)
 const BASE = `http://localhost:${PORTA}`
@@ -261,6 +261,7 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica(true, `${tema} voto: a tempo scaduto la pagina passa da sola all'esito`)
   await p.waitForTimeout(600)
   await foto(p, `${tema}-partita-voto-chiuso-a-tempo`)
+  await verificaMarchio(p, `${tema} sito pubblico`)
 
   // ---- tema manuale (il pulsante cambia e ricorda il tema) ----
   const prima = await p.evaluate(() => getComputedStyle(document.body).backgroundColor)
@@ -270,6 +271,17 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   await p.reload()
   await p.locator('main h1').waitFor()
   verifica((await p.evaluate(() => getComputedStyle(document.body).backgroundColor)) === dopo, `${tema} tema: la scelta e' ricordata`)
+  // la barra del browser / dello schermo intero segue il tema scelto a mano, anche se e' diverso da quello del sistema
+  const COLORI = { light: '#f2e9d0', dark: '#12162a' }
+  const metaColori = () => p.evaluate(() => [...document.querySelectorAll('meta[name="theme-color"]')].map((m) => m.getAttribute('content')))
+  const scelto = tema === 'light' ? 'dark' : 'light'
+  verifica((await metaColori()).every((c) => c === COLORI[scelto]), `${tema} tema: theme-color segue il tema scelto a mano (${scelto}: ${(await metaColori()).join(', ')})`)
+  await p.getByRole('button', { name: /Cambia tema/ }).click()
+  verifica((await metaColori()).every((c) => c === COLORI[tema]), `${tema} tema: theme-color torna a ${tema} (${(await metaColori()).join(', ')})`)
+  await p.goto(`${BASE}/info`)
+  await p.locator('main h1').waitFor()
+  await verificaMarchio(p, `${tema} pagina Info`)
+  await foto(p, `${tema}-info-marchio`)
 
   // ---- font, CSP, console ----
   const font = await p.evaluate(async () => {
@@ -303,6 +315,7 @@ async function main() {
     await provaRilevatore(browser, BASE)
     await provaTrabocchi(browser, BASE, 'pubblico', schermatePubbliche(true))
     if (process.env.E2E_SOLO === 'trabocchi') return
+    await provaIconeServite(BASE)
     await provaTema(browser, 'light')
     await provaTema(browser, 'dark')
     await provaMovimentoRidotto(browser)

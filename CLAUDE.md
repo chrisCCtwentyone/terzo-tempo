@@ -22,6 +22,15 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   si prova con la build di produzione (`vite preview`) e, dopo ogni pubblicazione,
   sul sito vero. Mai passare in una pipe un comando che deve poter fallire.
 
+- **Controlli su misura** (decisione dell'utente, 30/09/2026, per pubblicare piu'
+  in fretta): mentre si lavora si lanciano SOLO i controlli che riguardano la
+  modifica (i test del modulo toccato, l'e2e della schermata toccata, il rilevatore
+  di trabocchi solo sulle schermate cambiate). Il giro COMPLETO (tsc -b, tutti i
+  test, e2e, e2e:admin, rilevatore intero) si fa UNA volta, alla fine, dentro
+  `scripts/pubblica.sh`, che resta l'unico modo di pubblicare e non si alleggerisce.
+  Se il giro completo fallisce si corregge e si rilancia solo cio' che e' fallito,
+  poi di nuovo pubblica.sh.
+
 ## Decisioni prese (30/09/2026)
 
 - **Nome**: Terzo Tempo. Repository `chrisCCtwentyone/terzo-tempo`: l'utente vuole
@@ -109,6 +118,10 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   colori pieni da stampa, ombre stampate, giocatori come figurine con iniziali,
   font Anton + Nunito Sans, tema chiaro e "album di notte". Riferimento:
   `docs/anteprima-figurine.html` (prototipo approvato).
+- **Logo** (30/09/2026): scelto "A - Figurina" fra tre proposte: figurina inclinata
+  con bordo inchiostro e ombra stampata, pallone su finestra blu, fascia rossa,
+  sfondo giallo pieno. Sorgente: `docs/logo/logo-figurina.svg`. E' l'icona del sito,
+  della schermata Home di iPhone (web app) e il marchio nell'intestazione.
 - **Riferimento funzionale**: https://trntmarkt.altervista.org/ (lo stile grafico NON
   piace all'utente). Non ancora analizzato: il dominio era bloccato dalla rete.
 

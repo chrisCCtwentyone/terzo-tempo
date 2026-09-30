@@ -19,7 +19,7 @@ import { avviaAccessSimulato } from './access_simulato.ts'
 import { visitaModuli } from './moduli.ts'
 import { schermateAdmin } from './schermate_trabocchi.ts'
 import { provaRilevatore, provaSelettoreData, provaTrabocchi } from './trabocchi.ts'
-import { DATI, RADICE, aggiungiDatiEstremi, apri, assesta, avviaServer, chiudiSessione, concludi, falliti, foto, preparaBase, sql, verifica, type Sessione } from './impianto.ts'
+import { DATI, RADICE, aggiungiDatiEstremi, apri, assesta, avviaServer, chiudiSessione, concludi, falliti, foto, preparaBase, sql, verifica, verificaMarchio, type Sessione } from './impianto.ts'
 
 const PORTA = Number(process.env.E2E_PORT ?? 8798)
 const BASE = `http://localhost:${PORTA}`
@@ -107,6 +107,7 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   await p.locator('main h1').waitFor()
   await p.getByRole('heading', { name: 'Partite', level: 1 }).waitFor()
   await schermata(p, 'partite-elenco', tema)
+  await verificaMarchio(p, `${tema} area admin`)
   const nav = p.locator('nav.nav.adm')
   const voci = (await nav.getByRole('link').allTextContents()).map((t) => t.trim()).join(',')
   verifica(voci === 'Partite,Giocatori,Badge,Stagioni', `${tema} navigazione admin propria: Partite, Giocatori, Badge, Stagioni (${voci})`)
@@ -703,6 +704,7 @@ async function provaSenzaAccesso(browser: Browser, tema: 'light' | 'dark') {
   await p.goto(`${BASE_SENZA}/admin`)
   await p.getByRole('heading', { name: 'Area riservata agli admin' }).waitFor()
   await schermata(p, 'area-riservata', tema)
+  await verificaMarchio(p, `${tema} area riservata`)
   verifica((await p.locator('input').count()) === 0, `${tema} senza bypass: "Area riservata agli admin" e nessun form di password`)
   verifica(await p.getByRole('link', { name: 'Torna al sito' }).isVisible(), `${tema} senza bypass: "Torna al sito"`)
   const r = await api(p, '/api/admin/giocatori')

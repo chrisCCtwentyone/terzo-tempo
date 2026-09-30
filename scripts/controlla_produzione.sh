@@ -11,6 +11,8 @@
 #      Cloudflare Access (302 verso *.cloudflareaccess.com) oppure 401/403. MAI 200;
 #   4. il livello segreto non compare in nessuna risposta pubblica;
 #   5. intestazioni di sicurezza e CSP presenti;
+#   5b. manifest e icone della webapp: /manifest.webmanifest (200, application/manifest+json, JSON valido, icone
+#      dichiarate raggiungibili come PNG della misura dichiarata), /apple-touch-icon.png (200, image/png, 180x180);
 #   6. (se si passa l'indirizzo della singola pubblicazione) e' tutto dietro Access;
 #   7. prove d'attacco NON distruttive (solo GET, HEAD, OPTIONS e POST verso /api/admin senza credenziali):
 #      percorsi mascherati verso l'admin, JWT e cookie contraffatti, intestazioni falsificate
@@ -101,6 +103,49 @@ echo "-> il livello segreto non compare nelle risposte pubbliche"
 for p in "${PAGINE_PUBBLICHE[@]}" "${API_PUBBLICHE[@]}"; do
   corpo=$(curl -s --max-time 20 "$SITO$p") || { male "$SITO$p non raggiungibile"; continue; }
   if grep -qi "livello" <<<"$corpo"; then male "$SITO$p contiene \"livello\""; else bene "$SITO$p senza \"livello\""; fi
+done
+
+echo "-> manifest e icone della webapp (Home di iPhone, browser)"
+# Il sito risponde 200 con la PAGINA DELL'APP anche per un file che non esiste: per questo si controllano content-type e byte veri.
+png_lato() { # stampa "<larghezza>x<altezza>" letto dall'intestazione del PNG, oppure "non-png"
+  local f="$1"
+  if [ "$(head -c 8 "$f" | od -An -tx1 | tr -d ' \n')" != "89504e470d0a1a0a" ]; then echo "non-png"; return; fi
+  local l a
+  l=$(od -An -tu1 -j16 -N4 "$f" | awk '{print $1*16777216+$2*65536+$3*256+$4}')
+  a=$(od -An -tu1 -j20 -N4 "$f" | awk '{print $1*16777216+$2*65536+$3*256+$4}')
+  echo "${l}x${a}"
+}
+scarica() { # scarica($1 = percorso, $2 = file): stampa "<codice> <content-type>"
+  curl -s -o "$2" -w "%{http_code} %{content_type}" --max-time 20 "$SITO$1"
+}
+manifest_tmp=$(mktemp)
+r=$(scarica /manifest.webmanifest "$manifest_tmp") || r="000 "
+if [ "${r%% *}" = "200" ] && [[ "${r#* }" == application/manifest+json* ]]; then bene "/manifest.webmanifest -> 200 ${r#* }"; else male "/manifest.webmanifest -> $r (atteso 200 application/manifest+json)"; fi
+if icone=$(node -e '
+  const m = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  if (m.name !== "Terzo Tempo" || m.short_name !== "Terzo Tempo" || m.start_url !== "/" || m.scope !== "/" || m.display !== "standalone") process.exit(2);
+  if (!m.icons.some((i) => i.purpose === "maskable")) process.exit(3);
+  for (const i of m.icons) console.log(i.src + " " + i.sizes);
+' "$manifest_tmp" 2>/dev/null); then
+  bene "manifest: JSON valido, nome, start_url, scope, display standalone, icona maskable"
+  while read -r src misura; do
+    [ -z "$src" ] && continue
+    icona_tmp=$(mktemp)
+    r=$(scarica "$src" "$icona_tmp") || r="000 "
+    if [ "${r%% *}" = "200" ] && [[ "${r#* }" == image/png* ]] && [ "$(png_lato "$icona_tmp")" = "$misura" ]; then bene "$src -> 200 image/png $misura"; else male "$src -> $r, PNG $(png_lato "$icona_tmp") (atteso 200 image/png $misura)"; fi
+    rm -f "$icona_tmp"
+  done <<<"$icone"
+else
+  male "manifest: non e' un JSON valido o mancano nome, start_url, scope, display o l'icona maskable"
+fi
+rm -f "$manifest_tmp"
+apple_tmp=$(mktemp)
+r=$(scarica /apple-touch-icon.png "$apple_tmp") || r="000 "
+if [ "${r%% *}" = "200" ] && [[ "${r#* }" == image/png* ]] && [ "$(png_lato "$apple_tmp")" = "180x180" ]; then bene "/apple-touch-icon.png -> 200 image/png 180x180"; else male "/apple-touch-icon.png -> $r, PNG $(png_lato "$apple_tmp") (atteso 200 image/png 180x180)"; fi
+rm -f "$apple_tmp"
+pagina=$(curl -s --max-time 20 "$SITO/") || pagina=""
+for atteso in 'rel="manifest"' 'rel="apple-touch-icon"' 'apple-mobile-web-app-capable' 'viewport-fit=cover'; do
+  if grep -Fq "$atteso" <<<"$pagina"; then bene "la pagina iniziale contiene $atteso"; else male "la pagina iniziale non contiene $atteso"; fi
 done
 
 echo "-> intestazioni di sicurezza"

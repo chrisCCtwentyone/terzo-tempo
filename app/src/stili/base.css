@@ -5,6 +5,9 @@ html{background:var(--paper);-webkit-text-size-adjust:100%;text-size-adjust:100%
 body{
   margin:0;background-color:var(--paper);background-image:var(--grain);color:var(--ink);
   font-family:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:600;font-size:15px;line-height:1.4;
+  /* viewport-fit=cover (index.html): la pagina arriva sotto orologio/tacca e barra del gesto. Sopra si lascia lo spazio qui
+     (la carta di html/body si vede anche sotto l'orologio), sotto lo lasciano il fondo della pagina e la barra .nav. */
+  padding-top:env(safe-area-inset-top,0px);
   padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));
   /* Il testo NON deve mai uscire dal suo riquadro: una parola troppo lunga va a capo dove serve, e (a differenza di
      break-word) anywhere abbassa anche la larghezza minima del contenuto, cosi' un figlio di flex o grid senza
@@ -19,7 +22,7 @@ a{color:inherit}
 h1,h2,h3,p,ol,ul,fieldset{margin:0;padding:0}
 fieldset{border:0;min-width:0}
 ol,ul{list-style:none}
-.wrap{max-width:480px;margin:0 auto;padding:0 16px}
+.wrap{max-width:480px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
 .num,.sc,.val b,.stat b,.voto,.pos{font-variant-numeric:tabular-nums}
 .disp{font-family:Anton,Impact,"Arial Narrow",sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:.03em}
 
