@@ -39,7 +39,7 @@ controlla che nel bundle non ci sia nessun segreto. Servono nell'ambiente `CLOUD
 vuole. Controlla il sito VERO: pagine e API pubbliche danno 200; `/admin` e ogni `/api/admin/*`
 (elenco ricavato da `functions/api/admin`, GET e POST) rimandano al login di Access (302 verso
 `cloudflareaccess.com`) o danno 401/403, mai 200; "livello" non compare in nessuna risposta
-pubblica; intestazioni di sicurezza e CSP presenti (senza `unsafe-*`, con HSTS); l'indirizzo della singola
+pubblica; `/manifest.webmanifest` (200, `application/manifest+json`, JSON valido, icone dichiarate raggiungibili) e `/apple-touch-icon.png` (200, `image/png`, 180x180: il sito risponde 200 con la pagina dell'app anche per un file che non c'e', quindi si guardano content-type e byte del PNG); intestazioni di sicurezza e CSP presenti (senza `unsafe-*`, con HSTS); l'indirizzo della singola
 pubblicazione (`<hash>.terzo-tempo.pages.dev`) e' tutto dietro Access.
 
 Lo stesso script fa anche le **prove d'attacco NON distruttive** (solo GET, HEAD, OPTIONS, e POST/PUT/DELETE verso

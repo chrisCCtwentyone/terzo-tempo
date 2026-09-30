@@ -216,6 +216,7 @@ erDiagram
 ```
 ├── app/                # frontend
 │   ├── index.html
+│   ├── public/         # file statici alla radice del sito: manifest, icone, favicon (generati da scripts/genera_icone.mjs)
 │   └── src/
 │       ├── pagine/     # schermate pubbliche: Home, Classifiche, Partite, Scheda, Info...
 │       ├── ui/         # componenti condivisi: Figurina, Campo, Carta, Badges...
@@ -227,10 +228,10 @@ erDiagram
 │   └── lib/            #   accesso, generatore di squadre, MVP, statistiche
 ├── shared/             # codice comune a frontend e backend: nomi e moduli
 ├── migrations/         # schema D1
-├── scripts/            # pubblicazione, controllo del sito vero, dati di prova
+├── scripts/            # pubblicazione, controllo del sito vero, dati di prova, icone
 ├── test/               # Vitest (compresa la guardia dei nomi reali)
 ├── e2e/                # prove nel browser con Playwright
-├── docs/               # API, messa in produzione, decisioni aperte
+├── docs/               # API, messa in produzione, decisioni aperte, logo sorgente
 ├── wrangler.toml       # configurazione Cloudflare (nessun segreto)
 └── CLAUDE.md           # regole e decisioni del progetto
 ```
@@ -268,6 +269,18 @@ npm run e2e:admin   # come sopra, per l'area admin (con eventi touch veri)
 ```
 
 Le prove nel browser controllano tutte le schermate, il voto MVP col conflitto al secondo voto, la chiusura a tempo scaduto, la console senza errori, zero violazioni CSP, nessuna risorsa esterna e nessuno scroll orizzontale. Servono un Chromium già installato e `playwright-core` alla versione fissata: dettagli in [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+### Logo e icone
+
+Il logo è la **Figurina**: `docs/logo/logo-figurina.svg` (512x512, sfondo giallo pieno) è l'unica sorgente. Da lì nascono l'icona della schermata Home di iPhone, l'icona del sito nel browser e il marchio nell'intestazione (il `<symbol id="logo">` dello sprite in `app/src/ui/Icone.tsx`, inline: nessuna immagine da caricare; un test lo confronta con l'SVG).
+
+Le icone in `app/public` non si ritoccano a mano: si rigenerano dall'SVG con
+
+```bash
+npm run icone    # = node scripts/genera_icone.mjs
+```
+
+Rasterizza con il Chromium di Playwright già presente (`PLAYWRIGHT_BROWSERS_PATH` o `E2E_CHROMIUM`; mai `playwright install`) e non aggiunge dipendenze. Scrive `favicon.svg`, `favicon-32.png`, `favicon.ico`, `apple-touch-icon.png` (180x180, sfondo pieno e senza trasparenza: gli angoli arrotondati li ritaglia iOS), `icon-192.png`, `icon-512.png` e `icon-maskable-512.png` (disegno ridotto dentro la zona sicura: cerchio di diametro 80%, giallo come sfondo). Se il logo cambia, si rilancia lo script e si committano i file generati. `app/public/manifest.webmanifest` dichiara nome, avvio a schermo intero e icone; il suo colore (e le `theme-color` di `index.html`) è la carta del tema, chiaro `#f2e9d0` e "album di notte" `#12162a`.
 
 ### Pubblicazione
 

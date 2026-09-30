@@ -108,7 +108,23 @@ async function gestisci(ctx: EventContext<Env, string, Record<string, unknown>>)
     return conIntestazioni(risposta);
   }
 
-  return conIntestazioni(await ctx.next());
+  const risposta = conIntestazioni(await ctx.next());
+  return url.pathname === PERCORSO_MANIFEST ? conTipoManifest(risposta) : risposta;
+}
+
+const PERCORSO_MANIFEST = '/manifest.webmanifest';
+const TIPO_MANIFEST = 'application/manifest+json';
+
+/**
+ * Il manifest (icona e nome della webapp sulla Home) deve uscire come application/manifest+json. Pages lo fa gia' da solo
+ * (scripts/controlla_produzione.sh lo verifica sul sito vero); qui si corregge solo un tipo sbagliato (octet-stream, text/plain,
+ * json...). Una risposta HTML resta com'e': e' la pagina dell'app al posto di un manifest mancante, e dirle "manifest" nasconderebbe l'errore.
+ */
+function conTipoManifest(risposta: Response): Response {
+  const tipo = (risposta.headers.get('Content-Type') ?? '').toLowerCase();
+  if (!risposta.ok || tipo.startsWith(TIPO_MANIFEST) || tipo.startsWith('text/html')) return risposta;
+  risposta.headers.set('Content-Type', TIPO_MANIFEST);
+  return risposta;
 }
 
 const MESSAGGIO_RIFIUTO = { 401: 'accesso richiesto', 403: 'accesso negato', 503: 'servizio momentaneamente non disponibile' } as const;

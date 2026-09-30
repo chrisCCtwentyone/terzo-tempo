@@ -1,5 +1,5 @@
 // I componenti condivisi (pubblico e admin). Stili: app/src/stili/ui.css.
-export { Sprite, Icona, Pallone } from './Icone'
+export { Sprite, Icona, Marchio, Pallone } from './Icone'
 export type { IdIcona } from './Icone'
 export { Figurina } from './Figurina'
 export { Cart } from './Cart'

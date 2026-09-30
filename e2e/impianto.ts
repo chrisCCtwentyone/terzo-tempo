@@ -150,6 +150,36 @@ export async function foto(p: Page, cartella: string, nome: string) {
   })
 }
 
+/**
+ * Il marchio (logo Figurina) nell'intestazione: c'e', e' quello giusto (`<use href="#logo">` dentro il link col nome), ha un lato
+ * di 30 px ed e' tutto dentro l'intestazione e dentro lo schermo. `nome` = etichetta della schermata per i messaggi.
+ */
+export async function verificaMarchio(p: Page, nome: string) {
+  const m = await p.evaluate(() => {
+    const logo = document.querySelector('header.brand .mark svg.logo')
+    if (!logo) return null
+    const r = logo.getBoundingClientRect()
+    const h = document.querySelector('header.brand')!.getBoundingClientRect()
+    const sprite = document.querySelector('symbol#logo')
+    return {
+      uso: logo.querySelector('use')?.getAttribute('href'),
+      // misura di layout (l'intestazione e' inclinata di 1,5 gradi: il riquadro sullo schermo e' un po' piu' grande)
+      w: parseFloat(getComputedStyle(logo).width), h: parseFloat(getComputedStyle(logo).height),
+      dentro: r.left >= 0 && r.right <= window.innerWidth && r.top >= h.top - 1 && r.bottom <= h.bottom + 1,
+      nelLink: !!logo.closest('a.mark')?.querySelector('b'),
+      palloneNelMarchio: !!document.querySelector('.mark .ball'),
+      simbolo: !!sprite && sprite.querySelectorAll('polygon').length === 6,
+      sfondo: getComputedStyle(logo).borderTopWidth,
+    }
+  })
+  verifica(!!m, `${nome}: il logo compare nell'intestazione`)
+  if (!m) return
+  verifica(m.uso === '#logo' && m.simbolo && m.nelLink, `${nome}: il logo e' la Figurina, accanto al nome, nel link dell'intestazione`)
+  verifica(Math.abs(m.w - 30) < 0.5 && Math.abs(m.h - 30) < 0.5, `${nome}: logo 30x30 (${m.w}x${m.h})`)
+  verifica(m.dentro, `${nome}: il logo sta dentro intestazione e schermo`)
+  verifica(!m.palloneNelMarchio, `${nome}: niente pallone al posto del logo`)
+}
+
 /** Controlli finali di una sessione: CSP, risorse esterne, console. */
 export async function chiudiSessione(s: Sessione, etichetta: string) {
   for (const pg of s.ctx.pages()) {
@@ -166,4 +196,54 @@ export function concludi() {
   fermaServer()
   console.log(falliti.length ? `\nFALLITE ${falliti.length} verifiche:\n- ${falliti.join('\n- ')}` : '\nTutte le verifiche sono passate.')
   process.exit(falliti.length ? 1 : 0)
+}
+
+const PNG_FIRMA = '89504e470d0a1a0a'
+/** Lato e tipo di colore letti dall'intestazione del PNG vero (non dall'estensione). Tipo 2 = RGB: nessun canale alfa, quindi nessuna trasparenza. */
+export function leggiPng(dati: Buffer): { larghezza: number; altezza: number; opaco: boolean } | null {
+  if (dati.subarray(0, 8).toString('hex') !== PNG_FIRMA || dati.toString('latin1', 12, 16) !== 'IHDR') return null
+  return { larghezza: dati.readUInt32BE(16), altezza: dati.readUInt32BE(20), opaco: dati[25] === 2 }
+}
+
+/**
+ * Icone e manifest SERVITI dal server vero (wrangler pages dev sulla build): content-type, JSON valido, ogni icona dichiarata esiste
+ * ed e' un PNG della misura dichiarata, apple-touch-icon 180x180 senza trasparenza. E la pagina iniziale dichiara i link e le meta.
+ */
+export async function provaIconeServite(base: string) {
+  console.log('\n== icone e manifest ==')
+  const r = await fetch(`${base}/manifest.webmanifest`)
+  verifica(r.status === 200 && (r.headers.get('content-type') ?? '').startsWith('application/manifest+json'), `manifest: 200 e application/manifest+json (${r.status} ${r.headers.get('content-type')})`)
+  let m: { name?: string; short_name?: string; start_url?: string; scope?: string; display?: string; icons?: { src: string; sizes: string; type: string; purpose?: string }[] } = {}
+  try {
+    m = await r.json()
+  } catch {
+    verifica(false, 'manifest: JSON valido')
+  }
+  verifica(m.name === 'Terzo Tempo' && m.short_name === 'Terzo Tempo' && m.start_url === '/' && m.scope === '/' && m.display === 'standalone', 'manifest: nome, start_url, scope e display standalone')
+  verifica((m.icons ?? []).some((i) => i.purpose === 'maskable') && (m.icons ?? []).some((i) => i.sizes === '192x192') && (m.icons ?? []).some((i) => i.sizes === '512x512' && i.purpose === 'any'), 'manifest: icone 192, 512 e maskable')
+  for (const i of m.icons ?? []) {
+    const ri = await fetch(base + i.src)
+    const png = leggiPng(Buffer.from(await ri.arrayBuffer()))
+    verifica(ri.status === 200 && ri.headers.get('content-type') === 'image/png' && `${png?.larghezza}x${png?.altezza}` === i.sizes, `icona ${i.src}: 200, image/png, ${i.sizes} (${png?.larghezza}x${png?.altezza})`)
+  }
+  const a = await fetch(`${base}/apple-touch-icon.png`)
+  const png = leggiPng(Buffer.from(await a.arrayBuffer()))
+  verifica(a.status === 200 && a.headers.get('content-type') === 'image/png' && png?.larghezza === 180 && png?.altezza === 180 && png.opaco, `apple-touch-icon.png: 200, image/png, 180x180, senza trasparenza (${png?.larghezza}x${png?.altezza})`)
+  const svg = await fetch(`${base}/favicon.svg`)
+  verifica(svg.status === 200 && (svg.headers.get('content-type') ?? '').startsWith('image/svg+xml'), 'favicon.svg: 200 e image/svg+xml')
+  const ico = await fetch(`${base}/favicon.ico`)
+  verifica(ico.status === 200 && !(ico.headers.get('content-type') ?? '').startsWith('text/html'), `favicon.ico: 200 e non la pagina dell'app (${ico.headers.get('content-type')})`)
+  const html = await (await fetch(`${base}/`)).text()
+  for (const [cosa, re] of [
+    ['link manifest', /<link rel="manifest" href="\/manifest\.webmanifest"/],
+    ['link icon svg', /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml"/],
+    ['link icon png', /<link rel="icon" href="\/favicon-32\.png" type="image\/png"/],
+    ['link apple-touch-icon', /<link rel="apple-touch-icon" href="\/apple-touch-icon\.png"/],
+    ['apple-mobile-web-app-capable', /<meta name="apple-mobile-web-app-capable" content="yes"/],
+    ['mobile-web-app-capable', /<meta name="mobile-web-app-capable" content="yes"/],
+    ['apple-mobile-web-app-title', /<meta name="apple-mobile-web-app-title" content="Terzo Tempo"/],
+    ['apple-mobile-web-app-status-bar-style', /<meta name="apple-mobile-web-app-status-bar-style" content="default"/],
+    ['viewport-fit=cover', /<meta name="viewport"[^>]*viewport-fit=cover/],
+    ['theme-color chiaro e scuro', /theme-color" content="#f2e9d0" media="\(prefers-color-scheme: light\)"[\s\S]*theme-color" content="#12162a" media="\(prefers-color-scheme: dark\)"/],
+  ] as const) verifica(re.test(html), `index: ${cosa}`)
 }

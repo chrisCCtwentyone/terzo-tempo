@@ -4,7 +4,7 @@ import type { ErroreApi } from '../lib/api'
 import { cambiaTema } from '../lib/tema'
 import { useApi } from '../lib/useCarica'
 import { Link, useRotta, useTitolo } from '../router'
-import { Caricamento, Carta, Errore, Icona, Intestazione, Pallone, PulsanteLink } from '../ui'
+import { Caricamento, Carta, Errore, Icona, Intestazione, Marchio, PulsanteLink } from '../ui'
 import { IconaAdmin, SpriteAdmin } from './comuni'
 import { GiocatoriAdmin } from './Giocatori'
 import { BadgeAdmin } from './Badge'
@@ -68,7 +68,7 @@ function Riservata() {
   return (
     <div className="wrap adm">
       <header className="brand">
-        <Link verso="/" className="mark" aria-label="Terzo Tempo, vai alla home"><Pallone size={26} /><b>Terzo Tempo</b></Link>
+        <Link verso="/" className="mark" aria-label="Terzo Tempo, vai alla home"><Marchio /><b>Terzo Tempo</b></Link>
         <button className="tbtn" type="button" onClick={cambiaTema} aria-label="Cambia tema chiaro o scuro"><Icona id="i-theme" /></button>
       </header>
       <main id="contenuto" tabIndex={-1} className="er">
@@ -138,7 +138,7 @@ export default function Admin() {
       <a className="salta" href="#contenuto" onClick={(e) => { e.preventDefault(); main.current?.focus() }}>Vai al contenuto</a>
       <div className="wrap adm">
         <header className="brand">
-          <Link verso="/admin/partite" className="mark" aria-label="Terzo Tempo, area admin"><Pallone size={26} /><b>Terzo Tempo</b></Link>
+          <Link verso="/admin/partite" className="mark" aria-label="Terzo Tempo, area admin"><Marchio /><b>Terzo Tempo</b></Link>
           <button className="tbtn" type="button" onClick={cambiaTema} aria-label="Cambia tema chiaro o scuro"><Icona id="i-theme" /></button>
         </header>
         <div className="admbar">
