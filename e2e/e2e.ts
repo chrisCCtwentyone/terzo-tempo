@@ -47,6 +47,9 @@ function preparaDati() {
       `INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, mvp_stato, mvp_chiuso_il) VALUES (110, 2, '${iso(ora - 96 * H)}', 'giocata', 1, 0, 'assegnato', '${iso(ora - 72 * H)}');`,
       conv(`(110,7,'A',50,25,1,0,7),(110,8,'B',50,75,0,0,6)`),
       `INSERT INTO mvp_vincitori (partita_id, giocatore_id) VALUES (110, 7);`,
+      // campi (nomi inventati, vedi aggiungiDatiEstremi): la home mostra l'ultima (100) e la prossima (11) con un campo dal nome lungo
+      `UPDATE partite SET campo_id = 91 WHERE id = 100;`,
+      `UPDATE partite SET campo_id = 90 WHERE id = 11;`,
     ].join('\n'),
   )
 }
@@ -107,6 +110,12 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica((await p.locator('.podio .pc').count()) === 3, `${tema} home: podio a tre`)
   verifica(await p.getByText('Miglior voto').isVisible(), `${tema} home: statistica curiosa`)
   verifica(await p.getByText('Voto MVP aperto').isVisible(), `${tema} home: l'ultima partita ha il voto aperto e invita a votare`)
+  const DIR = 'https://www.google.com/maps/dir/?api=1&destination='
+  const luoghi = await p.locator('.luogo').evaluateAll((a) => a.map((x) => ({ href: x.getAttribute('href'), target: x.getAttribute('target'), rel: x.getAttribute('rel'), uso: x.querySelector('svg.ico use')?.getAttribute('href'), testo: (x as HTMLElement).innerText.replace(/\s+/g, ' ').trim(), alto: x.getBoundingClientRect().height })))
+  verifica(luoghi.length === 2, `${tema} home: il campo compare per l'ultima e per la prossima partita (${luoghi.length})`)
+  verifica(luoghi[0]?.href === `${DIR}Supercalifragilistichespiralidosoimpiantosportivocomunalenuovissimo` && luoghi[1]?.href === `${DIR}44.2,10.2`, `${tema} home: indicazioni costruite dal server (nome senza coordinate; coordinate) (${luoghi.map((l) => l.href).join(' | ')})`)
+  verifica(luoghi.every((l) => l.target === '_blank' && /noopener/.test(l.rel ?? '') && l.uso === '#i-pin' && l.testo.endsWith('→') && l.alto >= 44), `${tema} home: link con target _blank, rel noopener, segnaposto SVG, freccia e area di tocco >= 44 px`)
+  verifica(!(await p.locator('main').innerText()).includes('📍'), `${tema} home: niente emoji al posto dell'icona`)
   verifica(await p.getByRole('link', { name: 'Vota ora' }).isVisible(), `${tema} home: link "Vota ora"`)
   verifica(!(await p.locator('body').innerText()).toLowerCase().includes('assist'), `${tema}: nessun assist da nessuna parte`)
   // il piede in fondo alla Home, visto come lo vede il telefono (con la barra di navigazione)
@@ -142,6 +151,10 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
 
   await vai(p, '/partite', 'partite-elenco', tema)
   verifica((await p.locator('a.match').count()) >= 13, `${tema} partite: elenco per stagione`)
+  const inRiga = await p.locator('a.match .luogo-riga').allInnerTexts()
+  verifica(inRiga.length >= 6 && inRiga.includes('Palestra di Prova') && inRiga.includes('Polisportiva Comunale Giovanni Battista Montefiascone-Vannozzi e Figli'), `${tema} partite: il campo in piccolo nell'elenco (${inRiga.length} righe)`)
+  verifica((await p.locator('a.match .luogo-riga a').count()) === 0 && (await p.locator('a a').count()) === 0, `${tema} partite: nessun link dentro un link`)
+  verifica((await p.locator('a.match').evaluateAll((a) => a.filter((x) => !x.querySelector('.luogo-riga')).length)) >= 7, `${tema} partite: senza campo la riga non mostra nulla`)
 
   await vai(p, '/partite/10', 'partita-giocata', tema)
   verifica((await p.locator('.ped').count()) === 12, `${tema} partita 10: 12 pedine sul campo`)
@@ -154,9 +167,13 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   const cart = await p.locator('.pitch .cart').allInnerTexts()
   verifica(cart.length === 12 && cart.every((t) => /^\S.* (\p{Lu}\.)+$/u.test(t)), `${tema} partita 10: sul campo il nome è "Cognome I." per intero (${cart.slice(0, 4).join(', ')}...)`)
   verifica(await p.getByText('Voto MVP').first().isVisible(), `${tema} partita 10: blocco voto`)
+  verifica((await p.locator('.hero .luogo').getAttribute('href')) === `${DIR}Palestra%20di%20Prova` && (await p.locator('.hero .luogo').innerText()).replace(/\s+/g, ' ').trim() === 'Palestra di Prova →', `${tema} partita 10: il campo e' un link alle indicazioni ("Palestra di Prova →")`)
   verifica((await p.locator('#voto-mvp .stamp').count()) === 1, `${tema} partita 10: bollino del vincitore`)
 
+  await vai(p, '/partite/120', 'partita-campo-nome-lungo', tema)
+  verifica((await p.locator('.hero .luogo').count()) === 1 && (await p.locator('.hero .luogo').getAttribute('href')) === `${DIR}44.2,10.2`, `${tema} partita 120: campo dal nome lungo, con le coordinate`)
   await vai(p, '/partite/5', 'partita-parita', tema)
+  verifica((await p.locator('.luogo').count()) === 0, `${tema} partita 5: senza campo non si mostra nulla`)
   verifica(await p.getByText('decide l\'admin').first().isVisible(), `${tema} partita 5: parita', decide l'admin`)
   await vai(p, '/partite/101', 'partita-nessun-voto-senza-cronaca', tema)
   verifica(await p.getByText('Nessun voto').first().isVisible(), `${tema} partita 101: nessun voto`)

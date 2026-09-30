@@ -25,6 +25,24 @@ describe('ogni rotta admin, senza credenziali', () => {
     expect(ROTTE_ADMIN.length).toBeGreaterThan(10);
   });
 
+  it('i campi e il risolutore di link sono fra le rotte admin enumerate (quindi provate qui sotto)', () => {
+    const rotte = ROTTE_ADMIN.map(rottaDi);
+    for (const r of ['/api/admin/campi', '/api/admin/campi/:id', '/api/admin/campi/risolvi']) expect(rotte, r).toContain(r);
+  });
+
+  it('il risolutore NON apre nessun link senza credenziali valide: nessuna richiesta di rete, con nessuna configurazione', async () => {
+    const rete = vi.fn(async () => new Response(null, { status: 302, headers: { Location: 'https://www.google.com/maps/place/X/@1,2,3z' } }));
+    vi.stubGlobal('fetch', rete);
+    const configurazioni = [{}, { ...ENV_ADMIN }, { ACCESS_TEAM_DOMAIN: 'DA_COMPILARE', ACCESS_AUD: 'DA_COMPILARE', EMAIL_AUTORIZZATE: EMAIL }, { DEV_ADMIN_BYPASS: '1' }, { DEV_ADMIN_BYPASS: '1', GOOGLE_MAPS_PROVA: 'http://localhost:9009' }];
+    for (const env of configurazioni) {
+      for (const token of [undefined, 'a.b.c', 'x']) {
+        const r = await chiama(db, 'POST', '/api/admin/campi/risolvi', { env, token, corpo: { link: 'https://maps.app.goo.gl/AbC123' } });
+        chiuso(r.stato);
+      }
+    }
+    expect(rete).not.toHaveBeenCalled();
+  });
+
   for (const configurazione of [{}, { ...ENV_ADMIN }, { ACCESS_TEAM_DOMAIN: 'DA_COMPILARE', ACCESS_AUD: 'DA_COMPILARE', EMAIL_AUTORIZZATE: EMAIL }]) {
     it(`401/403 con ${JSON.stringify(Object.keys(configurazione)) === '[]' ? 'nessuna configurazione' : Object.keys(configurazione).join('+')}`, async () => {
       pubblicaChiavi([chiave.jwk]);

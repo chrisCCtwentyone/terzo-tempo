@@ -30,17 +30,21 @@ export type Mvp =
       candidati: { giocatore_id: number; nome: string }[]
     })
 
+/** Il campo da gioco di una partita: l'indirizzo e' sempre https://www.google.com/maps/... costruito dal server. */
+export type Campo = { nome: string; url_indicazioni: string }
+
 export type Partita = {
   id: number
   stagione_id: number
   data_ora: string
   stato: 'convocazione' | 'giocata'
   squadre: SquadraPunteggio[]
+  campo: Campo | null
   cronaca: string | null
   giocatori: GiocatoreInPartita[]
   mvp: Mvp
 }
-export type PartitaRiga = Pick<Partita, 'id' | 'stagione_id' | 'data_ora' | 'stato' | 'squadre'>
+export type PartitaRiga = Pick<Partita, 'id' | 'stagione_id' | 'data_ora' | 'stato' | 'squadre' | 'campo'>
 
 export type Stagione = { id: number; nome: string; aperta: boolean; data_inizio: string; data_fine: string | null; partite_giocate: number }
 

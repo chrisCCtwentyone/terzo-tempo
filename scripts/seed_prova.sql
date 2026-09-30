@@ -53,18 +53,25 @@ INSERT INTO stagioni (id, nome, aperta, data_inizio, data_fine) VALUES
   (1, 'Stagione 2025-26', 0, '2025-09-01', '2026-06-30'),
   (2, 'Stagione 2026-27', 1, '2026-07-01', NULL);
 
-INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il) VALUES
-  (1, 1, '2026-05-14T19:00:00Z', 'giocata', 3, 2, NULL, 'assegnato', '2026-05-15T19:00:00Z'),
-  (2, 1, '2026-05-28T19:00:00Z', 'giocata', 5, 4, NULL, 'assegnato', '2026-05-29T19:00:00Z'),
-  (3, 2, '2026-08-06T19:00:00Z', 'giocata', 2, 3, 'Serata calda: si è giocato con il ventilatore.', 'assegnato', '2026-08-07T00:00:00Z'),
-  (4, 2, '2026-08-13T19:00:00Z', 'giocata', 4, 3, NULL, 'assegnato', '2026-08-14T19:00:00Z'),
-  (5, 2, '2026-08-20T19:00:00Z', 'giocata', 4, 5, NULL, 'parita_da_decidere', '2026-08-21T19:00:00Z'),
-  (6, 2, '2026-08-27T19:00:00Z', 'giocata', 5, 2, NULL, 'assegnato', '2026-08-28T19:00:00Z'),
-  (7, 2, '2026-09-03T19:00:00Z', 'giocata', 4, 1, 'Campo pesante dopo la pioggia, pochi dribbling e tanta corsa.', 'assegnato', '2026-09-04T19:00:00Z'),
-  (8, 2, '2026-09-10T19:00:00Z', 'giocata', 5, 2, NULL, 'assegnato', '2026-09-11T19:00:00Z'),
-  (9, 2, '2026-09-17T19:00:00Z', 'giocata', 3, 5, NULL, 'assegnato', '2026-09-18T19:00:00Z'),
-  (10, 2, '2026-09-24T19:00:00Z', 'giocata', 6, 3, 'Cronaca di prova, breve come spesso succede.', 'assegnato', '2026-09-25T19:00:00Z'),
-  (11, 2, '2026-10-01T19:00:00Z', 'convocazione', NULL, NULL, NULL, 'aperto', NULL);
+-- Campi da gioco di PROVA (nomi e coordinate di fantasia): uno con coordinate, uno con il solo nome,
+-- uno archiviato (resta sulla partita passata, non si sceglie piu' per le nuove).
+INSERT INTO campi (id, nome, link_originale, lat, lng, url_indicazioni, archiviato) VALUES
+  (1, 'Centro Sportivo Esempio', 'https://maps.app.goo.gl/EsempioCentro1', 44.123456, 10.654321, 'https://www.google.com/maps/dir/?api=1&destination=44.123456,10.654321', 0),
+  (2, 'Palestra di Prova', NULL, NULL, NULL, 'https://www.google.com/maps/dir/?api=1&destination=Palestra%20di%20Prova', 0),
+  (3, 'Vecchio Campo Esempio', NULL, 44.5, 10.5, 'https://www.google.com/maps/dir/?api=1&destination=44.5,10.5', 1);
+
+INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il, campo_id) VALUES
+  (1, 1, '2026-05-14T19:00:00Z', 'giocata', 3, 2, NULL, 'assegnato', '2026-05-15T19:00:00Z', NULL),
+  (2, 1, '2026-05-28T19:00:00Z', 'giocata', 5, 4, NULL, 'assegnato', '2026-05-29T19:00:00Z', NULL),
+  (3, 2, '2026-08-06T19:00:00Z', 'giocata', 2, 3, 'Serata calda: si è giocato con il ventilatore.', 'assegnato', '2026-08-07T00:00:00Z', NULL),
+  (4, 2, '2026-08-13T19:00:00Z', 'giocata', 4, 3, NULL, 'assegnato', '2026-08-14T19:00:00Z', NULL),
+  (5, 2, '2026-08-20T19:00:00Z', 'giocata', 4, 5, NULL, 'parita_da_decidere', '2026-08-21T19:00:00Z', NULL),
+  (6, 2, '2026-08-27T19:00:00Z', 'giocata', 5, 2, NULL, 'assegnato', '2026-08-28T19:00:00Z', NULL),
+  (7, 2, '2026-09-03T19:00:00Z', 'giocata', 4, 1, 'Campo pesante dopo la pioggia, pochi dribbling e tanta corsa.', 'assegnato', '2026-09-04T19:00:00Z', NULL),
+  (8, 2, '2026-09-10T19:00:00Z', 'giocata', 5, 2, NULL, 'assegnato', '2026-09-11T19:00:00Z', NULL),
+  (9, 2, '2026-09-17T19:00:00Z', 'giocata', 3, 5, NULL, 'assegnato', '2026-09-18T19:00:00Z', 3),
+  (10, 2, '2026-09-24T19:00:00Z', 'giocata', 6, 3, 'Cronaca di prova, breve come spesso succede.', 'assegnato', '2026-09-25T19:00:00Z', 2),
+  (11, 2, '2026-10-01T19:00:00Z', 'convocazione', NULL, NULL, NULL, 'aperto', NULL, 1);
 
 INSERT INTO partecipazioni (partita_id, giocatore_id, squadra, pos_x, pos_y, gol, autogol, voto_pagella) VALUES
   (1, 5, 'A', NULL, NULL, 1, 0, 7.5),
@@ -341,3 +348,4 @@ INSERT INTO mvp_vincitori (partita_id, giocatore_id) VALUES
   (8, 1),
   (9, 5),
   (10, 7);
+

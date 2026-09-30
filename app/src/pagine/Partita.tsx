@@ -3,7 +3,7 @@ import { useBadge } from '../lib/listone'
 import type { Partita as Dati } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
 import { Link, useTitolo } from '../router'
-import { Attesa, Campo, Carta, Cart, Figurina, Icona, Intestazione, Marcatori, Pagella, Sezione, Tabellone } from '../ui'
+import { Attesa, Campo, Carta, Cart, Figurina, Icona, Intestazione, Luogo, Marcatori, Pagella, Sezione, Tabellone } from '../ui'
 import { BloccoMvp, BollinoMvp, EsitoMvp } from './Mvp'
 
 function Dettaglio({ p, ricarica }: { p: Dati; ricarica: () => void }) {
@@ -19,6 +19,7 @@ function Dettaglio({ p, ricarica }: { p: Dati; ricarica: () => void }) {
         <div className="foot" style={{ borderTop: '2px solid var(--edge)' }}>
           <div>
             <p className="dt">{giornoAnno(p.data_ora)}</p>
+            <Luogo campo={p.campo} />
             <EsitoMvp partita={p} dentro />
           </div>
           <BollinoMvp mvp={p.mvp} />

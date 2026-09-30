@@ -86,6 +86,13 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   le prove con giocatori generici.
 - **Squadre**: per ora si chiamano sempre "Casaccati" contro "Smollicati"
   (decisione dell'utente, 30/09/2026; potra' cambiare: tenerlo in un solo punto).
+- **Campo da gioco (luogo)** (30/09/2026): elenco di CAMPI salvati dall'admin e
+  riusati; in ogni partita l'admin sceglie il campo da una tendina. Per aggiungere
+  un campo l'admin incolla il link "Condividi" di Google Maps (tipo
+  maps.app.goo.gl/...): il server lo apre e ricava nome e posizione; il nome si
+  puo' sempre correggere e, se non si ricava, l'admin lo scrive a mano (non si
+  salva senza nome). Nelle pagine pubbliche il nome del campo e' cliccabile e apre
+  Google Maps con le INDICAZIONI stradali verso il campo.
 - **Convocati**: la lista la inserisce l'admin (il gruppo si organizza su
   WhatsApp, nessuno userebbe un "ci sono" nell'app). Niente risposte dei giocatori.
 - **Formazioni sul campo** stile "leghe Fantagazzetta": l'admin sceglie il MODULO

@@ -120,8 +120,8 @@ npx wrangler d1 execute terzo-tempo --remote --command "SELECT id, nome, attivo 
 3. `./scripts/pubblica.sh`. Senza `dati/giocatori_reali.tsv` la guardia dei nomi non ha niente da
    controllare e passa: non e' un errore, ma ricordare che i nomi veri non vanno mai in git.
 3b. In locale `.dev.vars` (copia di `.dev.vars.example`) apre l'admin solo con Access NON configurato: l'esempio azzera
-   `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD`, che altrimenti verrebbero da `wrangler.toml`. `npm run e2e:admin` li passa con `--binding`.
-   Le migrazioni si applicano anche alla base locale: `npm run db:migra` (la `0003` aggiunge `voti_mvp.hash_ip`).
+   `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD`, che altrimenti verrebbero da `wrangler.toml`. `npm run e2e:admin` li passa con `--binding` (insieme a `GOOGLE_MAPS_PROVA`, l'indirizzo del finto Google locale: vedi `docs/API.md`, sezione Campi; in produzione quella variabile non va mai messa e, se ci fosse, verrebbe ignorata).
+   Le migrazioni si applicano anche alla base locale: `npm run db:migra` (la `0003` aggiunge `voti_mvp.hash_ip`, la `0004` la tabella `campi` e `partite.campo_id`: nessun dato, i campi li inserisce l'admin).
 4. Dopo ogni pubblicazione, prova nel browser sul sito vero a 390x844 (`vite preview`/`wrangler pages dev`
    non bastano): console pulita, zero violazioni CSP, niente scroll orizzontale, `/admin` che porta al login
    di Access. Chromium e' gia' installato: mai `playwright install`.

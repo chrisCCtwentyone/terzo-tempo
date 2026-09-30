@@ -85,6 +85,9 @@ export async function visitaModuli(p: Page, base: string, tema: string, cartella
     await p.goto(`${base}/admin/partite/nuova`)
     await p.locator('.conv-scelta label').first().waitFor()
     await passo('nuova-partita', 2)
+    // la navigazione admin ha CINQUE voci (Campi e' la quinta): a ogni larghezza stanno tutte, larghe almeno 44 px e senza testo tagliato
+    const voci = await p.locator('nav.nav.adm a').evaluateAll((a) => a.map((e) => { const r = e.getBoundingClientRect(); return { t: e.textContent?.trim(), w: r.width, h: r.height, taglio: e.scrollWidth > e.clientWidth + 1, dentro: r.left >= 0 && r.right <= innerWidth } }))
+    verifica(voci.length === 5 && voci.every((v) => v.w >= 44 && v.h >= 44 && !v.taglio && v.dentro), `${tema} navigazione admin @${w}px: cinque voci dentro lo schermo, larghe almeno 44 px, senza testo tagliato (${voci.map((v) => `${v.t} ${Math.round(v.w)}`).join(', ')})`)
 
     await p.goto(`${base}/admin/partite/11?sez=partita`)
     await p.getByLabel('Data e ora').waitFor()
@@ -110,6 +113,15 @@ export async function visitaModuli(p: Page, base: string, tema: string, cartella
     await passo('badge-nuovo', 2)
     await p.locator('.riga-btn').first().click()
     await passo('badge-modifica', 2)
+
+    await p.goto(`${base}/admin/campi`)
+    await p.locator('.riga-btn').first().waitFor()
+    await p.getByRole('button', { name: 'Nuovo campo' }).click()
+    await p.getByLabel('Link di Google Maps').waitFor()
+    await passo('campo-nuovo', 3)
+    await p.locator('.riga-btn').first().click()
+    await p.getByLabel('Nome del campo').first().waitFor()
+    await passo('campo-modifica', 3)
 
     await p.goto(`${base}/admin/stagioni`)
     await p.getByRole('button', { name: 'Nuova stagione' }).waitFor()

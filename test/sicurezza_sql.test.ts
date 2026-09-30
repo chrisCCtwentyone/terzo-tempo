@@ -10,7 +10,7 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { D1Finto } from './d1_finto';
 import { ENV_BYPASS, FILE_ROTTE, chiama, rottaDi } from './rotte';
 
@@ -22,6 +22,7 @@ describe('SQL: nessuna concatenazione di testo del client (analisi del codice)',
   /** Le sole interpolazioni `${...}` ammesse dentro una stringa SQL, ciascuna con il motivo. */
   const AMMESSE = [
     'SELECT_ADMIN', // costante del codice (SELECT senza WHERE)
+    'SELECT_CAMPO', // costante del codice (SELECT dei campi, senza WHERE)
     "ids.map(() => '?').join(',')", // solo segnaposti "?", uno per id (gli id vanno in bind)
     'tabella', // nome di tabella scritto nel codice dei chiamanti di aggiorna(), mai dal client
     "campi.map(([c]) => `${c} = ?`).join(', ')", // nomi di colonna scritti nel codice, valori in bind
@@ -91,7 +92,10 @@ const PAYLOAD = [
 let db: D1Finto;
 beforeEach(() => {
   db = new D1Finto(true);
+  // nessuna richiesta di rete vera da questi test: il "Google" simulato risponde 404 ("link non riconosciuto")
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 404 })));
 });
+afterEach(() => vi.unstubAllGlobals());
 
 /** Foto dello stato del DB: tabelle e numero di righe. */
 function foto() {
@@ -140,8 +144,9 @@ describe('SQL: payload su ogni rotta pubblica e admin', () => {
 
   it('payload nei campi dei corpi JSON di tutte le rotte di scrittura admin', async () => {
     const corpi = (p: string): Record<string, unknown>[] => [
-      { nome: p, descrizione: p, tipo: p, cognome: p, iniziali: p, cronaca: p, data_ora: p, data_inizio: p, data_fine: p, seed: p, stagione_id: p, giocatore_id: p, gol_a: p, gol_b: p, badge_ids: [p], giocatori: [p], convocati: [{ giocatore_id: p, squadra: p, pos_x: p, pos_y: p, gol: p, autogol: p, voto_pagella: p }], livello_segreto: p, attivo: p, aperta: p },
+      { nome: p, descrizione: p, tipo: p, cognome: p, iniziali: p, cronaca: p, data_ora: p, data_inizio: p, data_fine: p, seed: p, stagione_id: p, giocatore_id: p, gol_a: p, gol_b: p, badge_ids: [p], giocatori: [p], convocati: [{ giocatore_id: p, squadra: p, pos_x: p, pos_y: p, gol: p, autogol: p, voto_pagella: p }], livello_segreto: p, attivo: p, aperta: p, link: p, campo_id: p, lat: p, lng: p, archiviato: p },
       { giocatore_id: 1, nome: p }, // id validi, testi malevoli
+      { campo_id: 1, nome: `Campo ${Math.random()}`, link: `https://maps.app.goo.gl/${p}`, lat: 1, lng: 2 }, // campi: id validi, testi malevoli
     ];
     let chiamate = 0;
     for (const f of FILE_ROTTE.filter((x) => rottaDi(x).startsWith('/api/admin/'))) {
@@ -149,7 +154,10 @@ describe('SQL: payload su ogni rotta pubblica e admin', () => {
         for (const c of corpi(p)) {
           for (const metodo of ['POST', 'PUT', 'PATCH']) {
             const r = await chiama(db, metodo, rottaDi(f).replace(/:\w+/g, '3'), { locale: true, env: ENV_BYPASS, corpo: c });
-            controlla(r, `${metodo} ${rottaDi(f)} corpo ${JSON.stringify(c).slice(0, 80)}`);
+            // un nome di campo (fino a 80 caratteri) si salva COME TESTO e torna identico: quell'eco e' il dato, non un'uscita di SQL
+            const eco = JSON.stringify(p).slice(1, -1);
+            const visto = rottaDi(f).startsWith('/api/admin/campi') ? { ...r, testo: r.testo.split(eco).join('[eco]').split(encodeURIComponent(p)).join('[eco]') } : r;
+            controlla(visto, `${metodo} ${rottaDi(f)} corpo ${JSON.stringify(c).slice(0, 80)}`);
             chiamate++;
           }
         }

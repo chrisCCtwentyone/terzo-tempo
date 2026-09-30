@@ -36,6 +36,7 @@ export function preparaBase() {
  *  - giocatori: un nome lungo con spazi e uno di una sola parola lunghissima (nessun punto dove andare a capo);
  *  - badge: due nomi lunghi (uno con spazi, uno senza) e una descrizione al massimo della lunghezza;
  *  - stagione dal nome lungo (chiusa, vecchia: non cambia la stagione aperta ne' la home);
+ *  - campi: uno dal nome lungo con spazi e uno di una sola parola lunghissima (80 caratteri al massimo), sulle partite 120 e 121;
  *  - partita 120 giocata (nella stagione lunga, con i due giocatori lunghi sul campo, gol e cronaca con una parola
  *    lunghissima) e partita 121 in convocazione, DOPO la 11, cosi' la home continua a mostrare la 11.
  */
@@ -56,9 +57,12 @@ export function aggiungiDatiEstremi() {
         (92,'Ritardatario cronico e incallito','Arriva sempre dopo il fischio d''inizio',  'negativo');`,
       `INSERT INTO giocatore_badge (giocatore_id, badge_id) VALUES (90,90),(90,92),(91,91),(91,90),(92,92),(92,91);`,
       `INSERT INTO stagioni (id, nome, aperta, data_inizio, data_fine) VALUES (90,'Stagione straordinaria dei campionati amichevoli 2024-25',0,'2024-09-01','2025-06-30');`,
-      `INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il) VALUES
-        (120, 90, '2025-05-01T19:00:00Z', 'giocata', 6, 5, 'Serata memorabile: Wolfeschlegelsteinhausenbergerdorff ha segnato due volte e poi ha inseguito il pallone fino a https://esempio.invalid/una/strada/lunghissima/senza/spazi/che/non/finisce/mai', 'assegnato', '2025-05-02T19:00:00Z'),
-        (121, 2, '2026-10-15T19:00:00Z', 'convocazione', NULL, NULL, NULL, 'aperto', NULL);`,
+      `INSERT INTO campi (id, nome, lat, lng, url_indicazioni) VALUES
+        (90, 'Polisportiva Comunale Giovanni Battista Montefiascone-Vannozzi e Figli', 44.2, 10.2, 'https://www.google.com/maps/dir/?api=1&destination=44.2,10.2'),
+        (91, 'Supercalifragilistichespiralidosoimpiantosportivocomunalenuovissimo', NULL, NULL, NULL);`,
+      `INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il, campo_id) VALUES
+        (120, 90, '2025-05-01T19:00:00Z', 'giocata', 6, 5, 'Serata memorabile: Wolfeschlegelsteinhausenbergerdorff ha segnato due volte e poi ha inseguito il pallone fino a https://esempio.invalid/una/strada/lunghissima/senza/spazi/che/non/finisce/mai', 'assegnato', '2025-05-02T19:00:00Z', 90),
+        (121, 2, '2026-10-15T19:00:00Z', 'convocazione', NULL, NULL, NULL, 'aperto', NULL, 91);`,
       pos(120, [
         [90, 'A', 16.7, 19.6, 3, 0, 9.5], [1, 'A', 50, 19.6, 2, 0, 8], [2, 'A', 83.3, 19.6, 1, 0, 7],
         [3, 'A', 16.7, 33, 0, 0, 6.5], [4, 'A', 50, 33, 0, 0, 6], [5, 'A', 83.3, 33, 0, 0, 5.5],

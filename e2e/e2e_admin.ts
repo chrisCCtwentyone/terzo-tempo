@@ -16,6 +16,7 @@ import { join, resolve } from 'node:path'
 import { chromium, type Browser, type CDPSession, type Page } from 'playwright-core'
 import { caselle } from '../shared/moduli.ts'
 import { avviaAccessSimulato } from './access_simulato.ts'
+import { avviaGoogleSimulato, type GoogleSimulato } from './google_simulato.ts'
 import { visitaModuli } from './moduli.ts'
 import { schermateAdmin } from './schermate_trabocchi.ts'
 import { provaRilevatore, provaSelettoreData, provaTrabocchi } from './trabocchi.ts'
@@ -24,11 +25,12 @@ import { DATI, RADICE, aggiungiDatiEstremi, apri, assesta, avviaServer, chiudiSe
 const PORTA = Number(process.env.E2E_PORT ?? 8798)
 const BASE = `http://localhost:${PORTA}`
 const BASE_SENZA = `http://localhost:${PORTA + 1}`
+const PORTA_GOOGLE = PORTA + 10
 const SCHERMATE = resolve(process.env.E2E_SCREENS ?? join(RADICE, 'e2e/schermate/admin'))
 
 type Gioc = { id: number; nome: string; attivo: boolean; livello_segreto: number | null; badge_ids: number[] }
 type PosDati = { giocatore_id: number; nome: string; squadra: 'A' | 'B' | null; pos_x: number | null; pos_y: number | null; gol: number; autogol: number; voto_pagella: number | null }
-type PartitaDati = { id: number; stagione_id: number; data_ora: string; stato: string; squadre: { codice: string; nome: string; gol: number | null }[]; cronaca: string | null; giocatori: PosDati[]; mvp: Record<string, any> }
+type PartitaDati = { id: number; stagione_id: number; data_ora: string; stato: string; campo: { nome: string; url_indicazioni: string } | null; squadre: { codice: string; nome: string; gol: number | null }[]; cronaca: string | null; giocatori: PosDati[]; mvp: Record<string, any> }
 
 /** Fetch same-origin dalla pagina (stessi cookie e Origin del browser). */
 const api = <T = any>(p: Page, percorso: string, init?: { method?: string; corpo?: unknown }) =>
@@ -82,9 +84,9 @@ const vediCampo = (p: Page) => p.evaluate(() => {
 
 const NOMI_CONV = ['Rossi M.', 'Bianchi L.', 'Verdi A.G.', 'Esposito F.', 'Russo D.', 'Romano G.', 'Colombo P.', 'Ricci S.', 'Marino R.']
 
-async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: string[]) {
+async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: string[], google: GoogleSimulato) {
   console.log(`\n== admin, tema ${tema} ==`)
-  const s: Sessione = await apri(browser, BASE, tema, { touch: true, ignora: /status of 409/ })
+  const s: Sessione = await apri(browser, BASE, tema, { touch: true, ignora: /status of (400|409)/ }) // 400 e 409: rifiuti provocati apposta (link non valido, campo doppio o archiviato)
   const p = await s.ctx.newPage()
   // nessuna risposta PUBBLICA deve contenere "livello" (l'admin si')
   p.on('response', async (r) => {
@@ -110,7 +112,9 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   await verificaMarchio(p, `${tema} area admin`)
   const nav = p.locator('nav.nav.adm')
   const voci = (await nav.getByRole('link').allTextContents()).map((t) => t.trim()).join(',')
-  verifica(voci === 'Partite,Giocatori,Badge,Stagioni', `${tema} navigazione admin propria: Partite, Giocatori, Badge, Stagioni (${voci})`)
+  verifica(voci === 'Partite,Giocatori,Campi,Badge,Stagioni', `${tema} navigazione admin propria: Partite, Giocatori, Campi, Badge, Stagioni (${voci})`)
+  const larghe = await nav.getByRole('link').evaluateAll((a) => a.map((x) => x.getBoundingClientRect()).every((r) => r.width >= 44 && r.height >= 44))
+  verifica(larghe, `${tema} navigazione admin a cinque voci: aree di tocco >= 44 px`)
   verifica((await p.locator('nav.nav:not(.adm)').count()) === 0, `${tema} nessuna navigazione pubblica nell'area admin`)
   verifica((await p.locator('footer.pie, .credits').count()) === 0, `${tema} nessun piede né credits nell'area admin`)
   verifica(await p.getByRole('link', { name: 'Torna al sito' }).isVisible(), `${tema} c'è il link "Torna al sito"`)
@@ -245,23 +249,127 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   verifica((await api<{ stagioni: any[] }>(p, '/api/stagioni')).json.stagioni.some((x) => x.id === stagioneId && x.nome === rinominata), `${tema} stagione rinominata dall'admin (${rinominata})`)
   await schermata(p, 'stagioni-rinominata', tema)
 
+  // ---------- campi: da link di Google Maps (simulato), nome corretto, archiviazione ----------
+  const nomeCampo = `Centro Sportivo ${tema}`
+  const nomeCampo2 = `Polisportiva ${tema}`
+  const nomeCampo3 = `Campo a mano ${tema}`
+  const DIR = 'https://www.google.com/maps/dir/?api=1&destination='
+  const richiesteAvvio = google.richieste.length
+  await nav.getByRole('link', { name: 'Campi' }).click()
+  await p.getByRole('heading', { name: 'Campi', level: 1 }).waitFor()
+  await p.locator('.riga-btn').first().waitFor()
+  verifica((await p.locator('nav.nav.adm a[aria-current="page"]').textContent())?.trim() === 'Campi', `${tema} campi: voce Campi attiva nella navigazione`)
+  verifica((await p.locator('.riga-btn').allInnerTexts()).some((t) => t.includes('Centro Sportivo Esempio')), `${tema} campi: l'elenco mostra i campi del seed`)
+  verifica((await p.locator('section[aria-label="Campi archiviati"] .riga-btn', { hasText: 'Vecchio Campo Esempio' }).count()) === 1, `${tema} campi: il campo archiviato e' in una sezione a parte`)
+  await schermata(p, 'campi-elenco', tema)
+  await p.getByRole('button', { name: 'Nuovo campo' }).click()
+  verifica(await p.getByRole('button', { name: 'Ricava nome' }).isDisabled(), `${tema} campi: senza link "Ricava nome" e' spento`)
+  verifica(await p.getByRole('button', { name: 'Aggiungi il campo' }).isDisabled(), `${tema} campi: senza nome il campo non si salva`)
+  // link non valido: messaggio chiaro, nessuna richiesta a Google
+  await p.getByLabel('Link di Google Maps').fill('https://evil.example/qualcosa')
+  await p.getByRole('button', { name: 'Ricava nome' }).click()
+  await p.getByText(/Non è un link di Google Maps/).waitFor()
+  verifica(google.richieste.length === richiesteAvvio, `${tema} campi: un link non valido non apre nulla verso Google`)
+  await schermata(p, 'campi-link-non-valido', tema)
+  // link con testo intorno, a un redirect che esce da Google: rifiutato, l'host esterno non viene mai richiesto
+  await p.getByLabel('Link di Google Maps').fill('Guarda: https://maps.app.goo.gl/EsFuori grazie')
+  await p.getByRole('button', { name: 'Ricava nome' }).click()
+  await p.getByText(/Non è un link di Google Maps/).waitFor()
+  verifica(google.fuoriLista().length === 0, `${tema} campi: il redirect verso un host fuori lista non e' stato seguito (visti: ${google.fuoriLista().join(', ') || 'nessuno'})`)
+  // link inesistente
+  await p.getByLabel('Link di Google Maps').fill('https://maps.app.goo.gl/EsNonEsiste')
+  await p.getByRole('button', { name: 'Ricava nome' }).click()
+  await p.getByText(/Google non riconosce questo link/).waitFor()
+  // link valido, con testo intorno: nome e posizione ricavati
+  await p.getByLabel('Link di Google Maps').fill('Guarda questo posto: https://maps.app.goo.gl/EsCentro ciao!')
+  await p.getByRole('button', { name: 'Ricava nome' }).click()
+  await p.getByText(/Nome ricavato dal link/).waitFor()
+  verifica((await p.getByLabel('Nome del campo').inputValue()) === 'Centro Sportivo Esempio E2E', `${tema} campi: "Ricava nome" precompila il nome`)
+  const anteprima = p.getByRole('link', { name: /Apri le indicazioni per controllare/ })
+  verifica((await anteprima.getAttribute('href')) === `${DIR}44.1234567,10.7654321` && (await anteprima.getAttribute('target')) === '_blank' && /noopener/.test((await anteprima.getAttribute('rel')) ?? ''), `${tema} campi: anteprima "Indicazioni" cliccabile con le coordinate del posto (${await anteprima.getAttribute('href')})`)
+  await schermata(p, 'campi-nome-ricavato', tema)
+  // correggo il nome (e' precompilato ma modificabile) e salvo
+  await p.getByLabel('Nome del campo').fill(nomeCampo)
+  await p.getByRole('button', { name: 'Aggiungi il campo' }).click()
+  await p.getByRole('status').filter({ hasText: `Aggiunto il campo ${nomeCampo}` }).waitFor()
+  const elencoCampi = async () => (await api<{ campi: any[] }>(p, '/api/admin/campi')).json.campi
+  const c1 = (await elencoCampi()).find((c) => c.nome === nomeCampo)
+  verifica(!!c1 && c1.lat === 44.1234567 && c1.lng === 10.7654321 && c1.link_originale === 'https://maps.app.goo.gl/EsCentro' && c1.url_indicazioni === `${DIR}44.1234567,10.7654321`, `${tema} campi: salvato col nome corretto, il link incollato e le coordinate (${JSON.stringify(c1)})`)
+  // forma "dell'app": il nome c'e' solo nel testo di ?q, nessuna coordinata
+  await p.getByRole('button', { name: 'Nuovo campo' }).click()
+  await p.getByLabel('Link di Google Maps').fill('https://maps.app.goo.gl/EsApp')
+  await p.getByLabel('Link di Google Maps').press('Enter') // Invio ricava il nome (non salva)
+  await p.getByText(/Nome ricavato dal link/).waitFor()
+  verifica((await p.getByLabel('Nome del campo').inputValue()) === 'Polisportiva Senza Coordinate', `${tema} campi: forma "Condividi" dell'app, nome dal testo di ?q`)
+  verifica((await p.getByRole('link', { name: /Apri le indicazioni/ }).getAttribute('href')) === `${DIR}Polisportiva%20Senza%20Coordinate`, `${tema} campi: senza coordinate le indicazioni usano il nome`)
+  verifica((await elencoCampi()).every((c) => c.nome !== 'Polisportiva Senza Coordinate'), `${tema} campi: Invio nel campo link non salva`)
+  await p.getByLabel('Nome del campo').fill(nomeCampo2)
+  await p.getByRole('button', { name: 'Aggiungi il campo' }).click()
+  await p.getByRole('status').filter({ hasText: `Aggiunto il campo ${nomeCampo2}` }).waitFor()
+  // link che non dice il nome: si scrive a mano, il salvataggio resta spento finche' il nome manca
+  await p.getByRole('button', { name: 'Nuovo campo' }).click()
+  await p.getByLabel('Link di Google Maps').fill('https://maps.app.goo.gl/EsSenzaNome')
+  await p.getByRole('button', { name: 'Ricava nome' }).click()
+  await p.getByText(/Non sono riuscito a ricavare il nome dal link: scrivilo a mano/).waitFor()
+  verifica((await p.getByLabel('Nome del campo').inputValue()) === '' && (await p.getByRole('button', { name: 'Aggiungi il campo' }).isDisabled()), `${tema} campi: nome non ricavabile -> "scrivilo a mano", non si salva senza nome`)
+  await schermata(p, 'campi-nome-a-mano', tema)
+  await p.getByLabel('Nome del campo').fill(nomeCampo3)
+  await p.getByRole('button', { name: 'Aggiungi il campo' }).click()
+  await p.getByRole('status').filter({ hasText: `Aggiunto il campo ${nomeCampo3}` }).waitFor()
+  verifica((await elencoCampi()).find((c) => c.nome === nomeCampo3)?.url_indicazioni === `${DIR}${encodeURIComponent(nomeCampo3)}`, `${tema} campi: nome scritto a mano, indicazioni dal nome`)
+  // doppione
+  await p.getByRole('button', { name: 'Nuovo campo' }).click()
+  await p.getByLabel('Nome del campo').fill(nomeCampo.toUpperCase())
+  await p.getByRole('button', { name: 'Aggiungi il campo' }).click()
+  await p.getByRole('alert').filter({ hasText: 'esiste già un campo con questo nome' }).waitFor()
+  verifica((await p.getByLabel('Nome del campo').inputValue()) === nomeCampo.toUpperCase(), `${tema} campi: nome doppio rifiutato, il testo resta nel campo`)
+  await p.getByRole('button', { name: 'Nuovo campo' }).click() // chiude il modulo
+  // consenso di Google: si usa continue
+  await p.getByRole('button', { name: 'Nuovo campo' }).click()
+  await p.getByLabel('Link di Google Maps').fill('https://maps.app.goo.gl/EsConsenso')
+  await p.getByRole('button', { name: 'Ricava nome' }).click()
+  await p.getByText(/Nome ricavato dal link/).waitFor()
+  verifica((await p.getByLabel('Nome del campo').inputValue()) === 'Centro Sportivo Esempio E2E' && !google.richieste.some((r) => r.startsWith('consent.google.com')), `${tema} campi: consent.google.com?continue=... seguito senza aprire la pagina del consenso`)
+  await p.getByRole('button', { name: 'Nuovo campo' }).click()
+  verifica(google.fuoriLista().length === 0, `${tema} campi: in tutta la prova nessuna richiesta e' arrivata a host fuori dalla lista (${google.fuoriLista().join(', ') || 'nessuna'})`)
+
   // ---------- nuova partita ----------
   await nav.getByRole('link', { name: 'Partite' }).click()
   await p.getByRole('link', { name: /Nuova partita/ }).click()
   await p.getByRole('heading', { name: 'Nuova partita', level: 1 }).waitFor()
   await p.locator('.conv-scelta label').first().waitFor()
   verifica((await p.locator('.conv-scelta label', { hasText: archiviato }).count()) === 0, `${tema} nuova partita: l'archiviato non è fra i convocabili`)
-  verifica((await p.locator('select').inputValue()) === String(stagioneId), `${tema} nuova partita: stagione aperta preselezionata`)
+  verifica((await p.getByLabel('Stagione').inputValue()) === String(stagioneId), `${tema} nuova partita: stagione aperta preselezionata`)
+  const tendina = (await p.getByLabel('Campo', { exact: true }).locator('option').allInnerTexts()).join('|')
+  verifica(tendina.startsWith('Nessun campo|') && tendina.includes(nomeCampo) && tendina.includes('Centro Sportivo Esempio') && !tendina.includes('Vecchio Campo Esempio'), `${tema} nuova partita: tendina Campo con "Nessun campo" e i soli campi attivi (${tendina})`)
+  verifica((await p.getByLabel('Campo', { exact: true }).inputValue()) === '', `${tema} nuova partita: di base "Nessun campo"`)
+  const scorciatoia = p.getByRole('link', { name: '+ Nuovo campo' })
+  verifica((await scorciatoia.getAttribute('href')) === '/admin/campi?nuovo=1', `${tema} nuova partita: scorciatoia "+ Nuovo campo" verso la pagina Campi`)
   verifica(await p.getByRole('button', { name: 'Crea la partita' }).isDisabled(), `${tema} nuova partita: senza data e convocati non si crea`)
   await p.getByLabel('Data e ora').fill('2026-10-08T21:00')
+  await p.getByLabel('Campo', { exact: true }).selectOption({ label: nomeCampo })
   for (const n of [...NOMI_CONV, nomeNuovo]) await p.locator('.conv-scelta label', { hasText: n }).click()
   verifica(await p.getByText('10 convocati').isVisible(), `${tema} nuova partita: 10 convocati scelti toccando le figurine`)
   await schermata(p, 'partita-nuova', tema)
+  // la scorciatoia porta alla pagina Campi col modulo gia' aperto; poi si torna indietro (la bozza della partita si rifa')
+  await scorciatoia.click()
+  await p.getByRole('heading', { name: 'Campi', level: 1 }).waitFor()
+  await p.getByLabel('Link di Google Maps').waitFor()
+  verifica(p.url().endsWith('/admin/campi?nuovo=1'), `${tema} "+ Nuovo campo" apre la pagina Campi con il modulo gia' aperto`)
+  await p.goBack()
+  await p.getByRole('heading', { name: 'Nuova partita', level: 1 }).waitFor()
+  await p.locator('.conv-scelta label').first().waitFor()
+  await p.getByLabel('Data e ora').fill('2026-10-08T21:00')
+  await p.getByLabel('Campo', { exact: true }).selectOption({ label: nomeCampo })
+  for (const n of [...NOMI_CONV, nomeNuovo]) await p.locator('.conv-scelta label', { hasText: n }).click()
   await p.getByRole('button', { name: 'Crea la partita' }).click()
   await p.waitForURL(/\/admin\/partite\/\d+\?sez=squadre/)
   const id = Number(new URL(p.url()).pathname.split('/').pop())
   const conv = await api<PartitaDati>(p, `/api/partite/${id}`)
   verifica(conv.json.stato === 'convocazione' && conv.json.giocatori.length === 10 && conv.json.data_ora === '2026-10-08T19:00:00Z' && conv.json.stagione_id === stagioneId, `${tema} partita creata: 10 convocati, 21:00 di Roma = 19:00Z, stagione giusta`)
+  verifica(conv.json.campo?.nome === nomeCampo && conv.json.campo?.url_indicazioni === `${DIR}44.1234567,10.7654321`, `${tema} partita creata col campo scelto (${JSON.stringify(conv.json.campo)})`)
+  const campoId = c1!.id as number
+  verifica((await api<{ campo_id: number | null }>(p, `/api/admin/partite/${id}`)).json.campo_id === campoId, `${tema} l'admin vede campo_id della partita`)
 
   // ---------- squadre: genera, ritocca a mano, rigenera, salva ----------
   await p.getByRole('heading', { name: 'Partita', level: 1 }).waitFor()
@@ -460,8 +568,64 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   })
   verifica(pubblicoSuCaselle && stiliPub.length === 10, `${tema} pubblico: le 10 pedine stanno sulle caselle salvate dall'admin`)
   verifica((await pub.locator('.pitch .cart').allInnerTexts()).every((t) => /^\S.* (\p{Lu}\.)+$/u.test(t)), `${tema} pubblico: sul campo "Cognome I." per intero`)
+  const luogo = pub.locator('.hero .luogo')
+  verifica((await luogo.count()) === 1 && (await luogo.getAttribute('href')) === `${DIR}44.1234567,10.7654321` && (await luogo.getAttribute('target')) === '_blank' && /noopener/.test((await luogo.getAttribute('rel')) ?? ''), `${tema} pubblico: il campo e' un link alle indicazioni (target _blank, rel noopener): ${await luogo.getAttribute('href')}`)
+  verifica((await luogo.innerText()).replace(/\s+/g, ' ').trim() === `${nomeCampo} →` && (await luogo.locator('svg.ico use').getAttribute('href')) === '#i-pin' && !/📍/.test(await pub.locator('main').innerText()), `${tema} pubblico: "${nomeCampo} →" con il segnaposto SVG (non emoji)`)
   await foto(pub, SCHERMATE, `${tema}-pagina-pubblica-partita`)
+  // la Home: l'ultima partita giocata e' questa, e mostra il campo
+  await pub.goto(`${BASE}/`)
+  await pub.locator('.hero .luogo').waitFor()
+  verifica((await pub.locator('.hero .luogo').getAttribute('href')) === `${DIR}44.1234567,10.7654321`, `${tema} pubblico: la Home mostra il campo dell'ultima partita`)
+  await assesta(pub, `${tema} home col campo`)
+  await foto(pub, SCHERMATE, `${tema}-home-col-campo`)
   await pub.close()
+
+  // ---------- il campo della partita: cambia, toglie, archiviazione ----------
+  await p.goto(`${BASE}/admin/partite/${id}?sez=partita`)
+  await p.getByLabel('Campo', { exact: true }).waitFor()
+  verifica((await p.getByLabel('Campo', { exact: true }).inputValue()) === String(campoId), `${tema} modifica partita: la tendina parte dal campo salvato`)
+  verifica(await p.getByRole('button', { name: 'Salva le modifiche' }).isDisabled(), `${tema} modifica partita: senza cambiamenti non si salva`)
+  await schermata(p, 'partita-modifica-campo', tema)
+  const campoPubblico = async () => (await api<PartitaDati>(p, `/api/partite/${id}`)).json.campo
+  await p.getByLabel('Campo', { exact: true }).selectOption({ label: nomeCampo2 })
+  await p.getByRole('button', { name: 'Salva le modifiche' }).click()
+  await p.getByRole('status').filter({ hasText: 'Partita modificata' }).waitFor()
+  verifica((await campoPubblico())?.nome === nomeCampo2, `${tema} modifica partita: cambiato il campo (${nomeCampo2})`)
+  await p.getByLabel('Campo', { exact: true }).selectOption({ label: 'Nessun campo' })
+  await p.getByRole('button', { name: 'Salva le modifiche' }).click()
+  await p.getByRole('status').filter({ hasText: 'Partita modificata' }).waitFor()
+  verifica((await campoPubblico()) === null, `${tema} modifica partita: "Nessun campo" toglie il campo`)
+  const senzaCampo = await s.ctx.newPage()
+  await senzaCampo.goto(`${BASE}/partite/${id}`)
+  await senzaCampo.locator('.hero').waitFor()
+  await assesta(senzaCampo, `${tema} partita senza campo`)
+  verifica((await senzaCampo.locator('.luogo').count()) === 0 && !/Centro Sportivo|Polisportiva/.test(await senzaCampo.locator('.hero').innerText()), `${tema} pubblico: senza campo non si mostra nulla`)
+  await senzaCampo.close()
+  await p.getByLabel('Campo', { exact: true }).selectOption({ label: nomeCampo })
+  await p.getByRole('button', { name: 'Salva le modifiche' }).click()
+  await p.getByRole('status').filter({ hasText: 'Partita modificata' }).waitFor()
+  verifica((await campoPubblico())?.nome === nomeCampo, `${tema} modifica partita: il campo e' tornato ${nomeCampo}`)
+  // archiviazione: un campo archiviato non si offre per le nuove partite ma resta su quelle che lo hanno
+  await p.goto(`${BASE}/admin/campi`)
+  await p.locator('.riga-btn', { hasText: nomeCampo3 }).click()
+  await p.getByRole('button', { name: 'Archivia il campo' }).click()
+  await p.getByRole('status').filter({ hasText: `Archiviato il campo ${nomeCampo3}` }).waitFor()
+  await p.locator('.riga-btn', { hasText: nomeCampo }).click()
+  await p.getByLabel('Nome del campo').fill(`${nomeCampo} bis`)
+  await p.getByRole('button', { name: 'Salva le modifiche' }).click()
+  await p.getByRole('status').filter({ hasText: `Salvato il campo ${nomeCampo} bis` }).waitFor()
+  verifica((await campoPubblico())?.nome === `${nomeCampo} bis` && (await campoPubblico())?.url_indicazioni === `${DIR}44.1234567,10.7654321`, `${tema} campo rinominato: il nome nuovo compare sulla partita, le indicazioni restano quelle del posto`)
+  await p.locator('.riga-btn', { hasText: `${nomeCampo} bis` }).click()
+  await schermata(p, 'campi-modifica', tema)
+  await p.getByRole('button', { name: 'Archivia il campo' }).click()
+  await p.getByRole('status').filter({ hasText: `Archiviato il campo ${nomeCampo} bis` }).waitFor()
+  verifica((await campoPubblico())?.nome === `${nomeCampo} bis`, `${tema} campo archiviato: resta sulla partita che lo aveva`)
+  await schermata(p, 'campi-con-archiviati', tema)
+  await p.goto(`${BASE}/admin/partite/${id}?sez=partita`)
+  await p.getByLabel('Campo', { exact: true }).waitFor()
+  const conArchiviato = (await p.getByLabel('Campo', { exact: true }).locator('option').allInnerTexts()).join('|')
+  verifica((await p.getByLabel('Campo', { exact: true }).inputValue()) === String(campoId) && conArchiviato.includes(`${nomeCampo} bis (archiviato)`) && !conArchiviato.includes(nomeCampo3), `${tema} modifica partita: il campo archiviato gia' scelto resta visibile e selezionato, gli altri archiviati no (${conArchiviato})`)
+  verifica(!(await (async () => { const r = await api(p, `/api/admin/partite/${id}`, { method: 'PATCH', corpo: { campo_id: (await elencoCampi()).find((c) => c.nome === nomeCampo3)!.id } }); return r.stato === 200 })()), `${tema} il server rifiuta di assegnare un campo archiviato`)
 
   // ---------- MVP: chiusura, nessun_voto, scelta ----------
   await p.getByRole('button', { name: 'MVP', exact: true }).click()
@@ -576,6 +740,11 @@ async function provaXss(browser: Browser, tema: 'light' | 'dark') {
   verifica(badge.stato === 201, `${tema} XSS: badge col markup nel nome e nella descrizione creato (${badge.stato})`)
   verifica((await api(p, '/api/admin/giocatori/1/badge', { method: 'PUT', corpo: { badge_ids: [badge.json.id] } })).stato === 200, `${tema} XSS: badge assegnato`)
   verifica((await api(p, '/api/admin/stagioni', { method: 'POST', corpo: { nome: P2, data_inizio: '2031-01-01', aperta: false } })).stato === 201, `${tema} XSS: stagione col markup nel nome creata`)
+  // il campo: nome con markup (max 80 caratteri), assegnato alla partita 10; le indicazioni restano un link https di Google
+  const campo = await api<{ id: number }>(p, '/api/admin/campi', { method: 'POST', corpo: { nome: P1 } })
+  verifica(campo.stato === 201, `${tema} XSS: campo col markup nel nome creato (${campo.stato})`)
+  verifica((await api(p, '/api/admin/partite/10', { method: 'PATCH', corpo: { campo_id: campo.json.id } })).stato === 200, `${tema} XSS: campo assegnato alla partita 10`)
+  verifica((await api(p, '/api/admin/campi/risolvi', { method: 'POST', corpo: { link: `javascript:alert(1) ${P4}` } })).stato === 400, `${tema} XSS: un link javascript: non si risolve`)
   const cronaca = `${P1} ${P2} ${P3} ${P4} [x](${P4}) <a href="${P4}">clic</a> <iframe src="${P4}"></iframe>`
   verifica((await api(p, '/api/admin/partite/10', { method: 'PATCH', corpo: { cronaca } })).stato === 200, `${tema} XSS: cronaca col markup salvata`)
 
@@ -599,6 +768,9 @@ async function provaXss(browser: Browser, tema: 'light' | 'dark') {
     verifica(m.linkPericolosi === 0, `${tema} XSS ${nome}: nessun link javascript: (${m.linkPericolosi})`)
     if (url === '/partite/10') {
       verifica(m.testo.includes('<script>window.__xss=2</script>') && m.testo.includes('<a href="javascript:'), `${tema} XSS ${nome}: la cronaca compare come TESTO, con il markup visibile`)
+      verifica(m.testo.includes(P1), `${tema} XSS ${nome}: il nome del campo compare come testo`)
+      const href = await p.locator('.hero .luogo').getAttribute('href')
+      verifica(!!href && href.startsWith('https://www.google.com/maps/dir/?api=1&destination=') && !/[<>"]/.test(href) && !href.includes(' '), `${tema} XSS ${nome}: il link del campo e' un indirizzo https di Google (${href})`)
     }
     if (url === '/giocatori/1' || url === '/giocatori') {
       verifica(m.testo.includes('<img src=x onerror="window.__xss=1">'), `${tema} XSS ${nome}: il nome del badge compare come testo`)
@@ -737,7 +909,9 @@ async function main() {
   preparaBase()
   aggiungiDatiEstremi()
   // il bypass si apre solo senza Access configurato: si spengono i valori di wrangler.toml (come fa .dev.vars.example)
-  await avviaServer(PORTA, ['--binding', 'DEV_ADMIN_BYPASS=1', '--binding', 'ACCESS_TEAM_DOMAIN=DA_COMPILARE', '--binding', 'ACCESS_AUD=DA_COMPILARE'])
+  // il "Google Maps" delle prove: un server locale al posto della rete vera (vale solo col bypass, vedi functions/lib/maps.ts)
+  const google = await avviaGoogleSimulato(PORTA_GOOGLE)
+  await avviaServer(PORTA, ['--binding', 'DEV_ADMIN_BYPASS=1', '--binding', 'ACCESS_TEAM_DOMAIN=DA_COMPILARE', '--binding', 'ACCESS_AUD=DA_COMPILARE', '--binding', `GOOGLE_MAPS_PROVA=http://127.0.0.1:${PORTA_GOOGLE}`])
   await avviaServer(PORTA + 1)
   const browser = await chromium.launch({ executablePath: process.env.E2E_CHROMIUM || undefined })
   const pubblico: string[] = []
@@ -749,8 +923,8 @@ async function main() {
     if (process.env.E2E_SOLO === 'trabocchi') return
     await provaLayoutModuli(browser, 'light')
     await provaLayoutModuli(browser, 'dark')
-    await provaAdmin(browser, 'light', pubblico)
-    await provaAdmin(browser, 'dark', pubblico)
+    await provaAdmin(browser, 'light', pubblico, google)
+    await provaAdmin(browser, 'dark', pubblico, google)
     await provaSenzaAccesso(browser, 'light')
     await provaSenzaAccesso(browser, 'dark')
     await provaMovimentoRidotto(browser)
@@ -760,6 +934,7 @@ async function main() {
     await provaXss(browser, 'dark')
   } finally {
     await browser.close()
+    google.chiudi()
   }
 }
 

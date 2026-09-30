@@ -67,6 +67,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
         await p.locator('.conv-scelta label').nth(8).click()
         await p.locator('.conv-scelta label').last().click()
         await p.getByLabel('Data e ora').fill('2026-10-22T21:00')
+        await p.getByLabel('Campo', { exact: true }).selectOption({ label: 'Polisportiva Comunale Giovanni Battista Montefiascone-Vannozzi e Figli' })
       },
     },
     sez(10, 'convocati', 'convocati'),
@@ -119,6 +120,47 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
         await p.locator('.lvl').waitFor()
       },
     },
+    { nome: 'admin campi elenco', url: '/admin/campi', attesa: '.riga-btn' },
+    {
+      nome: 'admin campi nuovo (link e nome lunghi)',
+      url: '/admin/campi',
+      attesa: '.riga-btn',
+      prepara: async (p) => {
+        await clic(p, 'Nuovo campo')
+        await p.getByLabel('Link di Google Maps').fill('Guarda questo posto bellissimo e lunghissimo: https://maps.app.goo.gl/EsempioLinkMoltoLungoSenzaSpaziChePuoUscireDalCampoDiTestoDelModulo')
+        await p.getByLabel('Nome del campo').fill('Polisportiva Comunale Giovanni Battista Montefiascone-Vannozzi e Figli')
+      },
+    },
+    {
+      nome: 'admin campi link non valido',
+      url: '/admin/campi',
+      attesa: '.riga-btn',
+      prepara: async (p) => {
+        await clic(p, 'Nuovo campo')
+        await p.getByLabel('Link di Google Maps').fill('https://evil.example/un/indirizzo/che/non/e/di/google/maps')
+        await clic(p, 'Ricava nome')
+        await p.getByText(/Non è un link di Google Maps/).waitFor()
+      },
+    },
+    {
+      nome: 'admin campi modifica (nome lungo)',
+      url: '/admin/campi',
+      attesa: '.riga-btn',
+      prepara: async (p) => {
+        await p.locator('.riga-btn', { hasText: 'Polisportiva Comunale' }).click()
+        await p.getByLabel('Nome del campo').waitFor()
+      },
+    },
+    {
+      nome: 'admin campi modifica (parola lunga)',
+      url: '/admin/campi',
+      attesa: '.riga-btn',
+      prepara: async (p) => {
+        await p.locator('.riga-btn', { hasText: 'Supercalifragilistiche' }).click()
+        await p.getByLabel('Nome del campo').waitFor()
+      },
+    },
+    { nome: 'admin campi dalla partita (+ Nuovo campo)', url: '/admin/campi?nuovo=1', attesa: '.ricava' },
     { nome: 'admin badge elenco', url: '/admin/badge', attesa: '.riga-btn' },
     {
       nome: 'admin badge nuovo',

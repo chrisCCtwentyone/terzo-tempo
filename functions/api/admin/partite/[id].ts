@@ -1,14 +1,22 @@
 /**
- * PATCH  /api/admin/partite/:id   { data_ora?, stagione_id?, cronaca? (null = toglie), gol_a?, gol_b? }
+ * GET    /api/admin/partite/:id   { id, stagione_id, data_ora, stato, ..., campo_id } (campo_id c'e' solo qui: il pubblico vede il campo, non il suo id)
+ * PATCH  /api/admin/partite/:id   { data_ora?, stagione_id?, cronaca? (null = toglie), campo_id? (null = nessun campo), gol_a?, gol_b? }
  *        (i gol solo se la partita e' gia' "giocata": prima si usa POST .../giocata)
  * DELETE /api/admin/partite/:id   solo in "convocazione"
  */
 import { aggiorna, conVincoli } from '../../../lib/admin';
+import { campoAssegnabile } from '../../../lib/campi';
 import { caricaPartita } from '../../../lib/mvp';
 import { ErroreApi, idDa, json, leggiOggetto, perMetodo } from '../../../lib/risposta';
 import { dataOraUtc, intero, testoOpz } from '../../../lib/valida';
 
 export const onRequest = perMetodo({
+  GET: async ({ env, params }) => {
+    const p = await caricaPartita(env.DB, idDa(params.id));
+    if (!p) throw new ErroreApi(404, 'partita non trovata');
+    return json(p);
+  },
+
   PATCH: async ({ env, request, params }) => {
     const id = idDa(params.id);
     const c = await leggiOggetto(request);
@@ -17,6 +25,7 @@ export const onRequest = perMetodo({
     const campi: [string, unknown][] = [];
     if ('data_ora' in c) campi.push(['data_ora', dataOraUtc(c.data_ora)]);
     if ('stagione_id' in c) campi.push(['stagione_id', intero(c.stagione_id, 'stagione_id', 1, Number.MAX_SAFE_INTEGER)]);
+    if ('campo_id' in c) campi.push(['campo_id', await campoAssegnabile(env.DB, c.campo_id, p.campo_id)]);
     if ('cronaca' in c) campi.push(['cronaca', testoOpz(c.cronaca, 'cronaca', 5000, true)]);
     for (const g of ['gol_a', 'gol_b'] as const) {
       if (g in c) {

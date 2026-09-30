@@ -3,8 +3,8 @@
  * id incrociati fra partite e stagioni, stati non validi. L'admin e' fidato, ma un token rubato o un errore
  * non devono poter corrompere i dati ne' mandare in tilt il servizio.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
-import { MAX_CONVOCATI, MAX_CORPO_BYTE } from '../functions/lib/costanti';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MAX_CONVOCATI, MAX_CORPO_BYTE, MAX_LINK_CAMPO, MAX_NOME_CAMPO } from '../functions/lib/costanti';
 import { D1Finto } from './d1_finto';
 import { ENV_BYPASS, chiama } from './rotte';
 
@@ -42,6 +42,20 @@ describe('lunghezze massime', () => {
     expect((await admin('POST', '/api/admin/giocatori', { cognome: lungo(200_000) })).stato).toBeGreaterThanOrEqual(400);
   });
 
+  it('campo: nome 80 (come gli altri nomi: niente caratteri di controllo), link 2000', async () => {
+    expect((await admin('POST', '/api/admin/campi', { nome: lungo(MAX_NOME_CAMPO + 1) })).stato).toBe(400);
+    expect((await admin('POST', '/api/admin/campi', { nome: `   ${lungo(MAX_NOME_CAMPO + 1)}   ` })).stato).toBe(400);
+    expect((await admin('POST', '/api/admin/campi', { nome: lungo(MAX_NOME_CAMPO) })).stato).toBe(201);
+    expect((await admin('PATCH', '/api/admin/campi/1', { nome: lungo(MAX_NOME_CAMPO + 1) })).stato).toBe(400);
+    expect((await admin('POST', '/api/admin/campi', { nome: 'Ok', link: `https://maps.app.goo.gl/${lungo(MAX_LINK_CAMPO)}` })).stato).toBe(400);
+    expect((await admin('POST', '/api/admin/campi/risolvi', { link: `https://maps.app.goo.gl/${lungo(MAX_LINK_CAMPO)}` })).stato).toBe(400);
+    for (const nome of ['Cam\u0000po', 'Cam\u0007po', 'a\nb', 'a\tb', 'x‮abc', 'x⁦y', 'x\u2028y', 'x\u2029y', 'x\uFEFFy', 'x\u009Fy']) {
+      expect((await admin('POST', '/api/admin/campi', { nome })).stato, JSON.stringify(nome)).toBe(400);
+      expect((await admin('PATCH', '/api/admin/campi/1', { nome })).stato, JSON.stringify(nome)).toBe(400);
+    }
+    expect((await admin('POST', '/api/admin/campi', { nome: 'Perché ⚽ Sport' })).stato).toBe(201);
+  });
+
   it('cronaca: 5000 caratteri, con a capo ammessi', async () => {
     db.esegui("INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b) VALUES (60, 2, '2026-09-01T19:00:00Z', 'giocata', 1, 0)");
     expect((await admin('PATCH', '/api/admin/partite/60', { cronaca: lungo(5001) })).stato).toBe(400);
@@ -75,6 +89,24 @@ describe('corpi enormi, malformati, di tipo sbagliato', () => {
     const { onRequest } = await import('../functions/api/admin/badge/index');
     const risposta = await (onRequest as unknown as (c: unknown) => Promise<Response>)({ request: richiesta, env: { DB: db }, params: {}, data: {} });
     expect(risposta.status).toBe(413);
+  });
+
+  it('campi e risolvi: corpo oltre il limite = 413 (senza aprire nessun link), JSON malformato = 400, mai 500', async () => {
+    const rete = vi.fn(async () => new Response(null, { status: 404 }));
+    vi.stubGlobal('fetch', rete);
+    try {
+      const grande = JSON.stringify({ link: 'https://maps.app.goo.gl/x', extra: 'a'.repeat(MAX_CORPO_BYTE) });
+      expect((await admin('POST', '/api/admin/campi/risolvi', undefined, { grezzo: grande })).stato).toBe(413);
+      expect((await admin('POST', '/api/admin/campi', undefined, { grezzo: JSON.stringify({ nome: 'X', extra: 'a'.repeat(MAX_CORPO_BYTE) }) })).stato).toBe(413);
+      expect((await admin('PATCH', '/api/admin/campi/1', undefined, { grezzo: JSON.stringify({ nome: 'X', extra: 'a'.repeat(MAX_CORPO_BYTE) }) })).stato).toBe(413);
+      for (const grezzo of ['{', 'null', '[]', '"x"', '{"link":', '{"link":NaN}']) {
+        for (const rotta of ['/api/admin/campi/risolvi', '/api/admin/campi']) expect((await admin('POST', rotta, undefined, { grezzo })).stato, `${rotta} ${grezzo}`).toBe(400);
+      }
+      expect((await admin('POST', '/api/admin/campi/risolvi', undefined, { grezzo: '[' .repeat(50_000) + ']'.repeat(50_000) })).stato).toBeLessThan(500);
+      expect(rete).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('sotto il limite passa', async () => {
@@ -153,6 +185,19 @@ describe('numeri fuori range e tipi sbagliati', () => {
       const r = await admin('POST', '/api/admin/partite/11/genera-squadre', undefined, { grezzo: seed === 1e309 ? '{"seed":1e309}' : JSON.stringify({ seed }) });
       expect(r.stato, String(seed)).toBe(400);
     }
+  });
+
+  it('campo_id e coordinate: solo interi e numeri veri, nei limiti', async () => {
+    for (const campo_id of [0, -1, 1.5, '1', 1e309, 2 ** 53, true, false, [1], { id: 1 }, 99999]) {
+      const grezzo = campo_id === 1e309 ? '{"campo_id":1e309}' : JSON.stringify({ campo_id });
+      expect((await admin('PATCH', '/api/admin/partite/11', undefined, { grezzo })).stato, String(campo_id)).toBe(400);
+    }
+    for (const [lat, lng] of [[91, 0], [-91, 0], [0, 181], [0, -181], ['1', '2'], [true, false], [[1], [2]], [1e309, 0]]) {
+      const grezzo = lat === 1e309 ? '{"nome":"Z","lat":1e309,"lng":0}' : JSON.stringify({ nome: 'Z', lat, lng });
+      expect((await admin('POST', '/api/admin/campi', undefined, { grezzo })).stato, `${lat},${lng}`).toBe(400);
+    }
+    expect((await admin('POST', '/api/admin/campi', { nome: 'Z', lat: -90, lng: 180 })).stato).toBe(201);
+    expect((await admin('POST', '/api/admin/campi', { nome: 'Z2', lat: 90, lng: -180 })).stato).toBe(201);
   });
 
   it('date impossibili e testi al posto dei numeri', async () => {

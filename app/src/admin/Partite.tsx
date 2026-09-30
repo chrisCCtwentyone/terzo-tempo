@@ -7,7 +7,8 @@ import { Attesa, Carta, Icona, Intestazione, PulsanteLink, Sezione } from '../ui
 import { ScegliConvocati } from './Convocati'
 import { EsitoScrittura, Fld, useEsito } from './comuni'
 import { scrivi } from './rete'
-import type { GiocatoreAdmin } from './tipi'
+import { SceltaCampo } from './SceltaCampo'
+import type { CampoAdmin, GiocatoreAdmin } from './tipi'
 
 /** L'elenco delle partite (tutte le stagioni), con "Nuova partita". */
 export function ElencoPartite() {
@@ -54,31 +55,33 @@ export function NuovaPartita() {
   const giocatori = useApi<{ giocatori: GiocatoreAdmin[] }>('/api/admin/giocatori')
   const badge = useApi<{ badge: Badge[] }>('/api/admin/badge')
   const stagioni = useApi<{ stagioni: Stagione[] }>('/api/stagioni')
+  const campi = useApi<{ campi: CampoAdmin[] }>('/api/admin/campi')
   const carico = {
-    dati: giocatori.dati && badge.dati && stagioni.dati ? { g: giocatori.dati.giocatori, b: badge.dati.badge, s: stagioni.dati.stagioni } : null,
-    errore: giocatori.errore ?? badge.errore ?? stagioni.errore,
-    ricarica: () => { giocatori.ricarica(); badge.ricarica(); stagioni.ricarica() },
+    dati: giocatori.dati && badge.dati && stagioni.dati && campi.dati ? { g: giocatori.dati.giocatori, b: badge.dati.badge, s: stagioni.dati.stagioni, c: campi.dati.campi } : null,
+    errore: giocatori.errore ?? badge.errore ?? stagioni.errore ?? campi.errore,
+    ricarica: () => { giocatori.ricarica(); badge.ricarica(); stagioni.ricarica(); campi.ricarica() },
   }
   return (
     <>
       <Link verso="/admin/partite" className="indietro"><Icona id="i-arrow" />Tutte le partite</Link>
       <Intestazione kick="Admin · Convocazione" titolo="Nuova partita" />
-      <Attesa carico={carico} testo="Carico il listone…" figli={({ g, b, s }) => <Modulo giocatori={g} badge={b} stagioni={s} />} />
+      <Attesa carico={carico} testo="Carico il listone…" figli={({ g, b, s, c }) => <Modulo giocatori={g} badge={b} stagioni={s} campi={c} />} />
     </>
   )
 }
 
-function Modulo({ giocatori, badge, stagioni }: { giocatori: GiocatoreAdmin[]; badge: Badge[]; stagioni: Stagione[] }) {
+function Modulo({ giocatori, badge, stagioni, campi }: { giocatori: GiocatoreAdmin[]; badge: Badge[]; stagioni: Stagione[]; campi: CampoAdmin[] }) {
   const aperta = stagioni.find((s) => s.aperta)
   const [dataOra, setDataOra] = useState('')
   const [stagione, setStagione] = useState<string>(aperta ? String(aperta.id) : '')
+  const [campo, setCampo] = useState('')
   const [scelti, setScelti] = useState<number[]>([])
   const { esito, esegui, occupato } = useEsito()
   const valido = dataOra !== '' && stagione !== '' && scelti.length > 0
 
   async function crea() {
     if (!valido || occupato) return
-    const r = await esegui('Creo la partita', () => scrivi<{ id: number }>('POST', '/api/admin/partite', { data_ora: dataOra, stagione_id: Number(stagione), giocatori: scelti }), 'Partita creata')
+    const r = await esegui('Creo la partita', () => scrivi<{ id: number }>('POST', '/api/admin/partite', { data_ora: dataOra, stagione_id: Number(stagione), giocatori: scelti, ...(campo ? { campo_id: Number(campo) } : {}) }), 'Partita creata')
     if (r) vai(`/admin/partite/${r.id}?sez=squadre`)
   }
 
@@ -98,6 +101,7 @@ function Modulo({ giocatori, badge, stagioni }: { giocatori: GiocatoreAdmin[]; b
             )}
           </Fld>
         </div>
+        <SceltaCampo campi={campi} valore={campo} onCambia={setCampo} />
       </Carta>
       <Sezione>Convocati</Sezione>
       <Carta>

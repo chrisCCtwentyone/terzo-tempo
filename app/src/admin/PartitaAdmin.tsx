@@ -12,7 +12,8 @@ import { CODICI, applicaProposta, assegna, corpoConvocati, impronta, isoARomaLoc
 import { MvpAdmin } from './MvpAdmin'
 import { scrivi } from './rete'
 import { Risultato } from './Risultato'
-import type { GiocatoreAdmin, PartitaAdmin as Dati, Proposta } from './tipi'
+import { SceltaCampo } from './SceltaCampo'
+import type { CampoAdmin, GiocatoreAdmin, PartitaAdmin as Dati, Proposta } from './tipi'
 
 const SEZIONI = [
   { valore: 'convocati', etichetta: 'Convocati' },
@@ -32,20 +33,25 @@ export function PartitaAdmin({ id }: { id: number }) {
   const giocatori = useApi<{ giocatori: GiocatoreAdmin[] }>('/api/admin/giocatori')
   const badge = useApi<{ badge: Badge[] }>('/api/admin/badge')
   const stagioni = useApi<{ stagioni: Stagione[] }>('/api/stagioni')
+  const campi = useApi<{ campi: CampoAdmin[] }>('/api/admin/campi')
+  // il pubblico vede il campo ma non il suo id: per la tendina serve quello dell'admin
+  const admin = useApi<{ campo_id: number | null }>(`/api/admin/partite/${id}`)
   const carico = {
-    dati: partita.dati && giocatori.dati && badge.dati && stagioni.dati ? { p: partita.dati, g: giocatori.dati.giocatori, b: badge.dati.badge, s: stagioni.dati.stagioni } : null,
-    errore: partita.errore ?? giocatori.errore ?? badge.errore ?? stagioni.errore,
-    ricarica: () => { partita.ricarica(); giocatori.ricarica(); badge.ricarica(); stagioni.ricarica() },
+    dati: partita.dati && giocatori.dati && badge.dati && stagioni.dati && campi.dati && admin.dati
+      ? { p: partita.dati, g: giocatori.dati.giocatori, b: badge.dati.badge, s: stagioni.dati.stagioni, c: campi.dati.campi, campoId: admin.dati.campo_id }
+      : null,
+    errore: partita.errore ?? giocatori.errore ?? badge.errore ?? stagioni.errore ?? campi.errore ?? admin.errore,
+    ricarica: () => { partita.ricarica(); giocatori.ricarica(); badge.ricarica(); stagioni.ricarica(); campi.ricarica(); admin.ricarica() },
   }
   return (
     <>
       <Link verso="/admin/partite" className="indietro"><Icona id="i-arrow" />Tutte le partite</Link>
-      <Attesa carico={carico} testo="Carico la partita…" figli={({ p, g, b, s }) => <Editor iniziale={p} giocatori={g} badge={b} stagioni={s} />} />
+      <Attesa carico={carico} testo="Carico la partita…" figli={({ p, g, b, s, c, campoId }) => <Editor iniziale={p} giocatori={g} badge={b} stagioni={s} campi={c} campoId={campoId} />} />
     </>
   )
 }
 
-function Editor({ iniziale, giocatori, badge, stagioni }: { iniziale: Dati; giocatori: GiocatoreAdmin[]; badge: Badge[]; stagioni: Stagione[] }) {
+function Editor({ iniziale, giocatori, badge, stagioni, campi, campoId }: { iniziale: Dati; giocatori: GiocatoreAdmin[]; badge: Badge[]; stagioni: Stagione[]; campi: CampoAdmin[]; campoId: number | null }) {
   const id = iniziale.id
   const { parametri } = useRotta()
   const [p, setP] = useState<Dati>(iniziale)
@@ -197,7 +203,7 @@ function Editor({ iniziale, giocatori, badge, stagioni }: { iniziale: Dati; gioc
         </>
       )}
 
-      {sez === 'partita' && <ModificaPartita p={p} stagioni={stagioni} onFatto={rileggi} />}
+      {sez === 'partita' && <ModificaPartita p={p} stagioni={stagioni} campi={campi} campoIniziale={campoId} onFatto={rileggi} />}
 
       {CON_SALVATAGGIO.includes(sez) && (
         <div className="barra-salva" role="region" aria-label="Salvataggio">
@@ -229,18 +235,22 @@ function RigaSquadra({ r, badge, azioni, onSposta }: { r: Riga; badge: Badge[]; 
   )
 }
 
-function ModificaPartita({ p, stagioni, onFatto }: { p: Dati; stagioni: Stagione[]; onFatto: () => Promise<void> }) {
+function ModificaPartita({ p, stagioni, campi, campoIniziale, onFatto }: { p: Dati; stagioni: Stagione[]; campi: CampoAdmin[]; campoIniziale: number | null; onFatto: () => Promise<void> }) {
   const [dataOra, setDataOra] = useState(isoARomaLocale(p.data_ora))
   const [stagione, setStagione] = useState(String(p.stagione_id))
+  // il campo salvato sul server ('' = nessuno); si aggiorna dopo ogni salvataggio
+  const [campoSalvato, setCampoSalvato] = useState(campoIniziale === null ? '' : String(campoIniziale))
+  const [campo, setCampo] = useState(campoSalvato)
   const [chiedi, setChiedi] = useState(false)
   const { esito, esegui, occupato } = useEsito()
-  const cambiata = dataOra !== isoARomaLocale(p.data_ora) || Number(stagione) !== p.stagione_id
+  const cambiata = dataOra !== isoARomaLocale(p.data_ora) || Number(stagione) !== p.stagione_id || campo !== campoSalvato
 
   async function salva() {
     const corpo: Record<string, unknown> = {}
     if (dataOra !== isoARomaLocale(p.data_ora)) corpo.data_ora = dataOra
     if (Number(stagione) !== p.stagione_id) corpo.stagione_id = Number(stagione)
-    const ok = await esegui('Salvataggio', async () => { await scrivi('PATCH', `/api/admin/partite/${p.id}`, corpo); await onFatto() }, 'Partita modificata')
+    if (campo !== campoSalvato) corpo.campo_id = campo === '' ? null : Number(campo)
+    const ok = await esegui('Salvataggio', async () => { await scrivi('PATCH', `/api/admin/partite/${p.id}`, corpo); setCampoSalvato(campo); await onFatto() }, 'Partita modificata')
     return ok
   }
   async function elimina() {
@@ -251,7 +261,7 @@ function ModificaPartita({ p, stagioni, onFatto }: { p: Dati; stagioni: Stagione
 
   return (
     <>
-      <Sezione>Data e stagione</Sezione>
+      <Sezione>Data, stagione e campo</Sezione>
       <Carta>
         <form className="modulo" onSubmit={(e) => { e.preventDefault(); void salva() }} noValidate>
           <Fld etichetta="Data e ora" aiuto={p.stato === 'giocata' ? 'Cambiare l\'orario sposta anche la chiusura automatica del voto MVP.' : 'Ora di Roma.'}>
@@ -260,6 +270,7 @@ function ModificaPartita({ p, stagioni, onFatto }: { p: Dati; stagioni: Stagione
           <Fld etichetta="Stagione">
             {(pr) => <select {...pr} value={stagione} onChange={(e) => setStagione(e.target.value)}>{stagioni.map((s) => <option key={s.id} value={s.id}>{s.nome}{s.aperta ? ' (aperta)' : ''}</option>)}</select>}
           </Fld>
+          <SceltaCampo campi={campi} valore={campo} onCambia={setCampo} />
           <div className="azioni-modulo">
             <button type="submit" className="btn yes" disabled={!cambiata || dataOra === '' || occupato} aria-busy={occupato}><Icona id="i-check" />Salva le modifiche</button>
           </div>

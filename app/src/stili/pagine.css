@@ -29,6 +29,17 @@
 .match .sq:not(.vinta){color:var(--mute)}
 .match .tag2{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--card2);border:1.5px solid var(--edge);border-radius:3px;padding:1px 5px;max-width:7.5em;text-align:center;line-height:1.2}
 
+/* il campo da gioco: link alle indicazioni (Home, dettaglio partita) e riga piccola nell'elenco */
+.luogo{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%;min-height:44px;font-size:14px;line-height:1.25;font-weight:800;color:var(--bluet);text-decoration:none}
+.luogo>span{min-width:0;overflow-wrap:anywhere}
+.luogo .ico{width:18px;height:18px}
+.luogo:hover>span:first-of-type,.luogo:focus-visible>span:first-of-type{text-decoration:underline;text-underline-offset:3px}
+.luogo.senza-link{color:var(--ink)}
+.luogo-riga{display:flex;align-items:flex-start;gap:4px;margin-top:3px;min-width:0;font-size:12px;line-height:1.25;font-weight:700;color:var(--mute)}
+.luogo-riga>span{min-width:0;overflow-wrap:anywhere}
+.luogo-riga .ico{width:14px;height:14px;margin-top:1px}
+.when+.luogo{margin-top:2px}
+
 /* voto MVP */
 .voto-testa{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px}
 .voto-testa>*{min-width:0}

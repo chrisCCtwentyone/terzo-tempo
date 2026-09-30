@@ -24,6 +24,8 @@ export type PartitaDb = {
   cronaca: string | null;
   mvp_stato: 'aperto' | 'parita_da_decidere' | 'assegnato' | 'nessun_voto';
   mvp_chiuso_il: string | null;
+  /** il campo da gioco (campi.id), se l'admin l'ha scelto */
+  campo_id: number | null;
 };
 
 type Conteggio = { giocatore_id: number; nome: string; voti: number };
@@ -49,7 +51,7 @@ export function esitoVoti(conteggi: { giocatore_id: number; voti: number }[]) {
 
 export async function caricaPartita(db: D1Database, id: number): Promise<PartitaDb | null> {
   return db
-    .prepare('SELECT id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il FROM partite WHERE id = ?')
+    .prepare('SELECT id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il, campo_id FROM partite WHERE id = ?')
     .bind(id)
     .first<PartitaDb>();
 }

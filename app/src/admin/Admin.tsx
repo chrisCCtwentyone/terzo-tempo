@@ -8,6 +8,7 @@ import { Caricamento, Carta, Errore, Icona, Intestazione, Marchio, PulsanteLink 
 import { IconaAdmin, SpriteAdmin } from './comuni'
 import { GiocatoriAdmin } from './Giocatori'
 import { BadgeAdmin } from './Badge'
+import { CampiAdmin } from './Campi'
 import { StagioniAdmin } from './Stagioni'
 import { ElencoPartite, NuovaPartita } from './Partite'
 import { PartitaAdmin } from './PartitaAdmin'
@@ -16,9 +17,10 @@ import { PartitaAdmin } from './PartitaAdmin'
 // Accesso: in produzione /admin e /api/admin/* stanno dietro Cloudflare Access; qui basta chiedere
 // GET /api/admin/me: 401/403 = non sei admin (nessun form di password). In locale vale il bypass del backend.
 
-const SEZIONI: { chiave: string; verso: string; nome: string; icona: 'i-pitch' | 'i-user' | 'a-badge' | 'a-cal' }[] = [
+const SEZIONI: { chiave: string; verso: string; nome: string; icona: 'i-pitch' | 'i-user' | 'i-pin' | 'a-badge' | 'a-cal' }[] = [
   { chiave: 'partite', verso: '/admin/partite', nome: 'Partite', icona: 'i-pitch' },
   { chiave: 'giocatori', verso: '/admin/giocatori', nome: 'Giocatori', icona: 'i-user' },
+  { chiave: 'campi', verso: '/admin/campi', nome: 'Campi', icona: 'i-pin' },
   { chiave: 'badge', verso: '/admin/badge', nome: 'Badge', icona: 'a-badge' },
   { chiave: 'stagioni', verso: '/admin/stagioni', nome: 'Stagioni', icona: 'a-cal' },
 ]
@@ -93,6 +95,7 @@ function Contenuto({ segmenti }: { segmenti: string[] }) {
     if (sez === 'partite' && id === 'nuova') return <NuovaPartita />
     if (sez === 'partite' && /^\d+$/.test(id)) return <PartitaAdmin key={id} id={Number(id)} />
     if (id === undefined && sez === 'giocatori') return <GiocatoriAdmin />
+    if (id === undefined && sez === 'campi') return <CampiAdmin />
     if (id === undefined && sez === 'badge') return <BadgeAdmin />
     if (id === undefined && sez === 'stagioni') return <StagioniAdmin />
   }
@@ -150,10 +153,10 @@ export default function Admin() {
         </main>
       </div>
       <nav className="nav adm" aria-label="Sezioni admin">
-        <div className="nav-in">
+        <div className="nav-in cinque">
           {SEZIONI.map((s) => (
             <Link key={s.chiave} verso={s.verso} aria-current={attiva === s.chiave ? 'page' : undefined}>
-              {s.icona.startsWith('a-') ? <IconaAdmin id={s.icona as 'a-badge' | 'a-cal'} /> : <Icona id={s.icona as 'i-pitch' | 'i-user'} />}
+              {s.icona.startsWith('a-') ? <IconaAdmin id={s.icona as 'a-badge' | 'a-cal'} /> : <Icona id={s.icona as 'i-pitch' | 'i-user' | 'i-pin'} />}
               {s.nome}
             </Link>
           ))}

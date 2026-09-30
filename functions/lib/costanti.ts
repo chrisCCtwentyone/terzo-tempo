@@ -42,6 +42,10 @@ export const CIFRE_HASH_RETE = 4;
 export const MAX_CORPO_BYTE = 64 * 1024;
 /** Convocati (e giocatori di una nuova partita) al massimo: il generatore ne ammette 24, qui c'e' margine. */
 export const MAX_CONVOCATI = 60;
+/** Nome di un campo da gioco (come gli altri nomi: testo senza caratteri di controllo). */
+export const MAX_NOME_CAMPO = 80;
+/** Testo incollato dall'admin nel campo "Link di Google Maps" (link + eventuale testo intorno). */
+export const MAX_LINK_CAMPO = 2000;
 /** Badge assegnabili a un giocatore in una richiesta. */
 export const MAX_BADGE_PER_RICHIESTA = 60;
 
@@ -62,3 +66,10 @@ export const PESO_EQUILIBRIO_PUNTEGGIO = 1;
 export const PESO_EQUILIBRIO_BADGE = 0.3;
 /** Oltre questo numero di convocati la ricerca esaustiva non e' piu' rapida: si rifiuta. */
 export const MAX_CONVOCATI_GENERATORE = 24;
+
+// ─── Risoluzione dei link di Google Maps (functions/lib/maps.ts) ───
+
+/** Redirect seguiti a mano, al massimo (il primo indirizzo non conta: e' la richiesta iniziale). */
+export const MAX_REDIRECT_MAPS = 5;
+/** Tempo totale concesso a Google per rispondere, tutti i passaggi insieme. */
+export const TIMEOUT_MAPS_MS = 5000;

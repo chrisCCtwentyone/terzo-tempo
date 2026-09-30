@@ -1,6 +1,7 @@
 /** Forma pubblica delle partite (riepilogo e dettaglio). Mai il livello segreto. */
 
 import { CODICI_SQUADRA, SQUADRE } from './costanti';
+import { campoPubblico, type CampoDb } from './campi';
 import { bloccoMvp, sincronizza, type PartitaDb } from './mvp';
 import { ErroreApi, idDa } from './risposta';
 import { perNome } from './valida';
@@ -13,8 +14,9 @@ export function squadre(p: Pick<PartitaDb, 'gol_a' | 'gol_b'>) {
   }));
 }
 
-export function riepilogo(p: PartitaDb) {
-  return { id: p.id, stagione_id: p.stagione_id, data_ora: p.data_ora, stato: p.stato, squadre: squadre(p) };
+/** `campo`: { nome, url_indicazioni } o null. L'indirizzo e' sempre costruito dal server (functions/lib/campi.ts). */
+export function riepilogo(p: PartitaDb, campo: Pick<CampoDb, 'nome' | 'lat' | 'lng'> | null | undefined) {
+  return { id: p.id, stagione_id: p.stagione_id, data_ora: p.data_ora, stato: p.stato, squadre: squadre(p), campo: campoPubblico(campo) };
 }
 
 export async function convocati(db: D1Database, partitaId: number) {
@@ -35,8 +37,9 @@ export async function convocati(db: D1Database, partitaId: number) {
 export async function dettaglio(db: D1Database, id: number, hashDispositivo: string | null, adesso: number) {
   const p = await sincronizza(db, id, adesso);
   if (!p) return null;
+  const campo = p.campo_id === null ? null : await db.prepare('SELECT nome, lat, lng FROM campi WHERE id = ?').bind(p.campo_id).first<CampoDb>();
   return {
-    ...riepilogo(p),
+    ...riepilogo(p, campo),
     cronaca: p.cronaca,
     giocatori: await convocati(db, id),
     mvp: await bloccoMvp(db, p, hashDispositivo, adesso),

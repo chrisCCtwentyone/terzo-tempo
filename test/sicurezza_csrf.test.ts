@@ -4,11 +4,12 @@
  * le scritture di /api (compreso il voto MVP). Poi serve il Content-Type esatto application/json: un
  * "form" o un fetch no-cors di un altro sito non puo' inviarlo senza controllo preventivo (CORS).
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { D1Finto } from './d1_finto';
 import { ENV_ADMIN, ENV_BYPASS, ROTTE_ADMIN, chiama, rottaDi } from './rotte';
 
 const SCRITTURE = ['POST', 'PUT', 'PATCH', 'DELETE'] as const;
+afterEach(() => vi.unstubAllGlobals());
 const concreto = (f: string) => rottaDi(f).replace(/:\w+/g, '1');
 
 function db() {
@@ -32,7 +33,7 @@ const DA_FUORI: Record<string, string>[] = [
 describe('scritture admin da un altro sito: 403 dal controllo anti-CSRF, PRIMA ancora del login', () => {
   it('ogni rotta admin, ogni metodo di scrittura, ogni tipo di richiesta "da fuori"', async () => {
     const d = db();
-    const conta = () => d.tutti('SELECT (SELECT COUNT(*) FROM giocatori) g, (SELECT COUNT(*) FROM partite) p, (SELECT COUNT(*) FROM badge) b, (SELECT COUNT(*) FROM stagioni) s');
+    const conta = () => d.tutti('SELECT (SELECT COUNT(*) FROM giocatori) g, (SELECT COUNT(*) FROM partite) p, (SELECT COUNT(*) FROM badge) b, (SELECT COUNT(*) FROM stagioni) s, (SELECT COUNT(*) FROM campi) c, (SELECT COUNT(*) FROM campi WHERE archiviato = 1) ca, (SELECT COUNT(*) FROM partite WHERE campo_id IS NOT NULL) pc');
     const prima = conta();
     for (const f of ROTTE_ADMIN) {
       for (const metodo of SCRITTURE) {
@@ -57,6 +58,35 @@ describe('scritture admin da un altro sito: 403 dal controllo anti-CSRF, PRIMA a
       expect(r.stato).toBe(403);
     }
     expect(d.tutti('SELECT 1 FROM badge WHERE nome = ?', 'Intruso')).toHaveLength(0);
+  });
+
+  it('i campi: creare, modificare, archiviare o assegnare da un altro sito = 403, e "risolvi" NON apre nessun link (nessuna richiesta verso Google)', async () => {
+    const d = db();
+    const rete = vi.fn(async () => new Response(null, { status: 302, headers: { Location: 'https://www.google.com/maps/place/X/@1,2,3z' } }));
+    vi.stubGlobal('fetch', rete);
+    const prima = d.tutti('SELECT (SELECT COUNT(*) FROM campi) c, (SELECT COUNT(*) FROM partite WHERE campo_id IS NOT NULL) pc');
+    const tentativi: [string, string, unknown][] = [
+      ['POST', '/api/admin/campi', { nome: 'Intruso' }],
+      ['PATCH', '/api/admin/campi/1', { nome: 'Intruso', archiviato: true }],
+      ['POST', '/api/admin/campi/risolvi', { link: 'https://maps.app.goo.gl/AbC123' }],
+      ['PATCH', '/api/admin/partite/11', { campo_id: 2 }],
+      ['POST', '/api/admin/partite', { data_ora: '2030-01-01T20:00', giocatori: [], campo_id: 1 }],
+    ];
+    for (const [metodo, percorso, corpo] of tentativi) {
+      for (const headers of [...DA_FUORI, { 'Sec-Fetch-Site': 'cross-site' }]) {
+        for (const opzioni of [{ locale: true, env: ENV_BYPASS }, {}]) {
+          const r = await chiama(d, metodo, percorso, { ...opzioni, headers, corpo });
+          expect(r.stato, `${metodo} ${percorso} ${JSON.stringify(headers)}`).toBe(403);
+        }
+      }
+    }
+    expect(rete).not.toHaveBeenCalled();
+    expect(d.tutti('SELECT (SELECT COUNT(*) FROM campi) c, (SELECT COUNT(*) FROM partite WHERE campo_id IS NOT NULL) pc')).toEqual(prima);
+    expect(d.tutti('SELECT 1 FROM campi WHERE nome = ?', 'Intruso')).toHaveLength(0);
+    // Content-Type diverso da application/json: 415 anche per i campi
+    const t = await chiama(d, 'POST', '/api/admin/campi/risolvi', { locale: true, env: ENV_BYPASS, grezzo: '{"link":"https://maps.app.goo.gl/AbC123"}', headers: { 'Content-Type': 'text/plain' } });
+    expect(t.stato).toBe(415);
+    expect(rete).not.toHaveBeenCalled();
   });
 
   it('richiesta dello stesso sito: passa (controprova)', async () => {
