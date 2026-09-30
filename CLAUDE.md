@@ -24,7 +24,14 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
 
 ## Decisioni prese (30/09/2026)
 
-- **Nome**: Terzo Tempo. Repository `chrisCCtwentyone/terzo-tempo`, privato.
+- **Nome**: Terzo Tempo. Repository `chrisCCtwentyone/terzo-tempo`: l'utente vuole
+  renderlo **PUBBLICO** (30/09/2026). Quindi, a maggior ragione: nessuna email,
+  nessun nome reale, nessun token nei file tracciati NE' nella storia dei commit.
+  README curato con diagrammi di flusso (sul modello del repo pubblico
+  `chrisCCtwentyone/toto-amici`).
+- **Credits**: nell'app, una pagina "Info" con "creato da chrisCCtwentyone" e link
+  al profilo GitHub (https://github.com/chrisCCtwentyone). Solo il nickname, MAI il
+  nome vero (decisione dell'utente).
 - **Hosting**: Cloudflare Pages + D1 (gratuito, ~20 utenti).
 - **Accesso**: parte pubblica senza password. Sezione admin (/admin e /api/admin)
   dietro Cloudflare Access con codice via email (OTP, come turni-plus), piu'
