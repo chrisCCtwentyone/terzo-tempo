@@ -1,0 +1,21 @@
+# Configurazione di Cloudflare Pages per Terzo Tempo.
+# Nessun segreto qui: la lista delle email admin e' il secret EMAIL_AUTORIZZATE
+#   npx wrangler pages secret put EMAIL_AUTORIZZATE --project-name terzo-tempo
+name = "terzo-tempo"
+pages_build_output_dir = "app/dist"
+compatibility_date = "2026-09-30"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "terzo-tempo"
+database_id = "34f62236-ff6e-48c7-a139-cbfdd98be7c0"
+
+# Cloudflare Access protegge /api/admin/*. Il backend riverifica il JWT da solo.
+# Se una di queste due torna "DA_COMPILARE" (o manca EMAIL_AUTORIZZATE)
+# l'admin risponde 403: chiuso, mai aperto.
+[vars]
+# dominio Zero Trust, senza https:// (es. "nome.cloudflareaccess.com")
+ACCESS_TEAM_DOMAIN = "jolly-sound-f37e.cloudflareaccess.com"
+# "Application Audience (AUD) Tag" dell'applicazione Access
+ACCESS_AUD = "aed16dfced30aa57d3cad46734f1422b19b1c129aea097eb308730d6f65ec2c7"

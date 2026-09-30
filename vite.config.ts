@@ -1,0 +1,12 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// L'app sta in app/ e la build esce in app/dist (pages_build_output_dir di
+// wrangler.toml). In sviluppo /api va al backend di `npm run dev:api`.
+export default defineConfig({
+  root: 'app',
+  plugins: [react()],
+  server: { port: 5173, proxy: { '/api': 'http://localhost:8788' } },
+  // assetsInlineLimit 0: niente font/immagini come data: URI nel CSS, la CSP (functions/_middleware.ts) non li ammette per i font.
+  build: { outDir: 'dist', emptyOutDir: true, assetsInlineLimit: 0 },
+})

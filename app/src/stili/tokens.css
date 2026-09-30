@@ -1,0 +1,32 @@
+/* Token di colore dello stile "Figurine" (docs/anteprima-figurine.html): tema chiaro e "album di notte".
+   Il tema scuro segue il sistema, salvo scelta manuale con data-theme sul <html>. */
+:root{
+  color-scheme:light;
+  --paper:#f2e9d0; --card:#fbf6e6; --card2:#ecdfba;
+  --ink:#1c1915; --mute:#5b5346; --edge:#1c1915; --sh:#1c1915;
+  --red:#d42a20; --blue:#1f4fd1; --yellow:#ffc629; --green:#1b7f3a; --silver:#c4c9d2;
+  --hot:#d42a20; --bluet:#1f4fd1;
+  --k0:#d42a20; --k1:#1f4fd1; --k2:#ffc629; --k3:#1b7f3a; --k4:#f0741b; --k5:#3fb4d8;
+  --k0t:#fff; --k1t:#fff; --k2t:#1a1712; --k3t:#fff; --k4t:#1a1712; --k5t:#1a1712;
+  --focus:#1f4fd1;
+  --pitch:#2e9a44; --pitch2:#279039; --pline:rgba(255,255,255,.88);
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .1 0 0 0 .26 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#12162a; --card:#1c2242; --card2:#2a3160;
+    --ink:#f4ecd3; --mute:#b9b3a3; --edge:#e9dfc2; --sh:#04050e;
+    --hot:#ff5a4d; --bluet:#8fadff; --focus:#ffc629;
+    --pitch:#1f6f35; --pitch2:#1a632e; --pline:rgba(255,255,255,.75);
+    --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12162a; --card:#1c2242; --card2:#2a3160;
+  --ink:#f4ecd3; --mute:#b9b3a3; --edge:#e9dfc2; --sh:#04050e;
+  --hot:#ff5a4d; --bluet:#8fadff; --focus:#ffc629;
+  --pitch:#1f6f35; --pitch2:#1a632e; --pline:rgba(255,255,255,.75);
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}

@@ -1,0 +1,9 @@
+graphify-out/
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.sqlite
+.DS_Store
+e2e/schermate/
+dati/

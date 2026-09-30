@@ -1,0 +1,135 @@
+/* Area admin (caricata a parte, col suo JS). Usa i token e i componenti di app/src/ui: stesso stile "Figurine". */
+
+/* barra propria: etichetta rossa sotto il logo + "Torna al sito"; navigazione in basso con il filo rosso */
+.adm .mark{min-height:44px}
+.adm .mark b{background:var(--red);color:#fff}
+.admbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 6px}
+.admbar .etich{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--hot);border:1.5px solid var(--hot);border-radius:3px;padding:1px 7px}
+.nav.adm{border-top:5px solid var(--red)}
+.nav.adm a[aria-current="page"]{background:var(--blue);color:#fff}
+.riservata p+p{margin-top:8px}
+.riservata p{font-weight:700}
+
+/* righe elenco che sono bottoni */
+.riga-btn{cursor:pointer;font:inherit;align-items:center}
+.riga-btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.riga-btn[aria-expanded="true"]{background-color:var(--card2)}
+.riga-btn.archiviato{opacity:.72}
+.riga-btn .desc{display:block;font-size:13px;font-weight:700;color:var(--mute);white-space:normal}
+.tu.chiusa{background:var(--card2);color:var(--ink);border-color:var(--edge)}
+.list>li>.card.edit{margin-top:8px}
+.card.edit{margin-top:12px}
+.stagione .voto-testa{align-items:flex-start}
+.stagione .azioni-modulo{margin-top:10px}
+.stato-partita{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
+
+/* moduli */
+.modulo{display:grid;gap:14px}
+.modulo fieldset{display:grid;gap:8px}
+.due{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{display:grid;gap:4px;min-width:0}
+.fld label,.etich-campo{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.fld input,.fld select,.fld textarea,.voto-sel select{
+  width:100%;min-height:44px;padding:8px 10px;background:var(--card);color:var(--ink);border:2px solid var(--edge);border-radius:6px;
+  font:inherit;font-weight:700;font-size:16px;box-shadow:inset 2px 2px 0 rgba(0,0,0,.08)
+}
+.fld textarea{min-height:110px;resize:vertical;line-height:1.4}
+.fld input[aria-invalid="true"]{border-color:var(--hot)}
+.fld .err{font-size:12px;font-weight:800;color:var(--hot)}
+.fld .note{margin-top:0}
+.anteprima{margin:-6px 0 0}
+.azioni-modulo{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:4px}
+.azioni-modulo .blocco{flex:1 1 100%}
+.btn.blocco{width:100%}
+.btn.yes:disabled,.btn.no:disabled{opacity:.55}
+
+/* esito delle scritture */
+.esito{display:flex;align-items:center;gap:8px;margin:10px 0 0;padding:8px 10px;border:2px solid var(--edge);border-radius:6px;background:var(--card2);font-size:14px;font-weight:800}
+.esito .ball{width:20px;height:20px;margin:0;filter:none;animation:rimbalza .7s ease-in-out infinite}
+.esito .ico{color:var(--green);stroke-width:3}
+.esito.errore{border-color:var(--hot);color:var(--hot);background:var(--card)}
+
+/* conferma nella pagina: riusa .conferma di pagine.css */
+.conferma{margin-top:12px}
+.conferma[role="group"]{background:var(--card2)}
+
+/* contatori + e - */
+.cnt-w{display:grid;gap:2px;justify-items:center}
+.cnt-w .cap,.voto-sel .cap{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.cnt{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;width:100%;max-width:172px}
+.cnt button{width:52px;height:52px;border:2px solid var(--edge);border-radius:8px;background:var(--yellow);color:#1a1712;box-shadow:3px 3px 0 var(--sh);font-family:Anton,Impact,sans-serif;font-size:30px;line-height:1;padding:0;transition:transform .08s,box-shadow .08s}
+.cnt.og button{background:var(--red);color:#fff}
+.cnt button:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--sh)}
+.cnt button:disabled{opacity:.4;box-shadow:none}
+.cnt output{text-align:center;font-family:Anton,Impact,sans-serif;font-size:32px;font-variant-numeric:tabular-nums}
+
+/* risultato: righe per giocatore */
+.rr{padding:10px}
+.rr-testa{display:flex;align-items:center;gap:10px}
+.rr-testa .nome{flex:1;min-width:0;font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.voto-sel{display:grid;gap:2px;width:84px;flex:none}
+.voto-sel select{padding:4px 6px}
+.rr-cnt{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.ph.intesta{margin:18px 0 8px}
+.ph.neutra{background:var(--mute)}
+.calcolo{padding:0 14px 12px;margin:0}
+.avvisi{margin-top:12px;padding:10px 12px;border:2px solid var(--hot);border-radius:6px;background:var(--card);font-weight:700;font-size:14px}
+.avvisi ul{margin:4px 0 6px 18px;list-style:disc}
+.avvisi .btn{margin-top:6px}
+.manca{margin:8px 0 0 18px;list-style:disc;color:var(--hot);font-weight:800;font-size:14px}
+
+/* squadre: righe con il pulsante "sposta" */
+.rsq{display:grid;grid-template-columns:40px minmax(0,1fr);gap:6px 10px;align-items:center;padding:8px 10px}
+.rsq .who b{font-size:15px}
+.sposta{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:8px}
+.btn.sp{flex:1 1 130px;min-height:44px;padding:4px 10px;font-size:14px}
+.btn.sp.blu{background:var(--blue);color:#fff}
+.btn.sp.no{background:var(--red);color:#fff}
+
+/* livello segreto a 5 passi */
+.lvl{display:grid;grid-template-columns:repeat(5,1fr);border:2px solid var(--edge);border-radius:6px;overflow:hidden;box-shadow:3px 3px 0 var(--sh);background:var(--card)}
+.lvl button{min-height:48px;border:0;background:transparent;font-family:Anton,Impact,sans-serif;font-size:22px;color:var(--ink)}
+.lvl button+button{border-left:2px solid var(--edge)}
+.lvl button.pieno{background:var(--yellow);color:#1a1712}
+.lvl button[aria-checked="true"]{background:var(--blue);color:#fff}
+.lvl-box .note{margin-top:8px}
+.segreto{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--hot)}
+.segreto .ico{width:16px;height:16px}
+
+/* chip dei badge assegnabili: positivo = tondo verde, negativo = rombo rosso */
+.gruppo-chip .note{margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 12px 6px 10px;border:2px solid var(--edge);border-radius:6px;background:var(--card);color:var(--ink);font-size:13px;font-weight:800;box-shadow:2px 2px 0 var(--sh);transition:transform .08s,box-shadow .08s,background-color .12s}
+.chip::before{content:"";width:12px;height:12px;flex:none;border:2px solid var(--edge);background:var(--card);border-radius:50%}
+.chip.neg::before{border-radius:2px;transform:rotate(45deg) scale(.85)}
+.chip[aria-pressed="true"]{background:var(--green);color:#fff;transform:translate(1px,1px);box-shadow:1px 1px 0 var(--sh)}
+.chip.neg[aria-pressed="true"]{background:var(--red)}
+.chip[aria-pressed="true"]::before{background:#fff}
+.chip.scelta::before{border-radius:3px}
+.chip.scelta[aria-pressed="true"]{background:var(--blue)}
+
+/* scelta dei convocati e dell'MVP: la griglia .vota del voto pubblico, con figurine e cartellini */
+.conv-scelta{margin-top:10px}
+.conv-scelta label{position:relative}
+
+/* barra di salvataggio, sopra la navigazione in basso */
+.barra-salva{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:8px 10px;
+  background-color:var(--card);background-image:var(--grain);border:2px solid var(--edge);border-radius:8px;box-shadow:4px 4px 0 var(--sh)}
+.stato-mod{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);display:inline-flex;align-items:center;gap:8px}
+.stato-mod.sporco{color:var(--hot)}
+.stato-mod.sporco::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--hot);border:2px solid var(--edge)}
+
+/* campo modificabile */
+.modulo-sq{margin:12px 0 10px}
+.modulo-sq .ph{margin-bottom:8px}
+.modulo-sq .avviso{margin-top:0}
+.pitch.edita{margin-top:6px}
+.cas{position:absolute;width:52px;height:52px;transform:translate(-50%,-50%);border:2px dashed var(--pline);border-radius:50%;opacity:.55;pointer-events:none;z-index:0}
+.cas.vivo{opacity:.95;background:rgba(255,255,255,.14)}
+.cas.bersaglio{background:rgba(255,198,41,.5);border-style:solid;border-color:var(--yellow);opacity:1}
+.ped.mov{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:left .16s ease-out,top .16s ease-out;z-index:2;outline-offset:0}
+.ped.mov.trascina{transition:none;z-index:5;cursor:grabbing;filter:drop-shadow(0 6px 4px rgba(0,0,0,.35))}
+.ped.mov.trascina .pin{transform:scale(1.12)}
+.ped.mov:focus-visible .fig,.ped.mov.sel .fig{outline:3px solid var(--yellow);outline-offset:2px}
+.ped.mov.sel .cart{background:var(--yellow)}
+.pt{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--yellow);color:#1a1712;border:1.5px solid #1a1712;display:grid;place-items:center;font-family:Anton,Impact,sans-serif;font-size:11px;line-height:1}
