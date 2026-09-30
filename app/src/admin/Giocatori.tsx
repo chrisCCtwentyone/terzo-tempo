@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { normalizzaCognome, normalizzaIniziali, componiNome, MAX_COGNOME, MAX_INIZIALI } from '../../../shared/nomi'
+import { normalizzaCognome, normalizzaInizialiOpz, componiNome, MAX_COGNOME, MAX_INIZIALI } from '../../../shared/nomi'
 import { ErroreApi } from '../lib/api'
 import type { Badge } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
@@ -64,7 +64,7 @@ export function GiocatoriAdmin() {
 }
 
 const ERR_COGNOME = `Cognome: solo lettere (anche spazi, apostrofi e trattini), al massimo ${MAX_COGNOME} caratteri.`
-const ERR_INIZIALI = `Iniziali del nome: da 1 a ${MAX_INIZIALI} lettere (per esempio M oppure S. C.).`
+const ERR_INIZIALI = `Iniziali del nome: facoltative; se ci sono, da 1 a ${MAX_INIZIALI} lettere (per esempio M oppure S. C.).`
 
 function ModificaGiocatore({ g, badge, onFatto }: { g: GiocatoreAdmin | null; badge: Badge[]; onFatto: () => void }) {
   const [cognome, setCognome] = useState(g?.cognome ?? '')
@@ -76,11 +76,11 @@ function ModificaGiocatore({ g, badge, onFatto }: { g: GiocatoreAdmin | null; ba
   const [id, setId] = useState(g?.id ?? null)
 
   const c = normalizzaCognome(cognome)
-  const ini = normalizzaIniziali(iniziali)
+  const ini = normalizzaInizialiOpz(iniziali) // '' = nessuna iniziale (facoltative), null = non valide
   const errCognome = cognome.trim() !== '' && c === null ? ERR_COGNOME : null
-  const errIniziali = iniziali.trim() !== '' && ini === null ? ERR_INIZIALI : null
+  const errIniziali = ini === null ? ERR_INIZIALI : null
   const valido = c !== null && ini !== null
-  const anteprima = c && ini ? componiNome(c, ini) : null
+  const anteprima = c !== null && ini !== null ? componiNome(c, ini) : null
   const stessiBadge = useMemo(() => [...suoi].sort().join() === [...(g?.badge_ids ?? [])].sort().join(), [suoi, g])
   const invariato = g !== null && anteprima === g.nome && livello === g.livello_segreto && attivo === g.attivo && stessiBadge
   const tipoBadge = (t: 'positivo' | 'negativo') => badge.filter((b) => b.tipo === t)
@@ -120,11 +120,11 @@ function ModificaGiocatore({ g, badge, onFatto }: { g: GiocatoreAdmin | null; ba
         <Fld etichetta="Cognome" errore={errCognome}>
           {(p) => <input {...p} type="text" value={cognome} onChange={(e) => setCognome(e.target.value)} autoComplete="off" autoCapitalize="words" maxLength={MAX_COGNOME + 10} />}
         </Fld>
-        <Fld etichetta="Iniziali del nome" errore={errIniziali}>
+        <Fld etichetta="Iniziali del nome (facoltative)" errore={errIniziali}>
           {(p) => <input {...p} type="text" value={iniziali} onChange={(e) => setIniziali(e.target.value)} autoComplete="off" autoCapitalize="characters" maxLength={12} />}
         </Fld>
       </div>
-      <p className="note anteprima" aria-live="polite">{anteprima ? <>Nel sito comparirà come <b>{anteprima}</b></> : 'Il nome compare come "Cognome I." (per esempio Rossi M. o Rossi S.C.).'}</p>
+      <p className="note anteprima" aria-live="polite">{anteprima ? <>Nel sito comparirà come <b>{anteprima}</b></> : 'Il nome compare come "Cognome I." (per esempio Rossi M. o Rossi S.C.); senza iniziali, il solo nome scritto.'}</p>
 
       <fieldset>
         <legend className="etich-campo">Livello segreto</legend>

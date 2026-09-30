@@ -15,10 +15,11 @@ describe('wrangler.toml', () => {
   const toml = leggi('wrangler.toml');
   const senzaCommenti = toml.split('\n').filter((r) => !r.trim().startsWith('#')).join('\n');
 
-  it('il database_id e il dominio Access sono segnaposto marcati (il progetto Cloudflare non esiste ancora)', () => {
-    expect(senzaCommenti).toMatch(/database_id = "DA_COMPILARE/);
-    expect(senzaCommenti).toMatch(/ACCESS_TEAM_DOMAIN = "DA_COMPILARE"/);
-    expect(senzaCommenti).toMatch(/ACCESS_AUD = "DA_COMPILARE"/);
+  it('database_id, dominio Access e AUD sono compilati (non sono segreti) e il binding e\' DB', () => {
+    expect(senzaCommenti).toMatch(/database_id = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"/);
+    expect(senzaCommenti).toMatch(/ACCESS_TEAM_DOMAIN = "[a-z0-9-]+\.cloudflareaccess\.com"/);
+    expect(senzaCommenti).toMatch(/ACCESS_AUD = "[0-9a-f]{64}"/);
+    expect(senzaCommenti).not.toContain('DA_COMPILARE');
     expect(senzaCommenti).toMatch(/binding = "DB"/);
   });
 

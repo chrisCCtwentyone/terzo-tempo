@@ -29,10 +29,18 @@ export const classeVoto = (v: number | null) => (v === null ? 'nd' : v >= 7 ? 'h
 
 /** "Rossi S.C." -> "Rossi"; "De Luca V." -> "De Luca" (il nome e' sempre "Cognome I.": shared/nomi.ts). */
 export const cognome = (nome: string) => dividiNome(nome).cognome
-/** Le iniziali della figurina: prima iniziale del nome + iniziale del cognome ("Verdi A.G." -> "AV"). */
+/**
+ * Le iniziali della figurina. Con le iniziali del nome: la prima + quella del cognome
+ * ("Verdi A.G." -> "AV"). Senza (giocatori con il solo nome, "Gianni", "Amico Gianni"):
+ * la prima lettera delle prime due parole se sono due o piu' ("Amico Gianni" -> "AG"),
+ * altrimenti le prime due lettere ("Gianni" -> "GI").
+ */
 export const iniziali = (nome: string) => {
   const d = dividiNome(nome)
-  return `${d.iniziali.charAt(0)}${d.cognome.charAt(0)}`.toUpperCase()
+  if (d.iniziali) return `${d.iniziali.charAt(0)}${d.cognome.charAt(0)}`.toUpperCase()
+  const parole = d.cognome.split(/\s+/).filter(Boolean)
+  const lettere = parole.length >= 2 ? `${parole[0].charAt(0)}${parole[1].charAt(0)}` : [...(parole[0] ?? '')].slice(0, 2).join('')
+  return lettere.toUpperCase()
 }
 /** Colore stabile della figurina (6 tinte), dall'id del giocatore. */
 export const tinta = (id: number) => Math.abs(id) % 6

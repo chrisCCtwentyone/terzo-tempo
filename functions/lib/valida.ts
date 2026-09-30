@@ -3,7 +3,7 @@
  * nome del campo: il frontend lo mostra cosi' com'e'.
  */
 
-import { MAX_COGNOME, MAX_INIZIALI, normalizzaCognome, normalizzaIniziali } from '../../shared/nomi';
+import { MAX_COGNOME, MAX_INIZIALI, normalizzaCognome, normalizzaInizialiOpz } from '../../shared/nomi';
 import { FUSO_ORARIO } from './costanti';
 import { ErroreApi } from './risposta';
 
@@ -54,9 +54,10 @@ export function cognomeGiocatore(v: unknown): string {
   return c as string;
 }
 
+/** Iniziali FACOLTATIVE: assenti, null o vuote = "" (si mostra il solo nome); altrimenti da 1 a 3 lettere. */
 export function inizialiGiocatore(v: unknown): string {
-  const i = normalizzaIniziali(v);
-  if (i === null) KO('iniziali', `da 1 a ${MAX_INIZIALI} lettere (es. "M" o "S. C.")`);
+  const i = normalizzaInizialiOpz(v);
+  if (i === null) KO('iniziali', `facoltative; se ci sono, da 1 a ${MAX_INIZIALI} lettere (es. "M" o "S. C.")`);
   return i as string;
 }
 

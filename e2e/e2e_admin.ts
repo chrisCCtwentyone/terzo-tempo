@@ -138,7 +138,7 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   await p.getByRole('button', { name: 'Nuovo giocatore' }).click()
   await p.getByLabel('Iniziali del nome').fill('Mario')
   await p.getByLabel('Cognome', { exact: true }).fill(nuovo.toLowerCase())
-  verifica(await p.getByText(/Iniziali del nome: da 1 a 3 lettere/).isVisible(), `${tema} iniziali non valide: errore chiaro`)
+  verifica(await p.getByText(/Iniziali del nome: facoltative; se ci sono, da 1 a 3 lettere/).isVisible(), `${tema} iniziali non valide: errore chiaro`)
   verifica(await p.getByRole('button', { name: 'Aggiungi il giocatore' }).isDisabled(), `${tema} con un campo non valido non si salva`)
   await p.getByLabel('Iniziali del nome').fill('g m')
   verifica(await p.getByText(nomeNuovo).first().isVisible(), `${tema} anteprima tollerante: "${nuovo.toLowerCase()}" + "g m" -> ${nomeNuovo}`)

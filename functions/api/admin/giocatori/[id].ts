@@ -1,6 +1,6 @@
 /**
  * GET    /api/admin/giocatori/:id
- * PATCH  /api/admin/giocatori/:id   { cognome?, iniziali?, attivo?, livello_segreto? (null = toglie) }
+ * PATCH  /api/admin/giocatori/:id   { cognome?, iniziali? ("" o null = toglie), attivo?, livello_segreto? (null = toglie) }
  * DELETE /api/admin/giocatori/:id   solo se non ha partite ne' voti (altrimenti: archivialo)
  */
 import { aggiorna, conVincoli, perAdmin, SELECT_ADMIN } from '../../../lib/admin';

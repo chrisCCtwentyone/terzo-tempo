@@ -3,8 +3,9 @@
  *
  * Il nome si mostra ovunque come "Cognome I." con le iniziali attaccate e
  * il punto: "Rossi M.", "Rossi S.C.", "De Luca V." (decisione dell'utente,
- * 30/09/2026). Nel DB cognome e iniziali sono colonne separate; `nome` e' la
- * loro composizione, scritta solo dal server con `componiNome`.
+ * 30/09/2026). Le iniziali sono FACOLTATIVE: alcuni giocatori veri hanno solo un
+ * nome ("Gianni", "Amico Gianni") e allora si mostra il solo nome scritto.
+ * Nel DB `nome` e' la composizione, scritta solo dal server con `componiNome`.
  */
 
 export const MAX_COGNOME = 40;
@@ -31,7 +32,14 @@ export function normalizzaIniziali(v: unknown): string | null {
   return [...lettere].map((l) => `${l.toUpperCase()}.`).join('');
 }
 
-export const componiNome = (cognome: string, iniziali: string) => `${cognome} ${iniziali}`;
+/** Iniziali facoltative: vuote/assenti/null = nessuna (""); non vuote e non valide = null. */
+export function normalizzaInizialiOpz(v: unknown): string | null {
+  if (v === undefined || v === null || (typeof v === 'string' && v.trim() === '')) return '';
+  return normalizzaIniziali(v);
+}
+
+/** "Rossi" + "M." -> "Rossi M."; senza iniziali resta il solo nome ("Gianni"). */
+export const componiNome = (cognome: string, iniziali: string) => (iniziali ? `${cognome} ${iniziali}` : cognome);
 
 /** "De Luca V." -> { cognome: "De Luca", iniziali: "V." }. Un nome di altra forma resta tutto cognome. */
 export function dividiNome(nome: string): { cognome: string; iniziali: string } {

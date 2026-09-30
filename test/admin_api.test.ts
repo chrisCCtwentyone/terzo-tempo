@@ -17,7 +17,7 @@ describe('giocatori', () => {
     // forme tolleranti: stesso risultato canonico
     expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: '  de   luca ', iniziali: 'v' })).json).toMatchObject({ nome: 'De Luca V.', cognome: 'De Luca', iniziali: 'V.' });
     expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'ROSSI', iniziali: 's c' })).json.nome).toBe('Rossi S.C.');
-    for (const [cognome, iniziali] of [['', 'M'], ['Rossi', ''], ['Rossi', 'Mario'], ['Rossi', 'M1'], ['R0ssi', 'M'], [42, 'M'], ['Rossi', undefined], [undefined, 'M'], ['Rossi.', 'M']]) {
+    for (const [cognome, iniziali] of [['', 'M'], ['Rossi', 'Mario'], ['Rossi', 'M1'], ['Rossi', 42], ['R0ssi', 'M'], [42, 'M'], [undefined, 'M'], [undefined, undefined], ['Rossi.', 'M']]) {
       expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome, iniziali })).stato, `${cognome}/${iniziali}`).toBe(400);
     }
     expect((await ad(db, 'POST', '/api/admin/giocatori', { nome: 'Rossi M.' })).stato, 'il nome intero non si accetta piu').toBe(400);
@@ -26,6 +26,34 @@ describe('giocatori', () => {
       expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'Neri', iniziali: 'B', livello_segreto: livello })).stato, String(livello)).toBe(400);
     }
     expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'Neri', iniziali: 'B' })).json.livello_segreto).toBeNull();
+  });
+
+  it('le iniziali sono facoltative: senza, il nome e\' il solo nome scritto ("Gianni")', async () => {
+    const db = new D1Finto();
+    const forme: [string, unknown][] = [['Alfa', undefined], ['Beta', null], ['Gamma', ''], ['Delta', '  ']];
+    for (const [cognome, iniziali] of forme) {
+      const r = await ad(db, 'POST', '/api/admin/giocatori', { cognome, iniziali });
+      expect(r.stato, cognome).toBe(201);
+      expect(r.json, cognome).toMatchObject({ nome: cognome, cognome, iniziali: '' });
+    }
+    const a = await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'amico gianni' });
+    expect(a.stato).toBe(201);
+    expect(a.json).toMatchObject({ nome: 'Amico Gianni', cognome: 'Amico Gianni', iniziali: '' });
+    const b = await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'Solo', iniziali: '' });
+    expect(b.json).toMatchObject({ nome: 'Solo', cognome: 'Solo', iniziali: '' });
+    // doppione senza iniziali (maiuscole diverse)
+    expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'SOLO' })).stato).toBe(409);
+    // si possono aggiungere e togliere in seguito
+    const id = b.json.id;
+    expect((await ad(db, 'PATCH', `/api/admin/giocatori/${id}`, { iniziali: 'k' })).json).toMatchObject({ nome: 'Solo K.', iniziali: 'K.' });
+    expect((await ad(db, 'PATCH', `/api/admin/giocatori/${id}`, { iniziali: null })).json).toMatchObject({ nome: 'Solo', cognome: 'Solo', iniziali: '' });
+    expect((await ad(db, 'PATCH', `/api/admin/giocatori/${id}`, { iniziali: 'k' })).json.nome).toBe('Solo K.');
+    expect((await ad(db, 'PATCH', `/api/admin/giocatori/${id}`, { iniziali: '' })).json.nome).toBe('Solo');
+    // cambiare il cognome di chi non ha iniziali non ne inventa
+    expect((await ad(db, 'PATCH', `/api/admin/giocatori/${id}`, { cognome: 'Soli' })).json).toMatchObject({ nome: 'Soli', iniziali: '' });
+    // il pubblico li mostra col solo nome
+    const lista = (await chiama(db, 'GET', '/api/giocatori')).json.giocatori.map((g: { nome: string }) => g.nome);
+    expect(lista).toEqual(expect.arrayContaining(['Amico Gianni', 'Soli']));
   });
 
   it('cambia solo il cognome o solo le iniziali: l\'altra parte resta', async () => {

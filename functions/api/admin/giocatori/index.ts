@@ -1,6 +1,7 @@
 /**
  * GET  /api/admin/giocatori   tutti (anche archiviati), CON livello_segreto
- * POST /api/admin/giocatori   { cognome, iniziali, livello_segreto?, attivo? }  (il nome e' "Cognome I.", lo compone il server)
+ * POST /api/admin/giocatori   { cognome, iniziali?, livello_segreto?, attivo? }  (il nome e' "Cognome I.", lo compone il server;
+ *                               senza iniziali e' il solo cognome/nome scritto, es. "Gianni")
  */
 import { conVincoli, perAdmin, SELECT_ADMIN } from '../../../lib/admin';
 import { json, leggiOggetto, perMetodo } from '../../../lib/risposta';

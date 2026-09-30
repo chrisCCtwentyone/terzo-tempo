@@ -1,7 +1,7 @@
 /** Codice condiviso fra backend e frontend (shared/): nomi "Cognome I." e moduli con le loro caselle. */
 import { describe, expect, it } from 'vitest';
 import { MODULI, casellaPiuVicina, casellaSu, caselle, deduciModulo, moduliPer, moduloValido } from '../shared/moduli';
-import { componiNome, dividiNome, normalizzaCognome, normalizzaIniziali } from '../shared/nomi';
+import { componiNome, dividiNome, normalizzaCognome, normalizzaIniziali, normalizzaInizialiOpz } from '../shared/nomi';
 
 describe('nomi', () => {
   it('iniziali: forme tolleranti, sempre "X." attaccate; niente di diverso da 1-3 lettere', () => {
@@ -24,6 +24,20 @@ describe('nomi', () => {
     expect(dividiNome('De Luca V.')).toEqual({ cognome: 'De Luca', iniziali: 'V.' });
     expect(dividiNome('Dall\'Ora M.')).toEqual({ cognome: 'Dall\'Ora', iniziali: 'M.' });
     expect(dividiNome('Rossi')).toEqual({ cognome: 'Rossi', iniziali: '' });
+  });
+
+  it('iniziali facoltative: senza, si mostra il solo nome scritto e la divisione e\' reversibile', () => {
+    for (const vuoto of ['', '  ', null, undefined]) expect(normalizzaInizialiOpz(vuoto), String(vuoto)).toBe('');
+    expect(normalizzaInizialiOpz('s c')).toBe('S.C.');
+    for (const no of ['Mario', 'M1', 'a b c d', 42]) expect(normalizzaInizialiOpz(no), String(no)).toBeNull();
+    expect(componiNome('Gianni', '')).toBe('Gianni');
+    expect(componiNome('Amico Gianni', '')).toBe('Amico Gianni');
+    expect(dividiNome('Gianni')).toEqual({ cognome: 'Gianni', iniziali: '' });
+    expect(dividiNome('Amico Gianni')).toEqual({ cognome: 'Amico Gianni', iniziali: '' });
+    for (const n of ['Gianni', 'Amico Gianni', 'Rossi M.', 'De Luca V.Z.']) {
+      const d = dividiNome(n);
+      expect(componiNome(d.cognome, d.iniziali), n).toBe(n);
+    }
   });
 });
 
