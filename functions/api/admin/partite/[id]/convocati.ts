@@ -13,7 +13,7 @@ import { ErroreApi, idDa, json, leggiOggetto, perMetodo } from '../../../../lib/
 import { intero, numeroOpz, votoPagella } from '../../../../lib/valida';
 
 function leggiConvocato(v: unknown): Convocato {
-  if (!v || typeof v !== 'object') throw new ErroreApi(400, 'convocati: ogni elemento e\' un oggetto');
+  if (!v || typeof v !== 'object') throw new ErroreApi(400, 'convocati: ogni elemento è un oggetto');
   const c = v as Record<string, unknown>;
   const squadra = c.squadra ?? null;
   if (squadra !== null && !CODICI_SQUADRA.includes(squadra as never)) throw new ErroreApi(400, `squadra: ${CODICI_SQUADRA.join(', ')} o null`);

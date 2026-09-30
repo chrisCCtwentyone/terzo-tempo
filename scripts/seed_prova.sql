@@ -7,22 +7,22 @@
 -- autogol compresi, devono sommare al risultato).
 
 INSERT INTO giocatori (id, nome, attivo, livello_segreto, creato_il) VALUES
-  (1, 'M. Rossi', 1, 5, '2026-07-01T10:00:00Z'),
-  (2, 'L. Bianchi', 1, 4, '2026-07-01T10:00:00Z'),
-  (3, 'A. G. Verdi', 1, 3, '2026-07-01T10:00:00Z'),
-  (4, 'F. Esposito', 1, 4, '2026-07-01T10:00:00Z'),
-  (5, 'D. Russo', 1, 2, '2026-07-01T10:00:00Z'),
-  (6, 'G. Romano', 1, 3, '2026-07-01T10:00:00Z'),
-  (7, 'P. Colombo', 1, 4, '2026-07-01T10:00:00Z'),
-  (8, 'S. Ricci', 1, 3, '2026-07-01T10:00:00Z'),
-  (9, 'R. Marino', 1, 3, '2026-07-01T10:00:00Z'),
-  (10, 'E. Greco', 1, 2, '2026-07-01T10:00:00Z'),
-  (11, 'T. Bruno', 1, 2, '2026-07-01T10:00:00Z'),
-  (12, 'N. Gallo', 1, 1, '2026-07-01T10:00:00Z'),
-  (13, 'C. Conti', 1, 4, '2026-07-01T10:00:00Z'),
-  (14, 'V. De Luca', 1, NULL, '2026-07-01T10:00:00Z'),
-  (15, 'F. Mancini', 1, 3, '2026-07-01T10:00:00Z'),
-  (16, 'O. Costa', 1, NULL, '2026-07-01T10:00:00Z');
+  (1, 'Rossi M.', 1, 5, '2026-07-01T10:00:00Z'),
+  (2, 'Bianchi L.', 1, 4, '2026-07-01T10:00:00Z'),
+  (3, 'Verdi A.G.', 1, 3, '2026-07-01T10:00:00Z'),
+  (4, 'Esposito F.', 1, 4, '2026-07-01T10:00:00Z'),
+  (5, 'Russo D.', 1, 2, '2026-07-01T10:00:00Z'),
+  (6, 'Romano G.', 1, 3, '2026-07-01T10:00:00Z'),
+  (7, 'Colombo P.', 1, 4, '2026-07-01T10:00:00Z'),
+  (8, 'Ricci S.', 1, 3, '2026-07-01T10:00:00Z'),
+  (9, 'Marino R.', 1, 3, '2026-07-01T10:00:00Z'),
+  (10, 'Greco E.', 1, 2, '2026-07-01T10:00:00Z'),
+  (11, 'Bruno T.', 1, 2, '2026-07-01T10:00:00Z'),
+  (12, 'Gallo N.', 1, 1, '2026-07-01T10:00:00Z'),
+  (13, 'Conti C.', 1, 4, '2026-07-01T10:00:00Z'),
+  (14, 'De Luca V.', 1, NULL, '2026-07-01T10:00:00Z'),
+  (15, 'Mancini F.', 1, 3, '2026-07-01T10:00:00Z'),
+  (16, 'Costa O.', 1, NULL, '2026-07-01T10:00:00Z');
 
 INSERT INTO giocatore_badge (giocatore_id, badge_id) VALUES
   (1, (SELECT id FROM badge WHERE nome = 'Cecchino')),
@@ -56,7 +56,7 @@ INSERT INTO stagioni (id, nome, aperta, data_inizio, data_fine) VALUES
 INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il) VALUES
   (1, 1, '2026-05-14T19:00:00Z', 'giocata', 3, 2, NULL, 'assegnato', '2026-05-15T19:00:00Z'),
   (2, 1, '2026-05-28T19:00:00Z', 'giocata', 5, 4, NULL, 'assegnato', '2026-05-29T19:00:00Z'),
-  (3, 2, '2026-08-06T19:00:00Z', 'giocata', 2, 3, 'Serata calda: si e'' giocato con il ventilatore.', 'assegnato', '2026-08-07T00:00:00Z'),
+  (3, 2, '2026-08-06T19:00:00Z', 'giocata', 2, 3, 'Serata calda: si è giocato con il ventilatore.', 'assegnato', '2026-08-07T00:00:00Z'),
   (4, 2, '2026-08-13T19:00:00Z', 'giocata', 4, 3, NULL, 'assegnato', '2026-08-14T19:00:00Z'),
   (5, 2, '2026-08-20T19:00:00Z', 'giocata', 4, 5, NULL, 'parita_da_decidere', '2026-08-21T19:00:00Z'),
   (6, 2, '2026-08-27T19:00:00Z', 'giocata', 5, 2, NULL, 'assegnato', '2026-08-28T19:00:00Z'),

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { votaMvp, type ErroreApi } from '../lib/api'
-import { brevi, cognome, conto, giornoOra, plurale } from '../lib/formato'
+import { conto, giornoOra, plurale } from '../lib/formato'
 import { useListone } from '../lib/listone'
 import type { Badge, Mvp, Partita } from '../lib/tipi'
 import { Link } from '../router'
-import { Bollino, Carta, Errore, Figurina, Icona, Pulsante, Sezione } from '../ui'
+import { Bollino, Carta, Cart, Errore, Figurina, Icona, Pulsante, Sezione } from '../ui'
 
 type ConBadge = (id: number) => Badge[] | undefined
 
@@ -96,7 +96,6 @@ function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa, badge }: {
   const [scelto, setScelto] = useState<number | null>(null)
   const [invio, setInvio] = useState(false)
   const gg: Votabile[] = lista.dati?.giocatori ?? []
-  const nomi = brevi(gg.map((g) => g.nome))
   const chi = gg.find((g) => g.id === scelto)
   // l'elenco allunga la pagina: solo quando c'e' il blocco puo' stare in cima
   const pronta = gg.length > 0
@@ -139,23 +138,23 @@ function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa, badge }: {
       {haVotato ? (
         <p className="esito-voto">
           <Icona id="i-check" />
-          <span>Hai gia' votato da questo telefono. Il risultato esce alla chiusura del voto.</span>
+          <span>Hai già votato da questo telefono. Il risultato esce alla chiusura del voto.</span>
         </p>
       ) : (
         <>
-          <p className="note">Vota chi e' stato l'MVP: un voto per telefono, senza accedere. Puoi votare chiunque, anche te stesso.</p>
+          <p className="note">Vota chi è stato l'MVP: un voto per telefono, senza accedere. Puoi votare chiunque, anche te stesso.</p>
           {lista.caricando && <p className="note" role="status">Carico l'elenco dei giocatori…</p>}
           {lista.errore && <Errore errore={lista.errore} onRiprova={lista.ricarica} />}
           {gg.length > 0 && (
             <fieldset>
               <legend className="sr">Scegli chi votare come MVP</legend>
               <div className="vota">
-                {gg.map((g, k) => (
+                {gg.map((g) => (
                   <label key={g.id}>
                     <input type="radio" className="sr" name="mvp" value={g.id} checked={scelto === g.id} onChange={() => setScelto(g.id)} />
                     <Figurina id={g.id} nome={g.nome} z={46} decorativa badge={badge(g.id)} />
                     <span className="sr">{g.nome}</span>
-                    <span className="cart" aria-hidden="true">{nomi[k]}</span>
+                    <Cart nome={g.nome} />
                   </label>
                 ))}
               </div>
@@ -196,16 +195,16 @@ function Risultati({ mvp }: { mvp: Extract<Mvp, { risultati: unknown }> }) {
 }
 
 function Chiuso({ mvp, badge }: { mvp: Extract<Mvp, { risultati: unknown }>; badge: ConBadge }) {
-  if (mvp.stato === 'nessun_voto') return <Carta className="vuota">Nessun voto: per questa partita non c'e' un MVP.</Carta>
+  if (mvp.stato === 'nessun_voto') return <Carta className="vuota">Nessun voto: per questa partita non c'è un MVP.</Carta>
   if (mvp.stato === 'parita_da_decidere') {
     return (
       <Carta>
-        <p><strong>Parita': decide l'admin.</strong> Sono a pari merito:</p>
+        <p><strong>Parità: decide l'admin.</strong> Sono a pari merito:</p>
         <ul className="conv">
           {mvp.candidati.map((c) => (
             <li key={c.giocatore_id}>
               <Figurina id={c.giocatore_id} nome={c.nome} z={48} badge={badge(c.giocatore_id)} />
-              <span className="cart">{cognome(c.nome)}</span>
+              <Cart nome={c.nome} />
             </li>
           ))}
         </ul>

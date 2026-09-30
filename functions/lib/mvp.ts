@@ -132,14 +132,14 @@ const CANDIDATI_SENZA_VOTI =
 /** L'admin sceglie l'MVP: fra i pari merito, oppure (solo se nessuno ha votato) fra i giocatori della partita. */
 export async function decidiParita(db: D1Database, p: PartitaDb, giocatoreId: number): Promise<void> {
   if (p.mvp_stato !== 'parita_da_decidere' && p.mvp_stato !== 'nessun_voto') {
-    throw new ErroreApi(409, 'non c\'e\' nessuna parita\' ne\' votazione senza voti da decidere');
+    throw new ErroreApi(409, 'non c\'è nessuna parità né votazione senza voti da decidere');
   }
   const senzaVoti = p.mvp_stato === 'nessun_voto';
   const candidati = senzaVoti
     ? (await db.prepare(CANDIDATI_SENZA_VOTI).bind(p.id).all<{ giocatore_id: number }>()).results.map((r) => r.giocatore_id)
     : esitoVoti(await conteggi(db, p.id)).candidati;
   if (!candidati.includes(giocatoreId)) {
-    throw new ErroreApi(400, senzaVoti ? 'giocatore_id: non ha giocato questa partita' : 'giocatore_id: non e\' fra i pari merito');
+    throw new ErroreApi(400, senzaVoti ? 'giocatore_id: non ha giocato questa partita' : 'giocatore_id: non è fra i pari merito');
   }
   await db.batch([
     db.prepare("UPDATE partite SET mvp_stato = 'assegnato' WHERE id = ? AND mvp_stato = ?").bind(p.id, p.mvp_stato),

@@ -29,7 +29,6 @@ function Pagina({ segmenti }: { segmenti: string[] }) {
     case 'classifiche': return id ? <NonTrovata /> : <Classifiche />
     case 'partite': return id ? <Partita id={id} /> : <Partite />
     case 'giocatori': return id ? <Scheda id={id} /> : <Giocatori />
-    case 'admin': return <Suspense fallback={<Caricamento testo="Carico l'area admin…" />}><Admin /></Suspense>
     default: return <NonTrovata />
   }
 }
@@ -50,6 +49,16 @@ export function App() {
     main.current?.focus({ preventScroll: true })
   }, [percorso])
   const attiva = segmenti[0] ?? ''
+
+  // L'area admin ha barra e navigazione proprie: niente header, navigazione e piede del sito pubblico.
+  if (attiva === 'admin') {
+    return (
+      <>
+        <Sprite />
+        <Suspense fallback={<div className="wrap"><Caricamento testo="Carico l'area admin…" /></div>}><Admin /></Suspense>
+      </>
+    )
+  }
 
   return (
     <>

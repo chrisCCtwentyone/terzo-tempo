@@ -7,8 +7,8 @@ export const onRequest = perMetodo({
     const adesso = Date.now();
     const p = await sincronizza(env.DB, idDa(params.id), adesso);
     if (!p) throw new ErroreApi(404, 'partita non trovata');
-    if (p.stato !== 'giocata') throw new ErroreApi(409, 'la partita non e\' ancora stata giocata');
-    if (p.mvp_stato !== 'aperto') throw new ErroreApi(409, 'votazione gia\' chiusa');
+    if (p.stato !== 'giocata') throw new ErroreApi(409, 'la partita non è ancora stata giocata');
+    if (p.mvp_stato !== 'aperto') throw new ErroreApi(409, 'votazione già chiusa');
     await chiudiVotazione(env.DB, p.id, new Date(adesso).toISOString().slice(0, 19) + 'Z');
     return json(await bloccoMvp(env.DB, (await sincronizza(env.DB, p.id, adesso))!, null, adesso));
   },

@@ -17,7 +17,7 @@ export const onRequest = perMetodo({
       if (c.tipo !== 'positivo' && c.tipo !== 'negativo') throw new ErroreApi(400, 'tipo: "positivo" o "negativo"');
       campi.push(['tipo', c.tipo]);
     }
-    await conVincoli(aggiorna(env.DB, 'badge', id, campi, 'badge non trovato'), 'esiste gia\' un badge con questo nome');
+    await conVincoli(aggiorna(env.DB, 'badge', id, campi, 'badge non trovato'), 'esiste già un badge con questo nome');
     return json(await env.DB.prepare('SELECT id, nome, descrizione, tipo FROM badge WHERE id = ?').bind(id).first());
   },
 

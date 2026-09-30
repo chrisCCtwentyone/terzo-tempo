@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { dividiNome } from '../shared/nomi';
 import { D1Finto } from './d1_finto';
 import { chiama } from './rotte';
 
@@ -10,13 +11,16 @@ const q = <T = Record<string, any>>(sql: string, ...v: unknown[]) => db.tutti<T>
 const giocate = q<{ id: number; gol_a: number; gol_b: number; mvp_stato: string }>("SELECT * FROM partite WHERE stato = 'giocata' ORDER BY id");
 
 describe('seed di prova', () => {
-  it('16 giocatori inventati, nel formato "Iniziale. Cognome", presi dall\'anteprima approvata', () => {
+  it('16 giocatori inventati, nel formato "Cognome I.", presi dall\'anteprima approvata', () => {
     const nomi = q<{ nome: string }>('SELECT nome FROM giocatori').map((g) => g.nome);
     expect(nomi).toHaveLength(16);
     const anteprima = readFileSync(join(import.meta.dirname, '..', 'docs', 'anteprima-figurine.html'), 'utf8');
     for (const n of nomi) {
-      expect(n).toMatch(/^(\p{Lu}\. )+\p{Lu}[\p{L}' ]+$/u);
-      expect(anteprima, `${n} non e' fra i nomi inventati dell'anteprima`).toContain(`'${n}'`);
+      expect(n).toMatch(/^\p{Lu}[\p{L}' ]+ (\p{Lu}\.)+$/u);
+      // l'anteprima approvata (prototipo) scrive ancora "A. G. Verdi": si confronta con quella forma
+      const { cognome, iniziali } = dividiNome(n);
+      const vecchia = `${iniziali.replace(/\./g, '. ')}${cognome}`;
+      expect(anteprima, `${n} non e' fra i nomi inventati dell'anteprima`).toContain(`'${vecchia}'`);
     }
   });
 

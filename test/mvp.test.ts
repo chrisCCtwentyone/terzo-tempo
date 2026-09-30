@@ -145,7 +145,7 @@ describe('risultati nascosti mentre la votazione e\' aperta', () => {
     await telefono(db).vota(id, B);
     a(25 * H);
     const { json } = await telefono(db).stato(id);
-    expect(json).toMatchObject({ stato: 'assegnato', voti_totali: 3, vincitore: { giocatore_id: R, nome: 'M. Rossi' }, candidati: [] });
+    expect(json).toMatchObject({ stato: 'assegnato', voti_totali: 3, vincitore: { giocatore_id: R, nome: 'Rossi M.' }, candidati: [] });
     expect(json.risultati.map((x: any) => [x.giocatore_id, x.voti])).toEqual([[R, 2], [B, 1]]);
   });
 });

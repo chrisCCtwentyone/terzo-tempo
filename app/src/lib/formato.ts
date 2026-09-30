@@ -1,4 +1,5 @@
 // Formattazione di date, numeri e nomi. Funzioni pure (testate in test/frontend.test.ts).
+import { dividiNome } from '../../../shared/nomi'
 
 /** Gli orari che gli utenti hanno in mente sono di Roma; il backend li da in UTC (docs/API.md). */
 const FUSO = 'Europe/Rome'
@@ -26,16 +27,13 @@ export const voto = (v: number | null) => (v === null ? 'n.d.' : v.toLocaleStrin
 export const media = (v: number | null) => (v === null ? 'n.d.' : v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 export const classeVoto = (v: number | null) => (v === null ? 'nd' : v >= 7 ? 'hi' : v >= 6 ? 'mid' : 'lo')
 
-/** "A. G. Verdi" -> "Verdi"; "V. De Luca" -> "De Luca" (i token senza il punto finale). */
-export const cognome = (nome: string) => nome.split(' ').filter((t) => !t.endsWith('.')).join(' ') || nome
-/** Etichette corte per le figurine: il cognome, o "M. Rossi" per intero se due nello stesso gruppo hanno lo stesso cognome. */
-export function brevi(nomi: string[]): string[] {
-  const conta = new Map<string, number>()
-  for (const n of nomi) conta.set(cognome(n), (conta.get(cognome(n)) ?? 0) + 1)
-  return nomi.map((n) => ((conta.get(cognome(n)) ?? 0) > 1 ? n : cognome(n)))
+/** "Rossi S.C." -> "Rossi"; "De Luca V." -> "De Luca" (il nome e' sempre "Cognome I.": shared/nomi.ts). */
+export const cognome = (nome: string) => dividiNome(nome).cognome
+/** Le iniziali della figurina: prima iniziale del nome + iniziale del cognome ("Verdi A.G." -> "AV"). */
+export const iniziali = (nome: string) => {
+  const d = dividiNome(nome)
+  return `${d.iniziali.charAt(0)}${d.cognome.charAt(0)}`.toUpperCase()
 }
-/** Le iniziali della figurina: prima iniziale + iniziale del cognome ("A. G. Verdi" -> "AV"). */
-export const iniziali = (nome: string) => `${nome.charAt(0)}${cognome(nome).charAt(0)}`.toUpperCase()
 /** Colore stabile della figurina (6 tinte), dall'id del giocatore. */
 export const tinta = (id: number) => Math.abs(id) % 6
 

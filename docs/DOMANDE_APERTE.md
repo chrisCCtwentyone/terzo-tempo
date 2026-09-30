@@ -10,8 +10,8 @@ Chi risponde puo' cambiare la scelta nel punto indicato.
    fissato da un test in `test/generatore.test.ts`).
 
 2. **Descrizioni dei badge.** RISOLTA (30/09/2026): le 12 descrizioni approvate sono in CLAUDE.md e nella migrazione
-   `migrations/0002_descrizioni_badge.sql` (la 0001 non e' stata toccata). Le maiuscole iniziali e l'apostrofo al posto
-   dell'accento seguono lo stile del resto dell'app.
+   `migrations/0002_descrizioni_badge.sql` (la 0001 non e' stata toccata). Le descrizioni ora hanno le lettere accentate vere
+   ("velocità"): la 0002 non era mai stata applicata in produzione, quindi e' stata corretta sul posto.
 
 3. **Minimo di partite nelle classifiche.** RISOLTA (30/09/2026): nessun minimo per media voto e % vittorie (`MIN_PARTITE_CLASSIFICA = 0`,
    l'API dice `minimo_partite: 0` e il frontend non mostra la spiegazione). Attenzione: la stessa costante e' usata anche dal generatore
@@ -21,12 +21,13 @@ Chi risponde puo' cambiare la scelta nel punto indicato.
    scelta fra pari merito in `parita_da_decidere`), con `POST .../mvp/decidi`. **DA CONFERMARE: fra chi puo' scegliere?** Scelto
    "i giocatori della partita" (quelli con una squadra); l'alternativa e' "tutti gli attivi". Per cambiare: `CANDIDATI_SENZA_VOTI`
    in `functions/lib/mvp.ts`. Il frontend pubblico mostra "Scelto dall'admin: nessun voto ricevuto" (`assegnato` con `voti_totali` 0).
-   L'MVP scelto cosi' conta nella classifica MVP: va bene?
+   L'MVP scelto cosi' conta nella classifica MVP: va bene? RISOLTA (30/09/2026): si', conta come quelli votati.
 
 5. **Pesi del generatore.** Provvisori, in `functions/lib/costanti.ts`: voto 0.35, vittorie 0.20, gol 0.15, livello 0.30;
    1 gol a partita = punteggio massimo della componente gol; peso dell'equilibrio badge 0.3 contro 1 per l'equilibrio del
    punteggio. I badge positivi e negativi sono trattati allo stesso modo ("non tutto da una parte"): giusto? Le statistiche sono
    quelle di tutto lo storico, non della sola stagione aperta: giusto?
+   PARZIALMENTE RISOLTA (30/09/2026): il generatore usa le statistiche anche di chi ha giocato una sola volta e l'admin corregge col livello 1-5.
 
 6. **Una convocazione con qualcuno che poi non si e' presentato.** Regola scelta: e' una presenza solo chi ha una squadra in una
    partita segnata "giocata"; per segnarla giocata ogni convocato deve avere una squadra, quindi chi non c'e' si toglie dai
@@ -97,3 +98,25 @@ presentazione. Da confermare con l'utente.
 21. **Partita in convocazione.** Mostra il tabellone con "–" e "Da giocare", i convocati e, se l'admin ha gia' assegnato le
     squadre, anche il campo (senza voti); niente pagella ne' voto MVP.
 22. **Area admin.** Per ora `/admin` e' un segnaposto (`app/src/admin/Admin.tsx`), caricato a parte con `React.lazy`.
+
+## Area admin (scelte fatte, tutte reversibili)
+
+23. **Nome "Cognome I." senza migrazione.** Il nome si salva gia' composto in `giocatori.nome` ("Rossi S.C."); l'admin lo inserisce in due campi
+    (`cognome`, `iniziali`) e il server lo compone; per leggerlo si divide con una regola esatta (`shared/nomi.ts`: l'ultima parola e' fatta di sole
+    iniziali col punto, il cognome non puo' contenere punti). Non ho aggiunto colonne ne' una migrazione di conversione: nessun dato reale esiste
+    ancora (il DB di produzione non e' stato creato) e le nuove colonne avrebbero duplicato `nome`. Se si preferisce la separazione nel DB basta una
+    migrazione che aggiunge `cognome` e `iniziali` e riempie da `nome`. Un vecchio DB locale col formato "A. G. Verdi" va rifatto col seed.
+    Form tollerante: "de luca" -> "De Luca", "ROSSI" -> "Rossi", iniziali "s c"/"sc"/"S.C." -> "S.C." (1-3 lettere).
+24. **Modulo senza colonna.** Il modulo di una squadra si deduce dalle posizioni salvate (coordinate delle caselle). Scelta fatta perche' la creazione
+    di una nuova migrazione mi e' stata negata dai permessi dell'ambiente; e' comunque la via piu' semplice e la pagina pubblica non cambia. Limite:
+    non si distingue "modulo scelto ma pedine non ancora salvate" (e' una bozza nel browser). Se serve una colonna `modulo_a`/`modulo_b` su `partite`:
+    migrazione 0003 e `deduciModulo` diventa un ripiego.
+25. **Cambio di squadra = posizioni azzerate** per le due squadre coinvolte (il numero cambia, quindi anche i moduli). Il modulo si sceglie al passo
+    "Campo"; finche' non e' scelto, o con meno di 5 / piu' di 8 giocatori, le pedine restano nella disposizione automatica (con avviso).
+    Il primo giocatore della squadra prende il portiere: poi lo si trascina.
+26. **Eliminare un badge chiede sempre conferma** nella pagina (piu' esplicita se e' assegnato), non solo se assegnato.
+27. **Data e ora della nuova partita**: campo vuoto (nessun valore di ripiego): senza data non si crea.
+28. **Salvataggio unico della partita**: convocati, squadre, posizioni, gol, voti e cronaca stanno in una bozza sola, con una barra "Modifiche non salvate" /
+    "Salva". "Genera squadre", "Rigenera" e "Segna come giocata" salvano prima la bozza (il backend lavora sui dati salvati).
+    Convocati modificabili solo in convocazione. Gli "avvisi" sui conti li mostra il backend dopo ogni salvataggio; in piu' l'app segnala se il risultato
+    salvato differisce da quello calcolato e offre "Aggiorna il risultato".

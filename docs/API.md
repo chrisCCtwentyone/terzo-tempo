@@ -16,8 +16,13 @@ Gli esempi vengono dai dati di prova (`scripts/seed_prova.sql`: nomi inventati).
 - **Squadre**: nel DB sono `"A"` e `"B"`; i nomi ("Casaccati", "Smollicati") arrivano dall'API in
   `squadre[].nome` e stanno in un solo punto (`functions/lib/costanti.ts`). Il frontend non li scrive.
   Il punteggio di una squadra = gol dei suoi giocatori + **autogol degli avversari**.
-- **Nomi giocatore**: `"Iniziale. Cognome"`, anche con piu' iniziali (`"A. G. Verdi"`); unici (senza distinguere maiuscole).
+- **Nomi giocatore**: `"Cognome I."`, iniziali attaccate col punto: `"Rossi M."`, `"Rossi S.C."`, `"De Luca V."` (decisione dell'utente,
+  30/09/2026). E' la forma di `nome` in TUTTE le risposte, ordinate per cognome; unici (senza distinguere maiuscole). L'admin li inserisce in
+  due campi, `cognome` e `iniziali`, e il server compone il nome (`shared/nomi.ts`, usato anche dal frontend).
 - **Posizioni pedine**: `pos_x`, `pos_y` in percentuale 0-100 del campo (`null` = non posizionata). Vanno sempre in coppia.
+  Dall'admin sono le coordinate delle CASELLE del modulo scelto (`shared/moduli.ts`: a 5 `1-2-1`, `2-2`; a 6 `2-1-2`, `3-2`; a 7 `3-2-1`, `2-3-1`,
+  `3-1-2`; a 8 `3-3-1`, `3-2-2`; portiere sempre incluso). Il modulo NON ha una colonna: si deduce dalle posizioni (`deduciModulo`), quindi la pagina
+  pubblica mostra le pedine sulle caselle senza leggere altro; senza posizioni usa la disposizione automatica.
   L'orientamento del campo (quale lato e' la porta di A) lo decide il frontend.
 - **Pagelle**: `voto_pagella` da 1 a 10 a mezzi punti, oppure `null` (nessuna pagella: si mostra "n.d.", mai un ripiego).
 - **Statistiche non calcolabili**: `null`, non `0`.
@@ -57,11 +62,11 @@ Ultima partita giocata, prossima partita, top marcatori della stagione aperta.
     "id": 11, "stagione_id": 2, "data_ora": "2026-10-01T19:00:00Z", "stato": "convocazione",
     "squadre": [ { "codice": "A", "nome": "Casaccati", "gol": null }, { "codice": "B", "nome": "Smollicati", "gol": null } ],
     "cronaca": null,
-    "giocatori": [ { "giocatore_id": 2, "nome": "L. Bianchi", "squadra": null, "pos_x": null, "pos_y": null, "gol": 0, "autogol": 0, "voto_pagella": null } ],
+    "giocatori": [ { "giocatore_id": 2, "nome": "Bianchi L.", "squadra": null, "pos_x": null, "pos_y": null, "gol": 0, "autogol": 0, "voto_pagella": null } ],
     "mvp": { "stato": "non_aperto", "voti_totali": 0, "ha_votato": false, "chiude_il": null }
   },
   "top_marcatori": [
-    { "posizione": 1, "giocatore_id": 11, "nome": "T. Bruno", "attivo": true, "valore": 8, "presenze": 7 }
+    { "posizione": 1, "giocatore_id": 11, "nome": "Bruno T.", "attivo": true, "valore": 8, "presenze": 7 }
   ]
 }
 ```
@@ -89,11 +94,11 @@ Ultima partita giocata, prossima partita, top marcatori della stagione aperta.
 {
   "stagione": { "id": 2, "nome": "Stagione 2026-27", "aperta": true },
   "minimo_partite": 0,
-  "gol":          [ { "posizione": 1, "giocatore_id": 11, "nome": "T. Bruno", "attivo": true, "valore": 8, "presenze": 7 } ],
-  "presenze":     [ { "posizione": 1, "giocatore_id": 11, "nome": "T. Bruno", "attivo": true, "valore": 7, "presenze": 7 } ],
-  "media_voto":   [ { "posizione": 1, "giocatore_id": 1,  "nome": "M. Rossi", "attivo": true, "valore": 8.33, "presenze": 7 } ],
-  "mvp":          [ { "posizione": 1, "giocatore_id": 1,  "nome": "M. Rossi", "attivo": true, "valore": 2, "presenze": 7 } ],
-  "pct_vittorie": [ { "posizione": 1, "giocatore_id": 14, "nome": "V. De Luca", "attivo": true, "valore": 100, "presenze": 5 } ]
+  "gol":          [ { "posizione": 1, "giocatore_id": 11, "nome": "Bruno T.", "attivo": true, "valore": 8, "presenze": 7 } ],
+  "presenze":     [ { "posizione": 1, "giocatore_id": 11, "nome": "Bruno T.", "attivo": true, "valore": 7, "presenze": 7 } ],
+  "media_voto":   [ { "posizione": 1, "giocatore_id": 1,  "nome": "Rossi M.", "attivo": true, "valore": 8.33, "presenze": 7 } ],
+  "mvp":          [ { "posizione": 1, "giocatore_id": 1,  "nome": "Rossi M.", "attivo": true, "valore": 2, "presenze": 7 } ],
+  "pct_vittorie": [ { "posizione": 1, "giocatore_id": 14, "nome": "De Luca V.", "attivo": true, "valore": 100, "presenze": 5 } ]
 }
 ```
 
@@ -126,11 +131,11 @@ Dettaglio: squadre, posizioni, gol, pagelle, cronaca, stato MVP. Questa chiamata
   "squadre": [ { "codice": "A", "nome": "Casaccati", "gol": 6 }, { "codice": "B", "nome": "Smollicati", "gol": 3 } ],
   "cronaca": "Cronaca di prova, breve come spesso succede.",
   "giocatori": [
-    { "giocatore_id": 1, "nome": "M. Rossi", "squadra": "A", "pos_x": 32.5, "pos_y": 21.4, "gol": 2, "autogol": 0, "voto_pagella": 8.5 }
+    { "giocatore_id": 1, "nome": "Rossi M.", "squadra": "A", "pos_x": 32.5, "pos_y": 21.4, "gol": 2, "autogol": 0, "voto_pagella": 8.5 }
   ],
   "mvp": { "stato": "assegnato", "voti_totali": 12, "ha_votato": false, "chiude_il": null,
-           "chiuso_il": "2026-09-25T19:00:00Z", "risultati": [ { "giocatore_id": 1, "nome": "M. Rossi", "voti": 5 } ],
-           "vincitore": { "giocatore_id": 1, "nome": "M. Rossi" }, "candidati": [] }
+           "chiuso_il": "2026-09-25T19:00:00Z", "risultati": [ { "giocatore_id": 1, "nome": "Rossi M.", "voti": 5 } ],
+           "vincitore": { "giocatore_id": 1, "nome": "Rossi M." }, "candidati": [] }
 }
 ```
 
@@ -185,7 +190,7 @@ Il listone, con badge e totali (su tutte le stagioni), per cognome. Di default s
 
 ```json
 { "giocatori": [
-  { "id": 2, "nome": "L. Bianchi", "attivo": true,
+  { "id": 2, "nome": "Bianchi L.", "attivo": true,
     "badge": [ { "id": 7, "nome": "Dribblomane", "descrizione": "Non rinuncia mai al dribbling", "tipo": "positivo" } ],
     "totali": { "presenze": 6, "gol": 4, "media_voto": 7.6, "mvp": 0 } }
 ] }
@@ -199,7 +204,7 @@ Scheda giocatore (funziona anche per gli archiviati). `stagione` assente = `semp
 
 ```json
 {
-  "giocatore": { "id": 1, "nome": "M. Rossi", "attivo": true,
+  "giocatore": { "id": 1, "nome": "Rossi M.", "attivo": true,
                  "badge": [ { "id": 2, "nome": "Cecchino", "descrizione": "Tiro preciso e potente", "tipo": "positivo" } ] },
   "stagione": null,
   "totali": { "presenze": 8, "gol": 8, "autogol": 0, "gol_a_partita": 1, "partite_con_voto": 7, "media_voto": 8.43,
@@ -222,18 +227,20 @@ Tutte richiedono l'accesso (sopra). Corpo JSON con `Content-Type: application/js
 
 ## Giocatori
 
-- `GET /api/admin/giocatori` -> `{ "giocatori": [ { "id": 2, "nome": "L. Bianchi", "attivo": true, "livello_segreto": 4, "badge_ids": [5, 7] } ] }`
+- `GET /api/admin/giocatori` -> `{ "giocatori": [ { "id": 2, "nome": "Bianchi L.", "cognome": "Bianchi", "iniziali": "L.", "attivo": true, "livello_segreto": 4, "badge_ids": [5, 7] } ] }`
   (tutti, archiviati compresi; **e' l'unico posto col livello**).
-- `POST /api/admin/giocatori` `{ "nome": "A. G. Verdi", "livello_segreto": 4, "attivo": true }` -> `201` con il giocatore.
+- `POST /api/admin/giocatori` `{ "cognome": "Verdi", "iniziali": "A.G.", "livello_segreto": 4, "attivo": true }` -> `201` con il giocatore (`nome: "Verdi A.G."`).
+  Form tollerante, risultato sempre canonico: `cognome` `"de  luca"` -> `"De Luca"`, `"ROSSI"` -> `"Rossi"`; `iniziali` `"s c"`, `"S.C."`, `"sc"` -> `"S.C."` (da 1 a 3 lettere).
+  Un campo non valido = `400` (`"cognome: ..."`, `"iniziali: ..."`); il vecchio campo `nome` non si accetta piu'.
   `livello_segreto` (intero 1-5) e `attivo` sono facoltativi. `409` se il nome esiste.
 - `GET /api/admin/giocatori/:id`
-- `PATCH /api/admin/giocatori/:id` `{ "nome"?, "attivo"?, "livello_segreto"? }` (`livello_segreto: null` lo toglie).
+- `PATCH /api/admin/giocatori/:id` `{ "cognome"?, "iniziali"?, "attivo"?, "livello_segreto"? }` (`livello_segreto: null` lo toglie; cambiando solo una delle due parti del nome, l'altra resta).
 - `DELETE /api/admin/giocatori/:id` solo se non ha partite ne' voti, altrimenti `409` (si archivia con `attivo: false`).
 - `PUT /api/admin/giocatori/:id/badge` `{ "badge_ids": [1, 7] }` sostituisce i badge del giocatore -> `{ "giocatore_id": 14, "badge_ids": [1, 7] }`.
 
 ## Badge
 
-- `GET /api/admin/badge` -> `{ "badge": [ { "id": 1, "nome": "Corridore", "descrizione": "Brucia tutti in velocita'", "tipo": "positivo" } ] }`
+- `GET /api/admin/badge` -> `{ "badge": [ { "id": 1, "nome": "Corridore", "descrizione": "Brucia tutti in velocità", "tipo": "positivo" } ] }`
 - `POST /api/admin/badge` `{ "nome": "Jolly", "descrizione": "Gioca ovunque", "tipo": "positivo" | "negativo" }` -> `201`. `descrizione` facoltativa.
 - `PATCH /api/admin/badge/:id` `{ "nome"?, "descrizione"? (null la toglie), "tipo"? }`
 - `DELETE /api/admin/badge/:id` lo toglie anche a chi lo ha.
@@ -284,8 +291,8 @@ il server non inventa mai un gol per far tornare i conti; si mostrano all'admin.
 
 ```json
 { "seed": 3, "squadre": [
-  { "codice": "A", "nome": "Casaccati",  "media": 0.616, "giocatori": [ { "giocatore_id": 1, "nome": "M. Rossi" } ] },
-  { "codice": "B", "nome": "Smollicati", "media": 0.616, "giocatori": [ { "giocatore_id": 2, "nome": "L. Bianchi" } ] }
+  { "codice": "A", "nome": "Casaccati",  "media": 0.616, "giocatori": [ { "giocatore_id": 1, "nome": "Rossi M." } ] },
+  { "codice": "B", "nome": "Smollicati", "media": 0.616, "giocatori": [ { "giocatore_id": 2, "nome": "Bianchi L." } ] }
 ] }
 ```
 

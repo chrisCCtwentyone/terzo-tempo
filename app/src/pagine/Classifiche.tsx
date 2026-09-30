@@ -21,8 +21,8 @@ function nota(cat: Categoria, minimo: number): string | null {
     case 'gol': return 'Non compare chi non ha segnato.'
     case 'presenze': return 'Presenza = in campo, con una squadra, in una partita giocata.'
     case 'media_voto': return minimo > 0 ? `Solo chi ha almeno ${minimo} partite con il voto in pagella.` : null
-    case 'mvp': return 'Conta solo il voto chiuso con un vincitore: una parita\' non ancora decisa non da\' MVP a nessuno.'
-    case 'pct_vittorie': return `${minimo > 0 ? `Solo chi ha almeno ${minimo} presenze. ` : ''}Vittoria = piu' gol della squadra avversaria: il pareggio non conta.`
+    case 'mvp': return 'Conta solo il voto chiuso con un vincitore: una parità non ancora decisa non dà MVP a nessuno.'
+    case 'pct_vittorie': return `${minimo > 0 ? `Solo chi ha almeno ${minimo} presenze. ` : ''}Vittoria = più gol della squadra avversaria: il pareggio non conta.`
   }
 }
 

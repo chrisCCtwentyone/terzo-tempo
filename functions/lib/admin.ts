@@ -1,5 +1,6 @@
 /** Piccoli attrezzi per le rotte /api/admin/*. */
 
+import { dividiNome } from '../../shared/nomi';
 import { CODICI_SQUADRA, SQUADRE } from './costanti';
 import { ErroreApi } from './risposta';
 
@@ -46,7 +47,7 @@ export function avvisiCoerenza(golA: number, golB: number, righe: Pick<Convocato
   for (const c of CODICI_SQUADRA) {
     const registrati = righe.reduce((s, r) => s + (r.squadra === c ? r.gol : r.squadra !== null ? r.autogol : 0), 0);
     const risultato = c === 'A' ? golA : golB;
-    if (registrati !== risultato) avvisi.push(`${SQUADRE[c]}: il risultato e' ${risultato}, i gol registrati (autogol avversari compresi) sono ${registrati}`);
+    if (registrati !== risultato) avvisi.push(`${SQUADRE[c]}: il risultato è ${risultato}, i gol registrati (autogol avversari compresi) sono ${registrati}`);
   }
   return avvisi;
 }
@@ -64,8 +65,9 @@ export const SELECT_ADMIN = `SELECT g.id, g.nome, g.attivo, g.livello_segreto,
   (SELECT json_group_array(gb.badge_id) FROM giocatore_badge gb WHERE gb.giocatore_id = g.id) AS badge_ids
   FROM giocatori g`;
 
-export const perAdmin = (g: { attivo: number; badge_ids: string | null }) => ({
+export const perAdmin = (g: { nome: string; attivo: number; badge_ids: string | null }) => ({
   ...g,
+  ...dividiNome(g.nome),
   attivo: g.attivo === 1,
   badge_ids: JSON.parse(g.badge_ids ?? '[]') as number[],
 });

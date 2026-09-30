@@ -74,7 +74,7 @@ export function generaSquadre(candidati: Candidato[], seed: number): Squadre {
   const somma = punti.reduce((s, x) => s + x, 0);
 
   const k = Math.floor(n / 2); // la squadra piccola (o meta')
-  const pari = n % 2 === 0; // n pari: la squadra e' simmetrica, il primo sta sempre nella piccola
+  const pari = n % 2 === 0; // n pari: la squadra è simmetrica, il primo sta sempre nella piccola
   const nelGruppo = new Array<number>(idBadge.length).fill(0);
   const scelti: number[] = [];
   let migliore: number[] = [];

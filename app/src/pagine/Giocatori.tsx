@@ -11,7 +11,7 @@ export function Giocatori() {
       <Intestazione kick="Terzo Tempo · Il listone" titolo="Giocatori" />
       <Attesa carico={carico} testo="Carico i giocatori…" figli={(d) =>
         d.giocatori.length === 0 ? (
-          <Carta className="vuota">Il listone e' ancora vuoto.</Carta>
+          <Carta className="vuota">Il listone è ancora vuoto.</Carta>
         ) : (
           <ul className="list" style={{ marginTop: 0 }}>
             {d.giocatori.map((g, i) => (

@@ -12,33 +12,22 @@
  * Variabili: E2E_PORT (8799), E2E_SCREENS, E2E_CHROMIUM (percorso dell'eseguibile;
  * se manca vale PLAYWRIGHT_BROWSERS_PATH). MAI `playwright install` qui.
  */
-import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
+import { chromium, type Browser, type Page } from 'playwright-core'
+import { DATI, RADICE, apri as apriContesto, assesta, avviaServer, chiudiSessione, concludi, falliti, foto as fotoIn, iso, preparaBase, sql, verifica } from './impianto.ts'
 
-const RADICE = resolve(import.meta.dirname, '..')
 const PORTA = Number(process.env.E2E_PORT ?? 8799)
 const BASE = `http://localhost:${PORTA}`
 const SCHERMATE = resolve(process.env.E2E_SCREENS ?? join(RADICE, 'e2e/schermate'))
-const DATI = mkdtempSync(join(tmpdir(), 'terzo-tempo-e2e-'))
-
-const falliti: string[] = []
-const verifica = (ok: boolean, cosa: string) => {
-  if (!ok) falliti.push(cosa)
-  console.log(`${ok ? '  ok   ' : '  FALLITO'} ${cosa}`)
-}
-
-const wrangler = (...args: string[]) => execFileSync('npx', ['wrangler', ...args], { cwd: RADICE, stdio: 'pipe' })
-const d1 = (...args: string[]) => wrangler('d1', ...args, 'DB', '--local', '--persist-to', DATI)
-const sql = (comando: string) => d1('execute', '--command', comando)
-const iso = (ms: number) => new Date(ms).toISOString().slice(0, 19) + 'Z'
+// 409 e 404 attesi dalle prove esplicite (già votato, partita inesistente); 403 = /api/admin/me senza accesso (la pagina "Area riservata").
+// Il browser li registra come errori di rete.
+const apri = (browser: Browser, tema: 'light' | 'dark', extra: { reducedMotion?: 'reduce' } = {}) => apriContesto(browser, BASE, tema, { ...extra, ignora: /status of (409|404|403)/ })
+const foto = (p: Page, nome: string) => fotoIn(p, SCHERMATE, nome)
 
 /** Partite di prova RELATIVE A ORA (il seed ha date fisse: il voto aperto dipende dall'orologio). */
 function preparaDati() {
-  d1('migrations', 'apply')
-  d1('execute', '--file', 'scripts/seed_prova.sql')
+  preparaBase()
   const ora = Date.now()
   const H = 3600_000
   const conv = (righe: string) =>
@@ -65,75 +54,6 @@ function partitaInScadenza(id: number, secondi: number) {
     `INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, mvp_stato) VALUES (${id}, 2, '${iso(Date.now() - 24 * 3600_000 + secondi * 1000)}', 'giocata', 1, 0, 'aperto');` +
       `INSERT INTO partecipazioni (partita_id, giocatore_id, squadra, gol) VALUES (${id},1,'A',1),(${id},2,'B',0);`,
   )
-}
-
-let server: ChildProcess | null = null
-async function avviaServer() {
-  server = spawn('npx', ['wrangler', 'pages', 'dev', 'app/dist', '--port', String(PORTA), '--persist-to', DATI], { cwd: RADICE, stdio: 'ignore', detached: true })
-  for (let i = 0; i < 90; i++) {
-    try {
-      if ((await fetch(`${BASE}/api/home`)).ok) return
-    } catch {
-      // non ancora pronto
-    }
-    await new Promise((r) => setTimeout(r, 1000))
-  }
-  throw new Error('wrangler pages dev non e\' partito entro 90 secondi')
-}
-const fermaServer = () => {
-  if (server?.pid) {
-    try {
-      process.kill(-server.pid, 'SIGTERM')
-    } catch {
-      // gia' chiuso
-    }
-  }
-}
-
-type Sessione = { ctx: BrowserContext; errori: string[]; csp: string[]; esterne: string[] }
-
-async function apri(browser: Browser, tema: 'light' | 'dark', extra: { reducedMotion?: 'reduce' } = {}): Promise<Sessione> {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: tema, locale: 'it-IT', timezoneId: 'Europe/Rome', ...extra })
-  const s: Sessione = { ctx, errori: [], csp: [], esterne: [] }
-  await ctx.addInitScript(() => {
-    ;(window as unknown as { __csp: string[] }).__csp = []
-    document.addEventListener('securitypolicyviolation', (e) => (window as unknown as { __csp: string[] }).__csp.push(`${e.violatedDirective} ${e.blockedURI}`))
-  })
-  ctx.on('page', (p) => {
-    p.on('console', (m) => {
-      const t = m.text()
-      // 409 e 404 attesi dalle prove esplicite ("hai gia' votato", partita inesistente): il browser li registra come errori di rete
-      if (m.type() === 'error' && !/status of (409|404)/.test(t)) s.errori.push(t)
-      if (m.type() === 'warning') s.errori.push(`avviso: ${t}`)
-    })
-    p.on('pageerror', (e) => s.errori.push(`eccezione: ${e.message}`))
-    p.on('request', (r) => {
-      if (!r.url().startsWith(BASE) && !r.url().startsWith('data:')) s.esterne.push(r.url())
-    })
-  })
-  return s
-}
-
-/** Aspetta che le animazioni finiscano, poi controlla: niente scroll orizzontale, niente contenuto rimasto a opacity 0. */
-async function assesta(p: Page, nome: string) {
-  await p.waitForLoadState('networkidle')
-  await p.waitForTimeout(900)
-  const m = await p.evaluate(() => ({
-    largo: document.documentElement.scrollWidth > window.innerWidth || document.body.scrollWidth > window.innerWidth,
-    sw: document.documentElement.scrollWidth,
-    trasparenti: [...document.querySelectorAll('main *')].filter((e) => getComputedStyle(e).opacity === '0').length,
-    carico: /Carico /.test(document.querySelector('main')?.textContent ?? ''),
-  }))
-  verifica(!m.largo, `${nome}: nessuno scroll orizzontale (larghezza ${m.sw}px)`)
-  verifica(m.trasparenti === 0, `${nome}: nessun contenuto a opacity 0`)
-  verifica(!m.carico, `${nome}: nessun caricamento rimasto appeso`)
-}
-
-/** Schermata intera; la barra in basso (fissa) va in fondo alla pagina invece che a meta' immagine. */
-async function foto(p: Page, nome: string) {
-  await p.evaluate(() => ((document.querySelector('.nav') as HTMLElement).style.position = 'static'))
-  await p.screenshot({ path: join(SCHERMATE, `${nome}.png`), fullPage: true })
-  await p.evaluate(() => ((document.querySelector('.nav') as HTMLElement).style.position = ''))
 }
 
 async function vai(p: Page, percorso: string, nome: string, tema: string) {
@@ -184,9 +104,11 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica(await p.getByText('Cronaca di prova').isVisible(), `${tema} partita 10: cronaca`)
   verifica((await p.locator('.tab2 li').count()) > 0, `${tema} partita 10: marcatori`)
   verifica((await p.locator('.pr').count()) === 12, `${tema} partita 10: pagella`)
-  // posizione salvata: la pedina di A. G. Verdi sta a pos_x 16.7 / pos_y 19.6
-  const stile = await p.locator('.ped[aria-label^="A. G. Verdi"]').getAttribute('style')
+  // posizione salvata: la pedina di Verdi A.G. sta a pos_x 16.7 / pos_y 19.6
+  const stile = await p.locator('.ped[aria-label^="Verdi A.G."]').getAttribute('style')
   verifica(/left:\s*16\.7%/.test(stile ?? '') && /top:\s*19\.6%/.test(stile ?? ''), `${tema} partita 10: pedina alla posizione salvata (${stile})`)
+  const cart = await p.locator('.pitch .cart').allInnerTexts()
+  verifica(cart.length === 12 && cart.every((t) => /^\S.* (\p{Lu}\.)+$/u.test(t)), `${tema} partita 10: sul campo il nome è "Cognome I." per intero (${cart.slice(0, 4).join(', ')}...)`)
   verifica(await p.getByText('Voto MVP').first().isVisible(), `${tema} partita 10: blocco voto`)
   verifica((await p.locator('#voto-mvp .stamp').count()) === 1, `${tema} partita 10: bollino del vincitore`)
 
@@ -213,7 +135,10 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   await vai(p, '/giocatori/999', 'errore-giocatore-inesistente', tema)
   verifica(await p.getByRole('alert').isVisible(), `${tema} giocatore inesistente: errore testuale`)
   await vai(p, '/pagina-che-non-c-e', 'pagina-non-trovata', tema)
-  await vai(p, '/admin', 'admin-segnaposto', tema)
+  await vai(p, '/admin', 'admin-area-riservata', tema)
+  verifica(await p.getByRole('heading', { name: /Area riservata agli admin/ }).isVisible(), `${tema} /admin senza accesso: "Area riservata agli admin"`)
+  verifica((await p.locator('input[type=password], input[type=email]').count()) === 0, `${tema} /admin senza accesso: nessun form di password`)
+  verifica(await p.getByRole('link', { name: 'Torna al sito' }).isVisible(), `${tema} /admin senza accesso: link "Torna al sito"`)
 
   // ---- navigazione con la barra in basso e il pulsante indietro ----
   await p.goto(BASE + '/')
@@ -256,17 +181,17 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   await vecchia.goto(BASE + '/partite/100')
   await vecchia.locator('.vota').waitFor()
 
-  await p.getByText('P. Colombo', { exact: false }).first().waitFor({ state: 'attached' })
+  await p.getByText('Colombo P.', { exact: false }).first().waitFor({ state: 'attached' })
   await p.locator('.vota label', { hasText: 'Colombo' }).click()
   await p.getByRole('group', { name: 'Conferma del voto' }).waitFor()
-  verifica((await p.getByRole('group', { name: 'Conferma del voto' }).innerText()).includes('P. Colombo'), `${tema} voto: conferma nella pagina, non confirm()`)
+  verifica((await p.getByRole('group', { name: 'Conferma del voto' }).innerText()).includes('Colombo P.'), `${tema} voto: conferma nella pagina, non confirm()`)
   await p.waitForTimeout(400)
   await foto(p, `${tema}-partita-voto-conferma`)
   await p.getByRole('button', { name: 'Conferma il voto' }).click()
   await p.getByText(/Voto registrato/).waitFor()
   await p.waitForTimeout(500)
   verifica((await p.locator('.vota').count()) === 0, `${tema} voto: dopo il voto l'elenco sparisce`)
-  verifica(await p.getByText(/Hai gia' votato da questo telefono/).isVisible(), `${tema} voto: "hai gia' votato"`)
+  verifica(await p.getByText(/Hai già votato da questo telefono/).isVisible(), `${tema} voto: "hai già votato"`)
   verifica((tema === 'light' ? /1 ha votato/ : /2 hanno votato/).test(await p.locator('#voto-mvp').innerText()), `${tema} voto: solo il numero dei votanti, mentre e' aperto`)
   verifica(!/Colombo\s*\n?\s*1/.test(await p.locator('#voto-mvp').innerText()), `${tema} voto: nessun conteggio per giocatore mentre e' aperto`)
   await foto(p, `${tema}-partita-voto-registrato`)
@@ -276,20 +201,20 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
     const r = await fetch('/api/partite/100/mvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ giocatore_id: 2 }) })
     return { stato: r.status, corpo: await r.json() }
   })
-  verifica(r2.stato === 409 && /gia' votato/.test(r2.corpo.errore), `${tema} voto: secondo voto = 409 (${r2.corpo.errore})`)
+  verifica(r2.stato === 409 && /già votato/.test(r2.corpo.errore), `${tema} voto: secondo voto = 409 (${r2.corpo.errore})`)
 
   // secondo voto dall'interfaccia (la scheda "vecchia" mostra ancora l'elenco)
   await vecchia.locator('.vota label', { hasText: 'Bianchi' }).click()
   await vecchia.getByRole('button', { name: 'Conferma il voto' }).click()
-  await vecchia.getByRole('alert').filter({ hasText: /gia' votato/i }).waitFor()
+  await vecchia.getByRole('alert').filter({ hasText: /già votato/i }).waitFor()
   await vecchia.waitForTimeout(500)
-  verifica(await vecchia.getByText(/Hai gia' votato da questo telefono/).isVisible(), `${tema} voto: la scheda vecchia mostra il 409 e "hai gia' votato"`)
+  verifica(await vecchia.getByText(/Hai già votato da questo telefono/).isVisible(), `${tema} voto: la scheda vecchia mostra il 409 e "hai già votato"`)
   await foto(vecchia, `${tema}-partita-voto-409`)
   await vecchia.close()
 
   // dopo il ricaricamento il telefono ricorda il voto (cookie del dispositivo)
   await p.reload()
-  await p.getByText(/Hai gia' votato da questo telefono/).waitFor()
+  await p.getByText(/Hai già votato da questo telefono/).waitFor()
   verifica(true, `${tema} voto: dopo il ricaricamento il voto e' ricordato`)
 
   // ---- conto alla rovescia fino alla chiusura automatica ----
@@ -318,14 +243,7 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
     return [...document.fonts].filter((f) => f.status === 'loaded').map((f) => `${f.family} ${f.weight}`)
   })
   verifica(font.some((f) => f.includes('Anton')) && font.some((f) => f.includes('Nunito Sans')), `${tema} font self-hosted caricati (${font.join(', ')})`)
-  for (const pg of s.ctx.pages()) {
-    const v = await pg.evaluate(() => (window as unknown as { __csp: string[] }).__csp)
-    s.csp.push(...v)
-  }
-  verifica(s.csp.length === 0, `${tema} zero violazioni CSP ${s.csp.join('; ')}`)
-  verifica(s.esterne.length === 0, `${tema} nessuna richiesta a siti esterni ${s.esterne.join(', ')}`)
-  verifica(s.errori.length === 0, `${tema} console pulita (zero errori e avvisi) ${s.errori.join(' | ')}`)
-  await s.ctx.close()
+  await chiudiSessione(s, tema)
 }
 
 /** Movimento ridotto: nessuna animazione attiva. */
@@ -344,7 +262,7 @@ async function main() {
   mkdirSync(SCHERMATE, { recursive: true })
   console.log(`dati di prova in ${DATI}, schermate in ${SCHERMATE}`)
   preparaDati()
-  await avviaServer()
+  await avviaServer(PORTA)
   const browser = await chromium.launch({ executablePath: process.env.E2E_CHROMIUM || undefined })
   try {
     await provaTema(browser, 'light')
@@ -360,8 +278,6 @@ main()
     falliti.push(`errore: ${e instanceof Error ? e.stack : e}`)
   })
   .finally(() => {
-    fermaServer()
     rmSync(DATI, { recursive: true, force: true })
-    console.log(falliti.length ? `\nFALLITE ${falliti.length} verifiche:\n- ${falliti.join('\n- ')}` : '\nTutte le verifiche sono passate.')
-    process.exit(falliti.length ? 1 : 0)
+    concludi()
   })

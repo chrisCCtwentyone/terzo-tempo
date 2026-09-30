@@ -7,6 +7,7 @@
 .conv{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;margin:16px 0 4px}
 .conv li{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
 .conv .cart{max-width:100%;font-size:11px}
+.cart.lungo,.conv .cart.lungo,.pitch .cart.lungo{font-size:9px}
 .conv-n{margin-top:14px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
 .fx{display:flex;gap:12px;align-items:center}
 .fx .ic{width:44px;height:44px;flex:none;display:grid;place-items:center;border:2px solid var(--edge);border-radius:5px;box-shadow:2px 2px 0 var(--sh);background:var(--k5);color:#1a1712}

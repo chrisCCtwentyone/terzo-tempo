@@ -3,6 +3,7 @@
  * nome del campo: il frontend lo mostra cosi' com'e'.
  */
 
+import { MAX_COGNOME, MAX_INIZIALI, normalizzaCognome, normalizzaIniziali } from '../../shared/nomi';
 import { FUSO_ORARIO } from './costanti';
 import { ErroreApi } from './risposta';
 
@@ -42,18 +43,26 @@ export function booleano(v: unknown, campo: string): boolean {
   return v as boolean;
 }
 
-/** "Iniziale. Cognome", anche con piu' iniziali ("A. G. Verdi"). */
-const NOME_GIOCATORE = /^(?:\p{Lu}\.\s)+\p{Lu}[\p{L}'’\- ]*$/u;
-export function nomeGiocatore(v: unknown): string {
-  const nome = testo(v, 'nome', 60).replace(/\s+/g, ' ');
-  if (!NOME_GIOCATORE.test(nome)) KO('nome', 'formato "Iniziale. Cognome" (es. "M. Rossi", "A. G. Verdi")');
-  return nome;
+/**
+ * Il giocatore si inserisce con due campi (cognome e iniziali del nome) e si salva come
+ * "Cognome I." (shared/nomi.ts). La forma e' accettata in modo tollerante ("de luca",
+ * "s c", "S.C.") ma il risultato e' sempre quella canonica.
+ */
+export function cognomeGiocatore(v: unknown): string {
+  const c = normalizzaCognome(v);
+  if (c === null) KO('cognome', `solo lettere (anche spazi, apostrofi e trattini), al massimo ${MAX_COGNOME} caratteri`);
+  return c as string;
 }
 
-/** Ordine alfabetico per COGNOME ("M. Rossi" e "A. G. Rossi" vicini; le iniziali dopo). */
+export function inizialiGiocatore(v: unknown): string {
+  const i = normalizzaIniziali(v);
+  if (i === null) KO('iniziali', `da 1 a ${MAX_INIZIALI} lettere (es. "M" o "S. C.")`);
+  return i as string;
+}
+
+/** Ordine alfabetico per COGNOME: il nome e' gia' "Cognome I.", quindi basta il confronto del testo. */
 export function perNome(a: string, b: string): number {
-  const cognome = (n: string) => n.replace(/^(?:\p{Lu}\.\s)+/u, '');
-  return cognome(a).localeCompare(cognome(b), 'it') || a.localeCompare(b, 'it');
+  return a.localeCompare(b, 'it');
 }
 
 /** Pagella: da 1 a 10, a mezzi punti. */

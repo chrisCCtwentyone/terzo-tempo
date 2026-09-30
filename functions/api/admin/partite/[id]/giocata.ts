@@ -19,7 +19,7 @@ export const onRequest = perMetodo({
     const golB = intero(c.gol_b, 'gol_b', 0, 99);
     const p = await caricaPartita(env.DB, id);
     if (!p) throw new ErroreApi(404, 'partita non trovata');
-    if (p.stato === 'giocata') throw new ErroreApi(409, 'partita gia\' giocata: per correggere il risultato usa PATCH');
+    if (p.stato === 'giocata') throw new ErroreApi(409, 'partita già giocata: per correggere il risultato usa PATCH');
     const righe = (await convocati(env.DB, id)) as unknown as Convocato[];
     controllaGiocabile(righe);
     await env.DB.prepare("UPDATE partite SET stato = 'giocata', gol_a = ?, gol_b = ? WHERE id = ?").bind(golA, golB, id).run();

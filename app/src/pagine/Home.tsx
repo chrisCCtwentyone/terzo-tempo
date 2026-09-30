@@ -1,9 +1,9 @@
-import { brevi, giornoOra, giornoAnno, numero, voto } from '../lib/formato'
+import { giornoOra, giornoAnno, numero, voto } from '../lib/formato'
 import { useBadge } from '../lib/listone'
 import type { HomeDati, Partita } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
 import { useTitolo } from '../router'
-import { Attesa, Carta, Figurina, Icona, Intestazione, Podio, PulsanteLink, Riga, Sezione, Tabellone } from '../ui'
+import { Attesa, Carta, Cart, Figurina, Icona, Intestazione, Podio, PulsanteLink, Riga, Sezione, Tabellone } from '../ui'
 import { BollinoMvp, EsitoMvp } from './Mvp'
 
 function UltimaPartita({ p }: { p: Partita }) {
@@ -23,7 +23,6 @@ function UltimaPartita({ p }: { p: Partita }) {
 }
 
 function ProssimaPartita({ p, badge }: { p: Partita; badge: ReturnType<typeof useBadge> }) {
-  const nomi = brevi(p.giocatori.map((g) => g.nome))
   return (
     <Carta att i={2}>
       <div className="when"><b>{giornoOra(p.data_ora)}</b></div>
@@ -36,7 +35,7 @@ function ProssimaPartita({ p, badge }: { p: Partita; badge: ReturnType<typeof us
             {p.giocatori.map((g, k) => (
               <li key={g.giocatore_id} className="att" style={{ '--i': k } as React.CSSProperties}>
                 <Figurina id={g.giocatore_id} nome={g.nome} z={44} badge={badge(g.giocatore_id)} />
-                <span className="cart" aria-hidden="true">{nomi[k]}</span>
+                <Cart nome={g.nome} />
               </li>
             ))}
           </ul>

@@ -2,7 +2,7 @@
 
 import type { D1Finto } from './d1_finto';
 
-export const NOMI = { R: 'M. Rossi', B: 'L. Bianchi', V: 'A. G. Verdi', N: 'P. Neri' } as const;
+export const NOMI = { R: 'Rossi M.', B: 'Bianchi L.', V: 'Verdi A.G.', N: 'Neri P.' } as const;
 
 export function giocatore(db: D1Finto, nome: string, livello: number | null = null, attivo = 1): number {
   db.esegui('INSERT INTO giocatori (nome, attivo, livello_segreto) VALUES (?, ?, ?)', nome, attivo, livello);

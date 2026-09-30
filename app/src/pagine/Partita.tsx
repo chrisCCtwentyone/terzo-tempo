@@ -1,16 +1,15 @@
-import { brevi, giornoAnno } from '../lib/formato'
+import { giornoAnno } from '../lib/formato'
 import { useBadge } from '../lib/listone'
 import type { Partita as Dati } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
 import { Link, useTitolo } from '../router'
-import { Attesa, Campo, Carta, Figurina, Icona, Intestazione, Marcatori, Pagella, Sezione, Tabellone } from '../ui'
+import { Attesa, Campo, Carta, Cart, Figurina, Icona, Intestazione, Marcatori, Pagella, Sezione, Tabellone } from '../ui'
 import { BloccoMvp, BollinoMvp, EsitoMvp } from './Mvp'
 
 function Dettaglio({ p, ricarica }: { p: Dati; ricarica: () => void }) {
   const badge = useBadge()
   const giocata = p.stato === 'giocata'
   const inCampo = p.giocatori.filter((g) => g.squadra !== null)
-  const nomi = brevi(p.giocatori.map((g) => g.nome))
   const mvpId = p.mvp.stato === 'assegnato' ? (p.mvp.vincitore?.giocatore_id ?? null) : null
   return (
     <>
@@ -37,7 +36,7 @@ function Dettaglio({ p, ricarica }: { p: Dati; ricarica: () => void }) {
                 {p.giocatori.map((g, k) => (
                   <li key={g.giocatore_id} className="att" style={{ '--i': k } as React.CSSProperties}>
                     <Figurina id={g.giocatore_id} nome={g.nome} z={44} badge={badge(g.giocatore_id)} />
-                    <span className="cart" aria-hidden="true">{nomi[k]}</span>
+                    <Cart nome={g.nome} />
                   </li>
                 ))}
               </ul>

@@ -13,13 +13,13 @@ describe('classifiche: funzioni pure', () => {
   });
 
   it('a pari valore la posizione e\' la stessa (1, 1, 3) e l\'ordine e\' per cognome', () => {
-    const t = aggrega([riga(1, 'M. Rossi', 1, 'A', 2, 7, 2, 0), riga(2, 'L. Bianchi', 1, 'A', 2, 7, 2, 0), riga(3, 'A. G. Verdi', 1, 'B', 1, 6, 2, 0)], []);
+    const t = aggrega([riga(1, 'Rossi M.', 1, 'A', 2, 7, 2, 0), riga(2, 'Bianchi L.', 1, 'A', 2, 7, 2, 0), riga(3, 'Verdi A.G.', 1, 'B', 1, 6, 2, 0)], []);
     const c = classifica(t, (x) => x.gol);
-    expect(c.map((x) => [x.nome, x.posizione])).toEqual([['L. Bianchi', 1], ['M. Rossi', 1], ['A. G. Verdi', 3]]);
+    expect(c.map((x) => [x.nome, x.posizione])).toEqual([['Bianchi L.', 1], ['Rossi M.', 1], ['Verdi A.G.', 3]]);
   });
 
   it('un valore non calcolabile non entra in classifica, non diventa zero', () => {
-    const t = aggrega([riga(1, 'M. Rossi', 1, 'A', 0, null, 1, 0)], []);
+    const t = aggrega([riga(1, 'Rossi M.', 1, 'A', 0, null, 1, 0)], []);
     expect(t[0].media_voto).toBeNull();
     expect(classifiche(t).media_voto).toEqual([]);
     expect(classifiche(t).gol).toEqual([]);
@@ -35,12 +35,12 @@ describe('classifiche: scenario calcolato a mano', () => {
     const { json } = await chiama(db, 'GET', `/api/classifiche?stagione=${s2}`);
     expect(json.stagione).toMatchObject({ nome: 'Stagione due', aperta: true });
     expect(json.minimo_partite).toBe(MIN_PARTITE_CLASSIFICA);
-    expect(json.gol.map((x: any) => [x.nome, x.valore, x.posizione])).toEqual([['M. Rossi', 4, 1], ['L. Bianchi', 2, 2], ['A. G. Verdi', 2, 2]]);
+    expect(json.gol.map((x: any) => [x.nome, x.valore, x.posizione])).toEqual([['Rossi M.', 4, 1], ['Bianchi L.', 2, 2], ['Verdi A.G.', 2, 2]]);
     expect(json.presenze.every((x: any) => x.valore === 3)).toBe(true);
-    expect(json.media_voto.map((x: any) => [x.nome, x.valore])).toEqual([['M. Rossi', 8], ['L. Bianchi', 6.67], ['A. G. Verdi', 6.5], ['P. Neri', 5.17]]);
+    expect(json.media_voto.map((x: any) => [x.nome, x.valore])).toEqual([['Rossi M.', 8], ['Bianchi L.', 6.67], ['Verdi A.G.', 6.5], ['Neri P.', 5.17]]);
     // MVP della stagione due: R (m1), B (m2); la parita' di m3 non e' ancora decisa: nessuno
-    expect(json.mvp.map((x: any) => [x.nome, x.valore])).toEqual([['L. Bianchi', 1], ['M. Rossi', 1]]);
-    expect(json.pct_vittorie.map((x: any) => [x.nome, x.valore])).toEqual([['L. Bianchi', 33.3], ['M. Rossi', 33.3], ['P. Neri', 0], ['A. G. Verdi', 0]]);
+    expect(json.mvp.map((x: any) => [x.nome, x.valore])).toEqual([['Bianchi L.', 1], ['Rossi M.', 1]]);
+    expect(json.pct_vittorie.map((x: any) => [x.nome, x.valore])).toEqual([['Bianchi L.', 33.3], ['Rossi M.', 33.3], ['Neri P.', 0], ['Verdi A.G.', 0]]);
   });
 
   it('sempre: somma le stagioni', async () => {
@@ -48,10 +48,10 @@ describe('classifiche: scenario calcolato a mano', () => {
     scenarioStatistiche(db);
     const { json } = await chiama(db, 'GET', '/api/classifiche?stagione=sempre');
     expect(json.stagione).toBeNull();
-    expect(json.gol[0]).toMatchObject({ nome: 'M. Rossi', valore: 5 });
-    expect(json.media_voto[0]).toMatchObject({ nome: 'M. Rossi', valore: 7.5 });
-    expect(json.mvp[0]).toMatchObject({ nome: 'M. Rossi', valore: 2 });
-    expect(json.pct_vittorie[0]).toMatchObject({ nome: 'M. Rossi', valore: 50 });
+    expect(json.gol[0]).toMatchObject({ nome: 'Rossi M.', valore: 5 });
+    expect(json.media_voto[0]).toMatchObject({ nome: 'Rossi M.', valore: 7.5 });
+    expect(json.mvp[0]).toMatchObject({ nome: 'Rossi M.', valore: 2 });
+    expect(json.pct_vittorie[0]).toMatchObject({ nome: 'Rossi M.', valore: 50 });
     // senza parametro = sempre
     expect((await chiama(db, 'GET', '/api/classifiche')).json).toEqual(json);
   });
@@ -79,7 +79,7 @@ describe('scheda giocatore', () => {
     const db = new D1Finto();
     const { R, N } = scenarioStatistiche(db);
     const { json } = await chiama(db, 'GET', `/api/giocatori/${R}`);
-    expect(json.giocatore).toMatchObject({ id: R, nome: 'M. Rossi', badge: [] });
+    expect(json.giocatore).toMatchObject({ id: R, nome: 'Rossi M.', badge: [] });
     expect(json.totali).toMatchObject({ presenze: 4, gol: 5, autogol: 0, media_voto: 7.5, vittorie: 2, pareggi: 2, sconfitte: 0, pct_vittorie: 50, mvp: 2, gol_a_partita: 1.25 });
     expect(json.ultime_5.map((x: any) => x.esito)).toEqual(['P', 'P', 'V', 'V']);
     expect(json.voti_per_partita.map((x: any) => x.voto)).toEqual([6, 8, 7, 9]); // cronologico

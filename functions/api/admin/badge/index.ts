@@ -21,7 +21,7 @@ export const onRequest = perMetodo({
         .prepare('INSERT INTO badge (nome, descrizione, tipo) VALUES (?, ?, ?) RETURNING id, nome, descrizione, tipo')
         .bind(testo(c.nome, 'nome', 40), testoOpz(c.descrizione, 'descrizione', 120), tipo)
         .first(),
-      'esiste gia\' un badge con questo nome',
+      'esiste già un badge con questo nome',
     );
     return json(b, 201);
   },

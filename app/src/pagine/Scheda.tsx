@@ -48,7 +48,7 @@ function Contenuto({ sempre, stagione }: { sempre: Dati; stagione: Dati | null }
         <h2 className="ban">{g.nome}</h2>
         <p className="sub">
           {t.presenze} {plurale(t.presenze, 'partita', 'partite')} nell'album · {t.mvp} {plurale(t.mvp, 'volta MVP', 'volte MVP')} in tutto
-          {!g.attivo && ' · non piu\' nel listone'}
+          {!g.attivo && ' · non più nel listone'}
         </p>
       </div>
 

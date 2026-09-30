@@ -16,7 +16,7 @@ export function useCarica<T>(chiave: string | null, carica: (signal: AbortSignal
     carica(ac.signal).then(
       (dati) => setRis({ chiave, dati }),
       (e) => {
-        if (!ac.signal.aborted) setRis({ chiave, errore: e instanceof ErroreApi ? e : new ErroreApi(0, 'Qualcosa e\' andato storto. Riprova.') })
+        if (!ac.signal.aborted) setRis({ chiave, errore: e instanceof ErroreApi ? e : new ErroreApi(0, 'Qualcosa è andato storto. Riprova.') })
       },
     )
     return () => ac.abort()

@@ -1,6 +1,6 @@
 -- Descrizioni dei badge approvate dall'utente (30/09/2026), in CLAUDE.md.
 -- Sostituiscono anche quelle provvisorie della 0001 (Saracinesca, Turista, Egoista).
-UPDATE badge SET descrizione = 'Brucia tutti in velocita''' WHERE nome = 'Corridore';
+UPDATE badge SET descrizione = 'Brucia tutti in velocità' WHERE nome = 'Corridore';
 UPDATE badge SET descrizione = 'Tiro preciso e potente' WHERE nome = 'Cecchino';
 UPDATE badge SET descrizione = 'Corre fino all''ultimo minuto' WHERE nome = 'Instancabile';
 UPDATE badge SET descrizione = 'In difesa non si passa' WHERE nome = 'Muro';

@@ -12,7 +12,8 @@ npm test            # vitest (backend su D1 finto + funzioni pure del frontend)
 npm run build       # tsc -b && vite build -> app/dist
 npm run dev:api     # Pages + D1 locale su :8788 (serve app/dist)
 npm run dev         # Vite su :5173, proxy /api -> :8788
-npm run e2e         # prova nel browser (vedi sotto)
+npm run e2e         # prova nel browser della parte pubblica (vedi sotto)
+npm run e2e:admin   # prova nel browser dell'area admin (flusso completo, touch, chiaro e scuro)
 ```
 
 ## Frontend (`app/src/`)
@@ -26,7 +27,10 @@ React + TypeScript, senza router esterno (`router.tsx`: History API, gli URL si 
 - `lib/` logica pura e dati: `tipi.ts` (forma delle risposte), `api.ts`, `useCarica.ts`, `formato.ts`, `campo.ts`
   (orientamento del campo: **A in alto, B in basso**; disposizione automatica se mancano le posizioni), `listone.ts`.
 - `stili/` `tokens.css` (colori, tema chiaro/"album di notte"), `base.css`, `ui.css`, `pagine.css`.
-- `admin/` segnaposto di `/admin`, caricato con `React.lazy` (non pesa sul bundle pubblico).
+- `admin/` l'area `/admin`, caricata con `React.lazy` (JS e CSS a parte, non pesano sul bundle pubblico): accesso (`GET /api/admin/me`,
+  401/403 = "Area riservata agli admin"), Giocatori, Badge, Stagioni, Partite (convocati, squadre col generatore, campo a moduli con
+  trascinamento, risultato, MVP, modifica/eliminazione). Logica pura in `admin/logica.ts` (testata). `shared/` = codice comune a backend e
+  frontend (nomi "Cognome I.", moduli e caselle).
 
 Font self-hosted (`@fontsource/anton`, `@fontsource/nunito-sans`, solo i pesi usati): la CSP di
 `functions/_middleware.ts` non ammette Google Fonts. Niente `<style>` o script inline; le animazioni sono in CSS e si
@@ -44,3 +48,6 @@ Esce con codice diverso da 0 se una verifica fallisce. Screenshot in `e2e/scherm
 Serve un Chromium gia' installato: `PLAYWRIGHT_BROWSERS_PATH` (o `E2E_CHROMIUM=/percorso/chrome`). `playwright-core` e'
 fissato a 1.56.1 perche' cerca la revisione di Chromium di quella versione; **non eseguire `playwright install`**.
 Porta: `E2E_PORT` (default 8799).
+
+`npm run e2e:admin` fa lo stesso per l'area admin: due server (uno con `DEV_ADMIN_BYPASS=1` passato con `--binding`, senza `.dev.vars`, uno senza per la pagina
+"Area riservata"), Chromium con touch e il trascinamento delle pedine con veri eventi touch (CDP). Screenshot in `e2e/schermate/admin/` (o `E2E_SCREENS`).

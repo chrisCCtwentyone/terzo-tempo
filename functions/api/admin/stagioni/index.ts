@@ -17,7 +17,7 @@ export const onRequest = perMetodo({
         .prepare('INSERT INTO stagioni (nome, aperta, data_inizio, data_fine) VALUES (?, ?, ?, ?) RETURNING id, nome, aperta, data_inizio, data_fine')
         .bind(testo(c.nome, 'nome', 60), aperta ? 1 : 0, dataYmd(c.data_inizio, 'data_inizio'), fine)
         .first<{ aperta: number }>(),
-      'nome gia\' usato, oppure c\'e\' gia\' una stagione aperta: chiudila prima',
+      'nome già usato, oppure c\'è già una stagione aperta: chiudila prima',
     );
     return json({ ...s!, aperta: s!.aperta === 1 }, 201);
   },

@@ -12,7 +12,8 @@
     "typecheck": "tsc -b",
     "db:migra": "wrangler d1 migrations apply DB --local",
     "db:seed": "wrangler d1 execute DB --local --file=scripts/seed_prova.sql",
-    "e2e": "npm run build && node e2e/e2e.ts"
+    "e2e": "npm run build && node e2e/e2e.ts",
+    "e2e:admin": "npm run build && node e2e/e2e_admin.ts"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

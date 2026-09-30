@@ -7,7 +7,7 @@ export const onRequest = perMetodo({
     const id = idDa(params.id);
     const r = await conVincoli(
       env.DB.prepare('UPDATE stagioni SET aperta = 1, data_fine = NULL WHERE id = ?').bind(id).run(),
-      'c\'e\' gia\' un\'altra stagione aperta: chiudila prima',
+      'c\'è già un\'altra stagione aperta: chiudila prima',
     );
     if (r.meta.changes === 0) throw new ErroreApi(404, 'stagione non trovata');
     return json({ id, aperta: true });

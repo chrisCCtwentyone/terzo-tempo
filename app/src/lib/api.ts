@@ -9,7 +9,8 @@ export class ErroreApi extends Error {
   }
 }
 
-async function chiama<T>(percorso: string, init?: RequestInit): Promise<T> {
+/** Una chiamata JSON (anche scritture, per l'area admin): errori come ErroreApi, testi gia' leggibili. */
+export async function chiama<T>(percorso: string, init?: RequestInit): Promise<T> {
   let r: Response
   try {
     r = await fetch(percorso, init)

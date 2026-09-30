@@ -9,19 +9,33 @@ const ad = (db: D1Finto, metodo: string, percorso: string, corpo?: unknown, extr
   chiama(db, metodo, percorso, { corpo, locale: true, env: ENV_BYPASS, ...extra });
 
 describe('giocatori', () => {
-  it('crea, valida il nome, rifiuta i doppioni', async () => {
+  it('crea da cognome e iniziali (form tollerante, nome canonico), rifiuta i doppioni', async () => {
     const db = new D1Finto();
-    const r = await ad(db, 'POST', '/api/admin/giocatori', { nome: 'A. G. Verdi', livello_segreto: 4 });
+    const r = await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'Verdi', iniziali: 'A.G.', livello_segreto: 4 });
     expect(r.stato).toBe(201);
-    expect(r.json).toMatchObject({ nome: 'A. G. Verdi', attivo: true, livello_segreto: 4, badge_ids: [] });
-    for (const nome of ['Verdi', 'a. verdi', 'M.Rossi', '', 'M. ', 42, undefined]) {
-      expect((await ad(db, 'POST', '/api/admin/giocatori', { nome })).stato, String(nome)).toBe(400);
+    expect(r.json).toMatchObject({ nome: 'Verdi A.G.', cognome: 'Verdi', iniziali: 'A.G.', attivo: true, livello_segreto: 4, badge_ids: [] });
+    // forme tolleranti: stesso risultato canonico
+    expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: '  de   luca ', iniziali: 'v' })).json).toMatchObject({ nome: 'De Luca V.', cognome: 'De Luca', iniziali: 'V.' });
+    expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'ROSSI', iniziali: 's c' })).json.nome).toBe('Rossi S.C.');
+    for (const [cognome, iniziali] of [['', 'M'], ['Rossi', ''], ['Rossi', 'Mario'], ['Rossi', 'M1'], ['R0ssi', 'M'], [42, 'M'], ['Rossi', undefined], [undefined, 'M'], ['Rossi.', 'M']]) {
+      expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome, iniziali })).stato, `${cognome}/${iniziali}`).toBe(400);
     }
-    expect((await ad(db, 'POST', '/api/admin/giocatori', { nome: 'A. G. VERDI' })).stato).toBe(409);
+    expect((await ad(db, 'POST', '/api/admin/giocatori', { nome: 'Rossi M.' })).stato, 'il nome intero non si accetta piu').toBe(400);
+    expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'VERDI', iniziali: 'a g' })).stato).toBe(409);
     for (const livello of [0, 6, 2.5, '3']) {
-      expect((await ad(db, 'POST', '/api/admin/giocatori', { nome: 'B. Neri', livello_segreto: livello })).stato, String(livello)).toBe(400);
+      expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'Neri', iniziali: 'B', livello_segreto: livello })).stato, String(livello)).toBe(400);
     }
-    expect((await ad(db, 'POST', '/api/admin/giocatori', { nome: 'B. Neri' })).json.livello_segreto).toBeNull();
+    expect((await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'Neri', iniziali: 'B' })).json.livello_segreto).toBeNull();
+  });
+
+  it('cambia solo il cognome o solo le iniziali: l\'altra parte resta', async () => {
+    const db = new D1Finto(true);
+    expect((await ad(db, 'PATCH', '/api/admin/giocatori/3', { iniziali: 'b' })).json).toMatchObject({ nome: 'Verdi B.', cognome: 'Verdi', iniziali: 'B.' });
+    expect((await ad(db, 'PATCH', '/api/admin/giocatori/3', { cognome: 'verdi rossi' })).json).toMatchObject({ nome: 'Verdi Rossi B.', cognome: 'Verdi Rossi' });
+    expect((await ad(db, 'PATCH', '/api/admin/giocatori/14', { iniziali: 'v z' })).json).toMatchObject({ nome: 'De Luca V.Z.', cognome: 'De Luca', iniziali: 'V.Z.' });
+    expect((await ad(db, 'PATCH', '/api/admin/giocatori/3', { cognome: '' })).stato).toBe(400);
+    expect((await ad(db, 'PATCH', '/api/admin/giocatori/1', { cognome: 'Bianchi', iniziali: 'L' })).stato, 'omonimo di Bianchi L.').toBe(409);
+    expect((await ad(db, 'PATCH', '/api/admin/giocatori/999', { cognome: 'Neri' })).stato).toBe(404);
   });
 
   it('modifica (livello compreso, e togliere il livello), archivia, cancella', async () => {
@@ -36,7 +50,7 @@ describe('giocatori', () => {
     expect((await chiama(db, 'GET', '/api/giocatori?tutti=1')).json.giocatori).toHaveLength(16);
     // con partite: non si cancella
     expect((await ad(db, 'DELETE', '/api/admin/giocatori/2')).stato).toBe(409);
-    const nuovo = (await ad(db, 'POST', '/api/admin/giocatori', { nome: 'Z. Nuovo' })).json.id;
+    const nuovo = (await ad(db, 'POST', '/api/admin/giocatori', { cognome: 'Nuovo', iniziali: 'Z' })).json.id;
     expect((await ad(db, 'DELETE', `/api/admin/giocatori/${nuovo}`)).stato).toBe(200);
     expect((await ad(db, 'DELETE', `/api/admin/giocatori/${nuovo}`)).stato).toBe(404);
   });
@@ -45,7 +59,7 @@ describe('giocatori', () => {
     const db = new D1Finto(true);
     const { json } = await ad(db, 'GET', '/api/admin/giocatori');
     expect(json.giocatori).toHaveLength(16);
-    expect(json.giocatori.find((g: any) => g.nome === 'M. Rossi')).toMatchObject({ livello_segreto: 5, badge_ids: [expect.any(Number), expect.any(Number)] });
+    expect(json.giocatori.find((g: any) => g.nome === 'Rossi M.')).toMatchObject({ livello_segreto: 5, badge_ids: [expect.any(Number), expect.any(Number)] });
   });
 });
 
@@ -61,7 +75,7 @@ describe('badge', () => {
     const { json } = await ad(new D1Finto(), 'GET', '/api/admin/badge');
     const d = Object.fromEntries(json.badge.map((b: any) => [b.nome, b.descrizione]));
     expect(Object.keys(d)).toHaveLength(12);
-    expect(d.Corridore).toBe("Brucia tutti in velocita'");
+    expect(d.Corridore).toBe('Brucia tutti in velocità');
     expect(d.Turista).toBe('Non torna in difesa');
     expect(d.Fragile).toBe('Sempre acciaccato');
     expect(Object.values(d).every((v) => typeof v === 'string' && v.length > 0)).toBe(true);

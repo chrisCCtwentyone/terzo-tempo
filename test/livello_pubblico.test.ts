@@ -73,6 +73,6 @@ describe('nessun endpoint pubblico mostra il livello', () => {
   it('controprova: l\'admin invece il livello lo vede', async () => {
     const r = await chiama(db, 'GET', '/api/admin/giocatori', { env: ENV_BYPASS, locale: true });
     expect(r.stato).toBe(200);
-    expect(r.json.giocatori.find((g: any) => g.nome === 'M. Rossi').livello_segreto).toBe(5);
+    expect(r.json.giocatori.find((g: any) => g.nome === 'Rossi M.').livello_segreto).toBe(5);
   });
 });
