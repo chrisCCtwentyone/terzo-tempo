@@ -32,6 +32,7 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
 - **Credits**: nell'app, una pagina "Info" con "creato da chrisCCtwentyone" e link
   al profilo GitHub (https://github.com/chrisCCtwentyone). Solo il nickname, MAI il
   nome vero (decisione dell'utente).
+- **Licenza**: MIT, intestata a chrisCCtwentyone (decisione dell'utente, 30/09/2026).
 - **Hosting**: Cloudflare Pages + D1 (gratuito, ~20 utenti).
 - **Accesso**: parte pubblica senza password. Sezione admin (/admin e /api/admin)
   dietro Cloudflare Access con codice via email (OTP, come turni-plus), piu'

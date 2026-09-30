@@ -310,4 +310,4 @@ In [`.claude/skills/`](.claude/skills/) ci sono due skill per Claude Code usate 
 
 ## Licenza
 
-Licenza: da definire.
+Codice rilasciato con licenza [MIT](LICENSE). Le skill in `.claude/skills/` mantengono le loro licenze (vedi tabella sopra).
