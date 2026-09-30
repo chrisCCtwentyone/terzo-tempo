@@ -30,6 +30,13 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   `scripts/pubblica.sh`, che resta l'unico modo di pubblicare e non si alleggerisce.
   Se il giro completo fallisce si corregge e si rilancia solo cio' che e' fallito,
   poi di nuovo pubblica.sh.
+- **Pubblicazione a verifiche mirate** (decisione dell'utente, 01/10/2026, "in base
+  a cosa cambia"): pubblica.sh fa SEMPRE tsc -b, build, tutti i test unitari (con le
+  guardie di sicurezza, nomi e segreti), migrazioni e il controllo del sito vero.
+  Le prove nel browser partono solo se la modifica tocca quella parte, decise dai
+  file cambiati rispetto all'ultima pubblicazione: admin -> e2e:admin; pagine
+  pubbliche -> e2e; stili/componenti comuni/backend condiviso -> tutto. Lo script
+  dice cosa ha saltato e perche'; `--completo` forza il giro intero.
 
 ## Decisioni prese (30/09/2026)
 
