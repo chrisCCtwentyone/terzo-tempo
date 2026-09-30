@@ -3,7 +3,8 @@
 /* barra propria: etichetta rossa sotto il logo + "Torna al sito"; navigazione in basso con il filo rosso */
 .adm .mark{min-height:44px}
 .adm .mark b{background:var(--red);color:#fff}
-.admbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 6px}
+.admbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin:2px 0 6px}
+.admbar>*{min-width:0}
 .admbar .etich{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--hot);border:1.5px solid var(--hot);border-radius:3px;padding:1px 7px}
 .nav.adm{border-top:5px solid var(--red)}
 .nav.adm a[aria-current="page"]{background:var(--blue);color:#fff}
@@ -15,39 +16,56 @@
 .riga-btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .riga-btn[aria-expanded="true"]{background-color:var(--card2)}
 .riga-btn.archiviato{opacity:.72}
-.riga-btn .desc{display:block;font-size:13px;font-weight:700;color:var(--mute);white-space:normal}
+.riga-btn .desc{display:block;font-size:13px;line-height:1.3;font-weight:700;color:var(--mute);white-space:normal}
 .tu.chiusa{background:var(--card2);color:var(--ink);border-color:var(--edge)}
 .list>li>.card.edit{margin-top:8px}
 .card.edit{margin-top:12px}
 .stagione .voto-testa{align-items:flex-start}
 .stagione .azioni-modulo{margin-top:10px}
-.stato-partita{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
+.stato-partita{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 10px;margin:0 0 8px}
+.stato-partita>*{min-width:0}
 
 /* moduli */
-.modulo{display:grid;gap:14px}
-.modulo fieldset{display:grid;gap:8px}
+.modulo{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.modulo fieldset{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .due{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 /* data/ora e select: un campo per riga (gli input nativi date/time hanno una larghezza minima intrinseca) */
 .due.impila{grid-template-columns:minmax(0,1fr)}
 .due>*{min-width:0}
-.fld{display:grid;gap:4px;min-width:0;max-width:100%}
+.fld{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;max-width:100%}
 .fld label,.etich-campo{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+/* Controlli nativi robusti su iOS Safari: date, time e datetime-local hanno una larghezza intrinseca PROPRIA e ignorano
+   width e min-width se non sono display:block con appearance:none. Qui: blocco largo quanto il contenitore, mai di piu'
+   (max-width, min-width:0, border-box), altezza minima costante (un date vuoto senza appearance:none collassa) e
+   testo allineato a sinistra (iOS lo centra). Il selettore nativo si apre lo stesso al tocco. */
 .fld input,.fld select,.fld textarea,.voto-sel select{
-  width:100%;min-width:0;max-width:100%;box-sizing:border-box;min-height:44px;padding:8px 10px;background:var(--card);color:var(--ink);border:2px solid var(--edge);border-radius:6px;
-  font:inherit;font-weight:700;font-size:16px;box-shadow:inset 2px 2px 0 rgba(0,0,0,.08)
+  display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;min-height:44px;margin:0;padding:8px 10px;
+  -webkit-appearance:none;appearance:none;background-color:var(--card);color:var(--ink);border:2px solid var(--edge);border-radius:6px;
+  font:inherit;font-weight:700;font-size:16px;line-height:1.3;text-align:left;box-shadow:inset 2px 2px 0 rgba(0,0,0,.08)
+}
+.fld input::-webkit-date-and-time-value{text-align:left;min-height:1.3em;margin:0;padding:0}
+.fld input::-webkit-datetime-edit{padding:0;max-width:100%}
+.fld input::-webkit-datetime-edit-fields-wrapper{padding:0}
+.fld select,.voto-sel select{text-overflow:ellipsis;padding-right:34px;background-image:var(--freccia);background-repeat:no-repeat;background-position:right 12px center;background-size:12px}
+.voto-sel select{padding:4px 22px 4px 8px;background-position:right 7px center;background-size:10px}
+/* solo Safari iOS: senza il selettore a tendina di Chrome il campo vuoto sembra un rettangolo bianco, quindi l'icona */
+@supports (-webkit-touch-callout:none){
+  .fld input[type="date"],.fld input[type="datetime-local"]{padding-right:40px;background-image:var(--cal);background-repeat:no-repeat;background-position:right 12px center;background-size:20px}
 }
 .fld textarea{min-height:110px;resize:vertical;line-height:1.4}
 .fld input[aria-invalid="true"]{border-color:var(--hot)}
 .fld .err{font-size:12px;font-weight:800;color:var(--hot)}
 .fld .note{margin-top:0}
 .anteprima{margin:-6px 0 0}
-.azioni-modulo{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:4px}
+.azioni-modulo{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:4px;min-width:0}
+.azioni-modulo>*{max-width:100%}
 .azioni-modulo .blocco{flex:1 1 100%}
 .btn.blocco{width:100%}
 .btn.yes:disabled,.btn.no:disabled{opacity:.55}
 
 /* esito delle scritture */
 .esito{display:flex;align-items:center;gap:8px;margin:10px 0 0;padding:8px 10px;border:2px solid var(--edge);border-radius:6px;background:var(--card2);font-size:14px;font-weight:800}
+.esito>span{min-width:0}
 .esito .ball{width:20px;height:20px;margin:0;filter:none;animation:rimbalza .7s ease-in-out infinite}
 .esito .ico{color:var(--green);stroke-width:3}
 .esito.errore{border-color:var(--hot);color:var(--hot);background:var(--card)}
@@ -57,9 +75,9 @@
 .conferma[role="group"]{background:var(--card2)}
 
 /* contatori + e - */
-.cnt-w{display:grid;gap:2px;justify-items:center}
+.cnt-w{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;justify-items:center;min-width:0}
 .cnt-w .cap,.voto-sel .cap{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
-.cnt{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;width:100%;max-width:172px}
+.cnt{display:grid;grid-template-columns:52px minmax(0,1fr) 52px;align-items:center;width:100%;max-width:172px}
 .cnt button{width:52px;height:52px;border:2px solid var(--edge);border-radius:8px;background:var(--yellow);color:#1a1712;box-shadow:3px 3px 0 var(--sh);font-family:Anton,Impact,sans-serif;font-size:30px;line-height:1;padding:0;transition:transform .08s,box-shadow .08s}
 .cnt.og button{background:var(--red);color:#fff}
 .cnt button:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--sh)}
@@ -69,10 +87,11 @@
 /* risultato: righe per giocatore */
 .rr{padding:10px}
 .rr-testa{display:flex;align-items:center;gap:10px}
-.rr-testa .nome{flex:1;min-width:0;font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* il nome va a capo: in questa riga si sceglie il voto di QUEL giocatore, deve leggersi per intero */
+.rr-testa .nome{flex:1;min-width:0;font-size:15px;line-height:1.25;font-weight:800}
 .voto-sel{display:grid;gap:2px;width:84px;flex:none}
 .voto-sel select{padding:4px 6px}
-.rr-cnt{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.rr-cnt{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
 .ph.intesta{margin:18px 0 8px}
 .ph.neutra{background:var(--mute)}
 .calcolo{padding:0 14px 12px;margin:0}
@@ -90,7 +109,7 @@
 .btn.sp.no{background:var(--red);color:#fff}
 
 /* livello segreto a 5 passi */
-.lvl{display:grid;grid-template-columns:repeat(5,1fr);border:2px solid var(--edge);border-radius:6px;overflow:hidden;box-shadow:3px 3px 0 var(--sh);background:var(--card)}
+.lvl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:2px solid var(--edge);border-radius:6px;overflow:hidden;box-shadow:3px 3px 0 var(--sh);background:var(--card)}
 .lvl button{min-height:48px;border:0;background:transparent;font-family:Anton,Impact,sans-serif;font-size:22px;color:var(--ink)}
 .lvl button+button{border-left:2px solid var(--edge)}
 .lvl button.pieno{background:var(--yellow);color:#1a1712}
@@ -102,7 +121,7 @@
 /* chip dei badge assegnabili: positivo = tondo verde, negativo = rombo rosso */
 .gruppo-chip .note{margin:0 0 6px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 12px 6px 10px;border:2px solid var(--edge);border-radius:6px;background:var(--card);color:var(--ink);font-size:13px;font-weight:800;box-shadow:2px 2px 0 var(--sh);transition:transform .08s,box-shadow .08s,background-color .12s}
+.chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;min-width:0;text-align:left;line-height:1.2;min-height:44px;padding:6px 12px 6px 10px;border:2px solid var(--edge);border-radius:6px;background:var(--card);color:var(--ink);font-size:13px;font-weight:800;box-shadow:2px 2px 0 var(--sh);transition:transform .08s,box-shadow .08s,background-color .12s}
 .chip::before{content:"";width:12px;height:12px;flex:none;border:2px solid var(--edge);background:var(--card);border-radius:50%}
 .chip.neg::before{border-radius:2px;transform:rotate(45deg) scale(.85)}
 .chip[aria-pressed="true"]{background:var(--green);color:#fff;transform:translate(1px,1px);box-shadow:1px 1px 0 var(--sh)}
@@ -118,7 +137,7 @@
 /* barra di salvataggio, sopra la navigazione in basso */
 .barra-salva{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:8px 10px;
   background-color:var(--card);background-image:var(--grain);border:2px solid var(--edge);border-radius:8px;box-shadow:4px 4px 0 var(--sh)}
-.stato-mod{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);display:inline-flex;align-items:center;gap:8px}
+.stato-mod{min-width:0;font-size:13px;line-height:1.2;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);display:inline-flex;align-items:center;gap:8px}
 .stato-mod.sporco{color:var(--hot)}
 .stato-mod.sporco::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--hot);border:2px solid var(--edge)}
 

@@ -15,7 +15,9 @@
 import { mkdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { chromium, type Browser, type Page } from 'playwright-core'
-import { DATI, RADICE, apri as apriContesto, assesta, avviaServer, chiudiSessione, concludi, falliti, foto as fotoIn, iso, preparaBase, sql, verifica } from './impianto.ts'
+import { schermatePubbliche } from './schermate_trabocchi.ts'
+import { provaRilevatore, provaTrabocchi } from './trabocchi.ts'
+import { DATI, RADICE, aggiungiDatiEstremi, apri as apriContesto, assesta, avviaServer, chiudiSessione, concludi, falliti, foto as fotoIn, iso, preparaBase, sql, verifica } from './impianto.ts'
 
 const PORTA = Number(process.env.E2E_PORT ?? 8799)
 const BASE = `http://localhost:${PORTA}`
@@ -28,6 +30,7 @@ const foto = (p: Page, nome: string) => fotoIn(p, SCHERMATE, nome)
 /** Partite di prova RELATIVE A ORA (il seed ha date fisse: il voto aperto dipende dall'orologio). */
 function preparaDati() {
   preparaBase()
+  aggiungiDatiEstremi()
   const ora = Date.now()
   const H = 3600_000
   const conv = (righe: string) =>
@@ -101,7 +104,7 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   }
   // un solo selettore: ogni stagione col suo nome + "Tutte le stagioni"; niente piu' "Sempre" ne' tendina a parte
   const periodo = p.getByRole('group', { name: 'Periodo' })
-  verifica((await periodo.getByRole('button').allInnerTexts()).join('|') === 'Stagione 2026-27|Stagione 2025-26|Tutte le stagioni', `${tema} classifiche: il periodo elenca ogni stagione e "Tutte le stagioni"`)
+  verifica((await periodo.getByRole('button').allInnerTexts()).join('|') === 'Stagione 2026-27|Stagione 2025-26|Stagione straordinaria dei campionati amichevoli 2024-25|Tutte le stagioni', `${tema} classifiche: il periodo elenca ogni stagione e "Tutte le stagioni"`)
   verifica((await periodo.getByRole('button', { name: 'Stagione 2026-27' }).getAttribute('aria-pressed')) === 'true', `${tema} classifiche: di default la stagione aperta`)
   verifica((await p.getByRole('button', { name: 'Sempre', exact: true }).count()) === 0 && (await p.locator('select.tendina').count()) === 0, `${tema} classifiche: nessun "Sempre" e nessuna tendina a parte`)
   await periodo.getByRole('button', { name: 'Tutte le stagioni' }).click()
@@ -189,7 +192,7 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica(await p.getByText(/Chiude|chiude/).first().isVisible(), `${tema} voto: c'e' la chiusura`)
   const conto = await p.locator('[role="timer"]').innerText()
   verifica(/\d\d:\d\d:\d\d/.test(conto), `${tema} voto: conto alla rovescia (${conto.split('\n')[0]})`)
-  verifica((await p.locator('.vota input[type=radio]').count()) === 16, `${tema} voto: tutti i giocatori votabili`)
+  verifica((await p.locator('.vota input[type=radio]').count()) === 19, `${tema} voto: tutti i giocatori votabili (16 del seed + 3 di prova con nomi lunghi)`)
   verifica((await p.locator('.ped').count()) === 6, `${tema} partita 100: sei pedine (una squadra con ripiego automatico)`)
   const invitoHome = await (async () => {
     const q = await s.ctx.newPage()
@@ -296,6 +299,10 @@ async function main() {
   await avviaServer(PORTA)
   const browser = await chromium.launch({ executablePath: process.env.E2E_CHROMIUM || undefined })
   try {
+    // prima di tutto: i voti e le partite create dalle prove qui sotto cambierebbero le schermate da misurare
+    await provaRilevatore(browser, BASE)
+    await provaTrabocchi(browser, BASE, 'pubblico', schermatePubbliche(true))
+    if (process.env.E2E_SOLO === 'trabocchi') return
     await provaTema(browser, 'light')
     await provaTema(browser, 'dark')
     await provaMovimentoRidotto(browser)

@@ -1,13 +1,19 @@
 /* Base: reset, tipografia, animazioni di ingresso, accessibilita'. */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-html{background:var(--paper)}
+html{background:var(--paper);-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   margin:0;background-color:var(--paper);background-image:var(--grain);color:var(--ink);
   font-family:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:600;font-size:15px;line-height:1.4;
   padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));
+  /* Il testo NON deve mai uscire dal suo riquadro: una parola troppo lunga va a capo dove serve, e (a differenza di
+     break-word) anywhere abbassa anche la larghezza minima del contenuto, cosi' un figlio di flex o grid senza
+     min-width:0 non si allarga oltre il genitore. Safari lo capisce dalla 15.4; word-break:break-word e' il ripiego. */
+  overflow-wrap:break-word;overflow-wrap:anywhere;word-break:break-word;
 }
-button,select{font:inherit;color:inherit}
+button,select,input,textarea{font:inherit;color:inherit}
+/* numeri e sigle a larghezza fissa: mai spezzati a meta' */
+.num,.sc,.val b,.stat b,.voto,.pos,.conto,.blk{overflow-wrap:normal;word-break:normal}
 button{cursor:pointer}
 a{color:inherit}
 h1,h2,h3,p,ol,ul,fieldset{margin:0;padding:0}

@@ -43,7 +43,7 @@ export function GiocatoriAdmin() {
                   <button type="button" className={`row semplice riga-btn${x.attivo ? '' : ' archiviato'}`} aria-expanded={apri} onClick={() => setAperto(apri ? null : x.id)}>
                     <Figurina id={x.id} nome={x.nome} z={44} decorativa badge={suoi} />
                     <span className="who">
-                      <b>{x.nome}{!x.attivo && <i className="tu" style={{ marginLeft: 6 }}>archiviato</i>}</b>
+                      <b>{x.nome}{!x.attivo && <i className="tu">archiviato</i>}</b>
                       <Badges badge={suoi} />
                     </span>
                     <span className="val"><b>{x.livello_segreto ?? '–'}</b><small>livello</small></span>

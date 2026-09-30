@@ -17,7 +17,9 @@ import { chromium, type Browser, type CDPSession, type Page } from 'playwright-c
 import { caselle } from '../shared/moduli.ts'
 import { avviaAccessSimulato } from './access_simulato.ts'
 import { visitaModuli } from './moduli.ts'
-import { DATI, RADICE, apri, assesta, avviaServer, chiudiSessione, concludi, falliti, foto, preparaBase, sql, verifica, type Sessione } from './impianto.ts'
+import { schermateAdmin } from './schermate_trabocchi.ts'
+import { provaRilevatore, provaSelettoreData, provaTrabocchi } from './trabocchi.ts'
+import { DATI, RADICE, aggiungiDatiEstremi, apri, assesta, avviaServer, chiudiSessione, concludi, falliti, foto, preparaBase, sql, verifica, type Sessione } from './impianto.ts'
 
 const PORTA = Number(process.env.E2E_PORT ?? 8798)
 const BASE = `http://localhost:${PORTA}`
@@ -730,12 +732,18 @@ async function main() {
   mkdirSync(join(SCHERMATE, 'moduli'), { recursive: true })
   console.log(`dati di prova in ${DATI}, schermate in ${SCHERMATE}`)
   preparaBase()
+  aggiungiDatiEstremi()
   // il bypass si apre solo senza Access configurato: si spengono i valori di wrangler.toml (come fa .dev.vars.example)
   await avviaServer(PORTA, ['--binding', 'DEV_ADMIN_BYPASS=1', '--binding', 'ACCESS_TEAM_DOMAIN=DA_COMPILARE', '--binding', 'ACCESS_AUD=DA_COMPILARE'])
   await avviaServer(PORTA + 1)
   const browser = await chromium.launch({ executablePath: process.env.E2E_CHROMIUM || undefined })
   const pubblico: string[] = []
   try {
+    // prima di tutto: le prove qui sotto creano, modificano ed eliminano dati
+    await provaRilevatore(browser, BASE)
+    await provaSelettoreData(browser, BASE)
+    await provaTrabocchi(browser, BASE, 'admin', schermateAdmin(BASE_SENZA), { touch: true })
+    if (process.env.E2E_SOLO === 'trabocchi') return
     await provaLayoutModuli(browser, 'light')
     await provaLayoutModuli(browser, 'dark')
     await provaAdmin(browser, 'light', pubblico)
