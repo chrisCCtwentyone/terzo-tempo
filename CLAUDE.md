@@ -109,6 +109,10 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   colori pieni da stampa, ombre stampate, giocatori come figurine con iniziali,
   font Anton + Nunito Sans, tema chiaro e "album di notte". Riferimento:
   `docs/anteprima-figurine.html` (prototipo approvato).
+- **Logo** (30/09/2026): scelto "A - Figurina" fra tre proposte: figurina inclinata
+  con bordo inchiostro e ombra stampata, pallone su finestra blu, fascia rossa,
+  sfondo giallo pieno. Sorgente: `docs/logo/logo-figurina.svg`. E' l'icona del sito,
+  della schermata Home di iPhone (web app) e il marchio nell'intestazione.
 - **Riferimento funzionale**: https://trntmarkt.altervista.org/ (lo stile grafico NON
   piace all'utente). Non ancora analizzato: il dominio era bloccato dalla rete.
 
