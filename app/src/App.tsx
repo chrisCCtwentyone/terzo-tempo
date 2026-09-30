@@ -19,6 +19,7 @@ const SEZIONI: { chiave: string; verso: string; nome: string; icona: IdIcona }[]
   { chiave: 'classifiche', verso: '/classifiche', nome: 'Classifiche', icona: 'i-rank' },
   { chiave: 'partite', verso: '/partite', nome: 'Partite', icona: 'i-pitch' },
   { chiave: 'giocatori', verso: '/giocatori', nome: 'Giocatori', icona: 'i-user' },
+  { chiave: 'info', verso: '/info', nome: 'Info', icona: 'i-info' },
 ]
 
 /** Quale pagina per questi segmenti dell'URL; sconosciuto = "non trovata". */
@@ -81,11 +82,17 @@ export function App() {
             <span className="txt"><b>Area admin</b><small>Solo per gli admin · accesso con codice via email</small></span>
             <Icona id="i-arrow" />
           </a>
-          <Link verso="/info" className="btn piccolo">Info</Link>
+          <p className="credits">
+            <span className="nw">Terzo Tempo · sviluppato da</span>{' '}
+            <span className="nw">
+              <a href="https://github.com/chrisCCtwentyone" target="_blank" rel="noopener noreferrer">chrisCCtwentyone</a>
+              {' '}· <a href="https://github.com/chrisCCtwentyone/terzo-tempo" target="_blank" rel="noopener noreferrer">codice su GitHub</a>
+            </span>
+          </p>
         </footer>
       </div>
-      <nav className="nav" aria-label="Schermate">
-        <div className="nav-in">
+      <nav className="nav pub" aria-label="Schermate">
+        <div className="nav-in cinque">
           {SEZIONI.map((s) => (
             <Link key={s.chiave} verso={s.verso} aria-current={attiva === s.chiave ? 'page' : undefined}>
               <Icona id={s.icona} />{s.nome}

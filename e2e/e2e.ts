@@ -59,16 +59,38 @@ function partitaInScadenza(id: number, secondi: number) {
   )
 }
 
+const PROFILO = 'https://github.com/chrisCCtwentyone'
+const CODICE = 'https://github.com/chrisCCtwentyone/terzo-tempo'
+
+/** La riga dei credits in fondo alle pagine pubbliche: testo, i due link giusti (nuova scheda, noopener), area di tocco, leggibile. */
+async function verificaCredits(p: Page, etichetta: string) {
+  const riga = p.locator('footer.pie .credits')
+  verifica((await riga.count()) === 1 && (await riga.innerText()).replace(/\s+/g, ' ').trim() === 'Terzo Tempo · sviluppato da chrisCCtwentyone · codice su GitHub', `${etichetta}: riga dei credits con il testo giusto`)
+  const link = riga.locator('a')
+  const href = await link.evaluateAll((a) => a.map((x) => x.getAttribute('href')))
+  verifica(href.length === 2 && href[0] === PROFILO && href[1] === CODICE, `${etichetta}: credits, link al profilo e al codice (${href.join(', ')})`)
+  const attr = await link.evaluateAll((a) => a.map((x) => x.getAttribute('target') === '_blank' && /noopener/.test(x.getAttribute('rel') ?? '')))
+  verifica(attr.every(Boolean), `${etichetta}: credits, link con target _blank e rel noopener`)
+  const alti = await link.evaluateAll((a) => a.map((x) => x.getBoundingClientRect().height))
+  verifica(alti.every((h) => h >= 32), `${etichetta}: credits, area di tocco dei link (${alti.map(Math.round).join(', ')} px)`)
+  const s = await riga.evaluate((e) => {
+    const c = getComputedStyle(e)
+    return { allineato: c.textAlign, px: parseFloat(c.fontSize), op: parseFloat(c.opacity), filo: parseFloat(c.borderTopWidth) }
+  })
+  verifica(s.allineato === 'center' && s.px <= 14 && s.op < 1 && s.filo > 0, `${etichetta}: credits centrati, piccoli, opachi, col filo sopra`)
+}
+
 async function vai(p: Page, percorso: string, nome: string, tema: string) {
   await p.goto(BASE + percorso)
   await p.locator('main h1').waitFor()
   await assesta(p, `${tema} ${nome}`)
   if (!percorso.startsWith('/admin')) {
-    // il piede di ogni pagina pubblica: pulsante "Area admin" (verso /admin, area di tocco >= 44 px) e chip "Info"
+    // il piede di ogni pagina pubblica: pulsante "Area admin" (verso /admin, area di tocco >= 44 px), niente "Info", riga dei credits
     const cta = p.locator('footer.pie a.admin-cta')
     const riquadro = await cta.boundingBox()
     verifica((await cta.count()) === 1 && (await cta.getAttribute('href')) === '/admin' && (riquadro?.height ?? 0) >= 44, `${tema} ${nome}: pulsante "Area admin" nel piede, verso /admin`)
-    verifica((await p.locator('footer.pie a[href="/info"]').count()) === 1, `${tema} ${nome}: link "Info" nel piede`)
+    verifica((await p.locator('footer.pie a[href="/info"]').count()) === 0 && (await p.locator('footer.pie').getByRole('link', { name: 'Info' }).count()) === 0, `${tema} ${nome}: niente pulsante "Info" nel piede`)
+    await verificaCredits(p, `${tema} ${nome}`)
   }
   await foto(p, `${tema}-${nome}`)
 }
@@ -157,18 +179,28 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   await vai(p, '/giocatori/999', 'errore-giocatore-inesistente', tema)
   verifica(await p.getByRole('alert').isVisible(), `${tema} giocatore inesistente: errore testuale`)
   await vai(p, '/pagina-che-non-c-e', 'pagina-non-trovata', tema)
-  // ---- Info: link nel piede e credits (solo il nickname, link al profilo e al codice) ----
+  // ---- Info: quinta voce della barra in basso, pagina con i dati del progetto ----
   await p.goto(BASE + '/')
   await p.locator('main h1').waitFor()
-  verifica(await p.locator('footer.pie').getByRole('link', { name: 'Info' }).isVisible(), `${tema} piede: link "Info"`)
-  await p.locator('footer.pie').getByRole('link', { name: 'Info' }).click()
+  verifica((await p.locator('footer.pie').getByRole('link', { name: 'Info' }).count()) === 0, `${tema} piede: niente link "Info"`)
+  await p.locator('nav.nav').getByRole('link', { name: 'Info' }).click()
   await p.waitForURL('**/info')
+  verifica((await p.locator('nav.nav a[aria-current="page"]').textContent())?.trim() === 'Info', `${tema} info: voce Info attiva nella barra`)
   await vai(p, '/info', 'info', tema)
   verifica(await p.getByText('chrisCCtwentyone').first().isVisible(), `${tema} info: il nickname`)
-  const profilo = p.locator('a[href="https://github.com/chrisCCtwentyone"]')
-  const codice = p.locator('a[href="https://github.com/chrisCCtwentyone/terzo-tempo"]')
-  verifica((await profilo.count()) === 1 && (await codice.count()) === 1, `${tema} info: link al profilo e al codice sorgente`)
-  verifica((await profilo.getAttribute('target')) === '_blank' && /noopener/.test((await profilo.getAttribute('rel')) ?? ''), `${tema} info: link esterni con target _blank e rel noopener`)
+  const profilo = p.locator('main a[href="https://github.com/chrisCCtwentyone"]')
+  const codice = p.locator('main a[href="https://github.com/chrisCCtwentyone/terzo-tempo"]')
+  const licenza = p.locator('main a[href="https://github.com/chrisCCtwentyone/terzo-tempo/blob/main/LICENSE"]')
+  verifica((await profilo.count()) === 1 && (await codice.count()) === 1 && (await licenza.count()) === 1, `${tema} info: link al profilo, al codice sorgente e alla licenza`)
+  for (const [nome, l] of [['profilo', profilo], ['codice', codice], ['licenza', licenza]] as const) {
+    verifica((await l.getAttribute('target')) === '_blank' && /noopener/.test((await l.getAttribute('rel')) ?? ''), `${tema} info: link ${nome} con target _blank e rel noopener`)
+  }
+  const corpo = (await p.locator('main').innerText()).replace(/\s+/g, ' ')
+  for (const t of ['MIT', 'Cloudflare Pages', 'Pages Functions', 'D1', 'React + Vite', 'TypeScript', 'Cloudflare Access', 'anonimo', 'non è pubblico']) {
+    verifica(corpo.includes(t), `${tema} info: "${t}"`)
+  }
+  const logoInfo = await p.locator('main svg.logo.grande').evaluate((e) => ({ w: parseFloat(getComputedStyle(e).width), uso: e.querySelector('use')?.getAttribute('href') }))
+  verifica(logoInfo.uso === '#logo' && logoInfo.w > 60, `${tema} info: logo Figurina grande (${logoInfo.w} px)`)
   await vai(p, '/admin', 'admin-area-riservata', tema)
   verifica(await p.getByRole('heading', { name: /Area riservata agli admin/ }).isVisible(), `${tema} /admin senza accesso: "Area riservata agli admin"`)
   verifica((await p.locator('input[type=password], input[type=email]').count()) === 0, `${tema} /admin senza accesso: nessun form di password`)
@@ -176,7 +208,11 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
 
   // ---- navigazione con la barra in basso e il pulsante indietro ----
   await p.goto(BASE + '/')
-  for (const [nome, url] of [['Classifiche', '/classifiche'], ['Partite', '/partite'], ['Giocatori', '/giocatori'], ['Home', '/']] as const) {
+  await p.locator('main h1').waitFor()
+  const voci = await p.locator('nav.nav a').evaluateAll((a) => a.map((x) => ({ t: x.textContent?.trim(), r: x.getBoundingClientRect() })))
+  verifica(voci.map((v) => v.t).join(',') === 'Home,Classifiche,Partite,Giocatori,Info', `${tema} barra: cinque voci, Info a destra di Giocatori (${voci.map((v) => v.t).join(',')})`)
+  verifica(voci.every((v) => v.r.width >= 44 && v.r.height >= 44), `${tema} barra: aree di tocco >= 44 px`)
+  for (const [nome, url] of [['Classifiche', '/classifiche'], ['Partite', '/partite'], ['Giocatori', '/giocatori'], ['Info', '/info'], ['Home', '/']] as const) {
     await p.locator('nav.nav').getByRole('link', { name: nome }).click()
     await p.waitForURL((u) => u.pathname === url)
     verifica((await p.locator(`nav.nav a[aria-current="page"]`).textContent())?.trim() === nome, `${tema} navigazione: ${nome} attiva`)

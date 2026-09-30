@@ -112,6 +112,7 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   const voci = (await nav.getByRole('link').allTextContents()).map((t) => t.trim()).join(',')
   verifica(voci === 'Partite,Giocatori,Badge,Stagioni', `${tema} navigazione admin propria: Partite, Giocatori, Badge, Stagioni (${voci})`)
   verifica((await p.locator('nav.nav:not(.adm)').count()) === 0, `${tema} nessuna navigazione pubblica nell'area admin`)
+  verifica((await p.locator('footer.pie, .credits').count()) === 0, `${tema} nessun piede né credits nell'area admin`)
   verifica(await p.getByRole('link', { name: 'Torna al sito' }).isVisible(), `${tema} c'è il link "Torna al sito"`)
   verifica((await p.locator('.admbar .etich').textContent()) === 'Area admin', `${tema} barra admin distinta`)
 
