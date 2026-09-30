@@ -45,7 +45,9 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   - in caso di parita' decide l'admin fra i pari merito;
   - se si chiude senza nessun voto, l'MVP lo sceglie l'admin (solo in quel caso).
 - **Stagioni**: aperte e chiuse a mano dall'admin; classifiche per stagione e storico.
-- **Giocatori**: identificati come "Iniziale. Cognome" (anche due iniziali, es.
+- **Giocatori**: nome mostrato OVUNQUE nell'app (classifiche, listone, campo,
+  pagelle) come **"Cognome I."**, iniziali attaccate col punto: "Rossi M.",
+  "Rossi S.C.", "De Luca V." (decisione dell'utente, 30/09/2026; prima era
   "S. C. Rossi"). Niente foto per ora; in futuro forse foto o avatar stile
   fantacalcio. Lista sempre ampliabile. I giocatori veri li fornisce l'utente DOPO
   le prove con giocatori generici.
@@ -53,8 +55,12 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   (decisione dell'utente, 30/09/2026; potra' cambiare: tenerlo in un solo punto).
 - **Convocati**: la lista la inserisce l'admin (il gruppo si organizza su
   WhatsApp, nessuno userebbe un "ci sono" nell'app). Niente risposte dei giocatori.
-- **Formazioni sul campo** stile "leghe Fantagazzetta": le pedine le TRASCINA
-  l'admin col dito; la posizione si salva e si mostra a tutti.
+- **Formazioni sul campo** stile "leghe Fantagazzetta": l'admin sceglie il MODULO
+  per ogni partita e TRASCINA i giocatori sulle caselle del modulo (posizioni
+  ANCORATE, non libere). Portiere sempre incluso. Moduli disponibili
+  (30/09/2026): a 5 "1-2-1" e "2-2"; a 6 "2-1-2" e "3-2"; a 7 "3-2-1", "2-3-1",
+  "3-1-2"; a 8 "3-3-1" e "3-2-2". Squadre in numero diverso "non capitano mai"
+  (utente): se succede, ogni squadra usa i moduli del proprio numero.
 - **Generatore di squadre**: parte dai convocati, bilancia un mix di media voto,
   percentuale vittorie, gol e **livello segreto** dato dall'admin; cerca anche di
   distribuire i badge fra le due squadre. Poi l'admin ritocca a mano.
