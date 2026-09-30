@@ -208,9 +208,15 @@ a.row:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--sh)}
 /* navigazione in basso */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background-color:var(--card);background-image:var(--grain);border-top:2px solid var(--edge);padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
 .nav-in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+/* barra pubblica a cinque voci: anche a 320 px ogni voce resta larga almeno 44 px e l'etichetta intera */
+.nav-in.cinque{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+.nav.pub{padding-left:max(2px,env(safe-area-inset-left,0px));padding-right:max(2px,env(safe-area-inset-right,0px))}
+/* niente bordo trasparente (toglie 4 px a ogni voce): l'evidenziazione usa un'ombra interna */
+.nav-in.cinque a{padding:5px 0;border:0;font-size:clamp(8px,2.6vw,11px);letter-spacing:0}
+.nav-in.cinque a[aria-current="page"]{box-shadow:inset 0 0 0 2px var(--edge),2px 2px 0 var(--sh)}
 .nav a{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;min-height:52px;padding:5px 2px;background:transparent;border:2px solid transparent;border-radius:6px;color:var(--mute);text-align:center;line-height:1.15;font-size:clamp(9.5px,2.9vw,11px);font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;transition:background-color .12s}
 .nav a[aria-current="page"]{background:var(--yellow);color:#1a1712;border-color:var(--edge);box-shadow:2px 2px 0 var(--sh)}
-/* piede di ogni pagina pubblica: pulsante "Area admin" (carta gialla stampata) e, sotto, il chip "Info" */
+/* piede di ogni pagina pubblica: pulsante "Area admin" (carta gialla stampata) e, sotto, la riga dei credits (come Toto-Amici) */
 .pie{margin:36px 0 0;display:grid;justify-items:center;gap:16px}
 .admin-cta{
   display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:12px 16px;
@@ -223,5 +229,16 @@ a.row:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--sh)}
 .admin-cta .txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .admin-cta b{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:22px;letter-spacing:.06em;text-transform:uppercase;line-height:1}
 .admin-cta small{font-size:12px;font-weight:700;line-height:1.25}
-.btn.piccolo{min-height:44px;padding:6px 22px;font-size:13px;box-shadow:2px 2px 0 var(--sh)}
-.coda{margin:24px 0 0;text-align:center;font-size:12px;font-weight:700;color:var(--mute)}
+.pie .credits{width:100%;margin:0;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--ink) 25%,transparent);text-align:center;font-size:13px;line-height:1.9;opacity:.7}
+.pie .credits .nw{white-space:nowrap}
+.pie .credits a{padding:9px 2px;color:inherit;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+/* pagina Info */
+.logo.grande{flex:none;display:block;width:84px;height:84px;border:3px solid var(--edge);border-radius:8px;box-shadow:4px 4px 0 var(--sh);transform:rotate(-3deg)}
+.info-hero{display:flex;align-items:center;gap:18px}
+.info-hero>div{flex:1;min-width:0;display:grid;gap:6px}
+.info-nome{font-family:Anton,Impact,sans-serif;font-size:26px;letter-spacing:.06em;text-transform:uppercase;line-height:1.05}
+.info-nota{margin-top:14px;line-height:1.9;color:var(--mute);font-weight:700}
+.info-nota a{padding:8px 2px;color:inherit;font-weight:800;text-underline-offset:3px}
+.info-stack{list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.info-stack li{padding:6px 12px;background:var(--yellow);color:#1a1712;border:2px solid var(--edge);border-radius:6px;box-shadow:2px 2px 0 var(--sh);font-size:13px;font-weight:800;line-height:1.2}
+@media (max-width:359px){.info-hero{flex-direction:column;align-items:flex-start}}
