@@ -65,3 +65,35 @@ Chi risponde puo' cambiare la scelta nel punto indicato.
   (sempre chiuso). Lo scarto rispetto a turni-plus: la configurazione mancante e' 403 (come chiesto), non 503.
 - **npm**: `.npmrc` con `legacy-peer-deps=true` perche' `npm install` con l'albero completo (Vite 8 + plugin React 6 +
   wrangler) va in crash dentro npm 10.9 ("Cannot read properties of null (reading 'edgesOut')"); con il flag e' pulito.
+
+## Frontend pubblico (scelte fatte, tutte reversibili)
+
+Scelte della parte pubblica dove il requisito non diceva tutto. Nessuna e' stata indovinata sui dati: sono solo scelte di
+presentazione. Da confermare con l'utente.
+
+12. **Orientamento del campo.** `docs/API.md` lascia la scelta al frontend: **la squadra A gioca in alto, la B in basso**
+    (`LATO_ALTO` in `app/src/lib/campo.ts`), coerente con le posizioni del seed. Il prototipo aveva A in basso. L'admin
+    (drag & drop) deve usare lo stesso verso, altrimenti le pedine si vedono a specchio.
+13. **Disposizione automatica delle pedine.** Vale per l'INTERA squadra se anche una sola pedina non ha la posizione
+    (mescolare posizioni salvate e automatiche darebbe pedine sovrapposte). Righe da 4 al massimo, senza ruoli
+    (il prototipo metteva il portiere per primo: non sappiamo chi lo e').
+14. **Convocati nella home.** Figurine con cognome (nome per intero se due hanno lo stesso cognome). Il prototipo mostrava
+    anche il luogo del campo: l'API non lo ha, quindi non c'e'.
+15. **"Statistica curiosa".** Una sola, ricavata dai dati gia' in home: il miglior voto in pagella dell'ultima partita
+    (a pari merito, tutti). Sparisce se non ci sono pagelle. Altre (serie positive, compagno portafortuna...) non sono
+    ricavabili dalle API attuali senza molte chiamate: non ci sono.
+16. **Classifiche: selettore.** Barra a due voci (stagione aperta / Sempre) piu' una tendina "Altre stagioni" per le chiuse.
+    Il periodo e la categoria stanno nell'URL (`/classifiche?stagione=2&cat=mvp`), cosi' si condividono.
+17. **Badge sulle figurine.** Segni sul bordo (tondo verde = positivo, rombo rosso = negativo, al massimo 3); le etichette
+    con il nome stanno nel listone e nella scheda. Sulle figurine delle partite i badge arrivano dal listone
+    (una richiesta condivisa, riusata per un minuto): se non arriva, le figurine restano senza badge.
+18. **Listone.** Oltre a figurina, nome e badge ho aggiunto le presenze totali a destra (dato gia' nell'API).
+19. **Scheda giocatore.** Numeri della stagione aperta con "sempre" sotto; senza stagione aperta solo quelli di sempre.
+    Il grafico mostra le ultime 10 pagelle (la riga tratteggiata e' la media di sempre). Gli "ultimi 5" mostrano l'esito e
+    la data, non il punteggio (l'API non lo da'). Niente "numero di figurina" ne' statistiche divertenti del prototipo.
+20. **Voto MVP.** Il conto alla rovescia usa l'orologio del telefono: se e' sbagliato il conto e' sbagliato, ma a tempo
+    scaduto la pagina rilegge dal server (ogni 5 secondi finche' non risulta chiusa). Il blocco sta in fondo alla partita;
+    dalla home "Vota ora" porta li'. Mentre e' aperto: solo il numero dei votanti, mai i conteggi (li' ce li mette solo il server).
+21. **Partita in convocazione.** Mostra il tabellone con "–" e "Da giocare", i convocati e, se l'admin ha gia' assegnato le
+    squadre, anche il campo (senza voti); niente pagella ne' voto MVP.
+22. **Area admin.** Per ora `/admin` e' un segnaposto (`app/src/admin/Admin.tsx`), caricato a parte con `React.lazy`.

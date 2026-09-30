@@ -11,9 +11,12 @@
     "test": "vitest run",
     "typecheck": "tsc -b",
     "db:migra": "wrangler d1 migrations apply DB --local",
-    "db:seed": "wrangler d1 execute DB --local --file=scripts/seed_prova.sql"
+    "db:seed": "wrangler d1 execute DB --local --file=scripts/seed_prova.sql",
+    "e2e": "npm run build && node e2e/e2e.ts"
   },
   "dependencies": {
+    "@fontsource/anton": "^5.3.0",
+    "@fontsource/nunito-sans": "^5.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
@@ -23,6 +26,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "playwright-core": "1.56.1",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^4.1.0",

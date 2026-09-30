@@ -7,5 +7,6 @@ export default defineConfig({
   root: 'app',
   plugins: [react()],
   server: { port: 5173, proxy: { '/api': 'http://localhost:8788' } },
-  build: { outDir: 'dist', emptyOutDir: true },
+  // assetsInlineLimit 0: niente font/immagini come data: URI nel CSS, la CSP (functions/_middleware.ts) non li ammette per i font.
+  build: { outDir: 'dist', emptyOutDir: true, assetsInlineLimit: 0 },
 })

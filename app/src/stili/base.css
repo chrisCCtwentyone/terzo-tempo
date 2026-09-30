@@ -1,0 +1,46 @@
+/* Base: reset, tipografia, animazioni di ingresso, accessibilita'. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{background:var(--paper)}
+body{
+  margin:0;background-color:var(--paper);background-image:var(--grain);color:var(--ink);
+  font-family:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:600;font-size:15px;line-height:1.4;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));
+}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+h1,h2,h3,p,ol,ul,fieldset{margin:0;padding:0}
+fieldset{border:0;min-width:0}
+ol,ul{list-style:none}
+.wrap{max-width:480px;margin:0 auto;padding:0 16px}
+.num,.sc,.val b,.stat b,.voto,.pos{font-variant-numeric:tabular-nums}
+.disp{font-family:Anton,Impact,"Arial Narrow",sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:.03em}
+
+/* solo per gli screen reader */
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.salta{position:absolute;left:8px;top:-60px;z-index:50;background:var(--yellow);color:#1a1712;border:2px solid var(--edge);border-radius:4px;padding:8px 12px;font-weight:800}
+.salta:focus{top:8px}
+
+/* focus sempre visibile, anche sulla tastiera */
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+main:focus{outline:none}
+
+/* schermate: entrano scorrendo (destra = avanti, sinistra = indietro) */
+@keyframes inR{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes inL{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+.er{animation:inR .22s ease-out backwards}
+.el{animation:inL .22s ease-out backwards}
+
+/* la figurina si attacca */
+@keyframes attacca{0%{transform:scale(1.24) rotate(-5deg);opacity:0}70%{transform:scale(.97) rotate(1deg);opacity:1}100%{transform:none;opacity:1}}
+.att{animation:attacca .26s cubic-bezier(.2,.8,.3,1) backwards;animation-delay:calc(min(var(--i,0),8) * 32ms)}
+/* il bollino timbra */
+@keyframes timbra{0%{transform:rotate(-12deg) scale(2.5);opacity:0}55%{transform:rotate(-12deg) scale(.9);opacity:1}100%{transform:rotate(-12deg) scale(1);opacity:1}}
+@keyframes disegna{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes rimbalza{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* tutte le animazioni e le transizioni si spengono */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
