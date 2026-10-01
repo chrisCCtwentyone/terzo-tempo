@@ -78,7 +78,7 @@ flowchart TD
     L --> J
 ```
 
-Il **campo** è facoltativo e si sceglie da una tendina (o si toglie) in creazione e in modifica della partita. I campi si aggiungono una volta sola, dalla pagina Campi dell'admin, partendo dal link di Google Maps:
+Il **campo** è facoltativo e si sceglie da una tendina (o si toglie) in creazione e in modifica della partita. I campi si aggiungono una volta sola, dalla pagina Campi dell'admin oppure con "+ Nuovo campo" direttamente dentro la partita (stesso modulo, sulla stessa pagina: la bozza della partita non si perde e il campo nuovo risulta già scelto), partendo dal link di Google Maps:
 
 ```mermaid
 flowchart TD

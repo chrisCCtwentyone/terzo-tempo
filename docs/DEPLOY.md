@@ -25,15 +25,57 @@ non si toccano.
 ## Come si pubblica
 
 ```bash
-./scripts/pubblica.sh
+./scripts/pubblica.sh              # pubblica, con le prove nel browser decise dai file cambiati
+./scripts/pubblica.sh --completo   # forza TUTTE le prove nel browser
+./scripts/pubblica.sh --solo-piano # stampa il piano e si ferma: non esegue niente
+./scripts/pubblica.sh --solo-piano --simula "app/src/admin/Campi.tsx docs/DEPLOY.md"   # piano su un elenco di file inventato
 ```
 
-Si ferma al primo errore (`set -euo pipefail`, nessuna pipe sui comandi che devono poter fallire) e fa,
-in ordine: `tsc -b`, `vitest run` (compresa la guardia dei nomi reali), `vite build`, migrazioni D1
-`--remote`, `wrangler pages deploy app/dist --branch main`, poi `scripts/controlla_produzione.sh`.
-Esce con 0 solo se e' tutto verde. La build viene PRIMA dei test perche' `test/sicurezza_bundle.test.ts`
-controlla che nel bundle non ci sia nessun segreto. Servono nell'ambiente `CLOUDFLARE_API_TOKEN` e
-`CLOUDFLARE_ACCOUNT_ID` (vedi "Una sessione nuova").
+Si ferma al primo errore (`set -euo pipefail`, nessuna pipe sui comandi che devono poter fallire).
+**Sempre**, in quest'ordine e senza alleggerire: `tsc -b`, `vite build`, `vitest run` (TUTTI i test unitari, compresi
+le guardie su sicurezza, nomi reali e segreti), migrazioni D1 `--remote`, `wrangler pages deploy app/dist --branch main`,
+poi `scripts/controlla_produzione.sh`. Esce con 0 solo se e' tutto verde. La build viene PRIMA dei test perche'
+`test/sicurezza_bundle.test.ts` controlla che nel bundle non ci sia nessun segreto. Servono nell'ambiente
+`CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` (vedi "Una sessione nuova"); `--solo-piano` non li richiede.
+
+### Verifiche mirate: quali prove nel browser
+
+Le prove nel browser (`npm run e2e`, `npm run e2e:admin`, rilevatore di trabocchi compreso) sono le sole che si alleggeriscono, in
+base ai file cambiati rispetto all'**ultima pubblicazione riuscita** (decisione dell'utente, 01/10/2026). Prima di eseguire
+qualunque cosa lo script stampa il piano: il riferimento usato, i file cambiati (riassunti per regola), quali prove fa, quali
+salta e perche'. Le regole stanno in `scripts/verifiche_mirate.mjs` (la prima che corrisponde a un file vince) e sono provate da
+`test/verifiche_mirate.test.ts`:
+
+| File cambiati | Prove nel browser |
+| --- | --- |
+| `app/src/admin/**` | solo `e2e:admin` |
+| `app/src/pagine/**` | solo `e2e` pubblico |
+| `app/src/ui/**`, `app/src/stili/**`, `app/src/lib/**`, `app/index.html`, `app/public/**`, `shared/**`, `functions/**`, `migrations/**`, `vite.config.*`, `package.json`, `package-lock.json`, `e2e/impianto.ts`, `e2e/trabocchi.ts`, `e2e/schermate_trabocchi.ts` | TUTTE E DUE |
+| `e2e/e2e.ts` | solo `e2e` pubblico |
+| `e2e/e2e_admin.ts`, `e2e/access_simulato.ts`, `e2e/google_simulato.ts`, `e2e/moduli.ts` | solo `e2e:admin` |
+| `scripts/pubblica.sh`, `scripts/verifiche_mirate.*` (la logica che sceglie), `scripts/seed_prova.sql` (i dati di tutte le prove) | COMPLETO |
+| solo `*.md`, `docs/**`, `LICENSE`, `test/**`, altri file in `scripts/` | nessuna prova nel browser |
+| qualunque altro percorso (es. `app/src/App.tsx`, `wrangler.toml`, `tsconfig*.json`, `.gitignore`) | COMPLETO: nel dubbio si prova |
+
+Un file solo basta ad accendere una prova; con file di tipi diversi valgono le prove di tutti (unione). Senza nessun file
+cambiato non c'e' nessuna prova nel browser (e' lo stato gia' provato).
+
+**Il riferimento** e' il commit dell'ultima pubblicazione riuscita, cercato in quest'ordine:
+
+1. il file `.ultima-pubblicazione` (ignorato da git), scritto alla fine di ogni pubblicazione riuscita;
+2. se manca (il container della sessione e' effimero), l'ultimo deployment di produzione sull'API di Cloudflare Pages
+   (`deployment_trigger.metadata.commit_hash`), ma solo se NON e' marcato `commit_dirty`: un deployment sporco non dice che
+   cosa c'e' davvero in produzione (fino al 30/09/2026 lo script passava sempre `--commit-dirty=true`, quindi i deployment piu'
+   vecchi sono tutti sporchi e non servono come riferimento);
+3. se non si trova, o non e' un antenato di HEAD (o non esiste nel repository locale): giro COMPLETO.
+
+I file cambiati sono quelli fra il riferimento e la cartella di lavoro: commit, modifiche non committate e file nuovi non ignorati.
+
+Il deploy passa a wrangler `--commit-hash` esplicito (l'HEAD) e `--commit-dirty` VERO solo se la cartella di lavoro ha davvero
+modifiche non committate. Dopo il controllo del sito vero lo script chiede all'API che commit ha registrato Cloudflare: se e'
+l'HEAD appena pubblicato salva `.ultima-pubblicazione`, se e' un altro esce con errore senza salvare. Con modifiche non committate
+il riferimento NON si salva (resta quello vecchio): **conviene committare PRIMA di pubblicare**, cosi' il riferimento avanza e
+Cloudflare registra un commit vero. Alla fine lo script stampa i secondi di ogni passo e la durata totale.
 
 `scripts/controlla_produzione.sh [indirizzo-della-pubblicazione]` si puo' lanciare da solo quando si
 vuole. Controlla il sito VERO: pagine e API pubbliche danno 200; `/admin` e ogni `/api/admin/*`

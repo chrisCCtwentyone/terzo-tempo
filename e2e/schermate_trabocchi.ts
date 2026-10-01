@@ -160,7 +160,27 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
         await p.getByLabel('Nome del campo').waitFor()
       },
     },
-    { nome: 'admin campi dalla partita (+ Nuovo campo)', url: '/admin/campi?nuovo=1', attesa: '.ricava' },
+    {
+      nome: 'admin nuova partita con "+ Nuovo campo" aperto (link e nome lunghi)',
+      url: '/admin/partite/nuova',
+      attesa: '.conv-scelta label',
+      prepara: async (p) => {
+        await p.locator('.conv-scelta label').nth(0).click()
+        await p.getByLabel('Data e ora').fill('2026-10-22T21:00')
+        await p.getByRole('button', { name: '+ Nuovo campo' }).click()
+        await p.getByLabel('Link di Google Maps').fill('Guarda questo posto bellissimo e lunghissimo: https://maps.app.goo.gl/EsempioLinkMoltoLungoSenzaSpaziChePuoUscireDalCampoDiTestoDelModulo')
+        await p.getByLabel('Nome del campo').fill('Polisportiva Comunale Giovanni Battista Montefiascone-Vannozzi e Figli')
+      },
+    },
+    {
+      nome: 'admin modifica partita 121 con "+ Nuovo campo" aperto (nomi lunghi)',
+      url: '/admin/partite/121?sez=partita',
+      attesa: 'main h1',
+      prepara: async (p) => {
+        await p.getByRole('button', { name: '+ Nuovo campo' }).click()
+        await p.getByLabel('Nome del campo').fill('Supercalifragilistichespiralidosoimpiantosportivocomunalenuovissimo')
+      },
+    },
     { nome: 'admin badge elenco', url: '/admin/badge', attesa: '.riga-btn' },
     {
       nome: 'admin badge nuovo',
