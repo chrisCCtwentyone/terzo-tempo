@@ -145,6 +145,15 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   "tra i pali para tutto", Dribblomane "non rinuncia mai al dribbling", Turista
   "non torna in difesa", Egoista "non passa mai", Polemico "discute ogni fallo",
   Ritardatario "arriva a partita iniziata", Fragile "sempre acciaccato".
+- **Statistiche** (decisioni dell'utente, 01/10/2026): dentro la pagina Classifiche,
+  due schede in cima "Classifiche" | "Statistiche" (la barra resta a 5 voci). Stesso
+  selettore di stagione / "Tutte le stagioni". Statistiche scelte: Coppia d'oro
+  (coppie che vincono di piu' nella stessa squadra), Serie record (vittorie di fila,
+  imbattibilita', serie nera), Bomber a digiuno (partite dall'ultimo gol),
+  Fedelissimo (presenze consecutive), Doppiette e triplette, Partite da record (piu'
+  gol, vittoria piu' larga, pareggio con piu' gol). Le altre proposte sono in
+  docs/DA_FARE.md ("le aggiungiamo quando ci saranno piu' partite"). Ogni
+  statistica senza dati sufficienti mostra uno stato vuoto onesto, mai numeri finti.
 - **Classifiche**: nessun minimo di partite per media voto e % vittorie (compaiono
   tutti subito; decisione dell'utente).
 - **Altre funzioni volute**: classifiche (gol, presenze, media voto, MVP), scheda
