@@ -100,6 +100,25 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   puo' sempre correggere e, se non si ricava, l'admin lo scrive a mano (non si
   salva senza nome). Nelle pagine pubbliche il nome del campo e' cliccabile e apre
   Google Maps con le INDICAZIONI stradali verso il campo.
+- **Partita in diretta** (decisioni dell'utente, 01/10/2026): un admin (es. in
+  panchina) segna i gol MENTRE si gioca.
+  - Eventi per ora: solo GOL e AUTOGOL (tocco squadra -> tocco marcatore). Il modello
+    deve permettere di aggiungere in futuro assist/tiri senza rifare nulla (gli
+    assist restano fuori finche' l'utente non decide).
+  - Niente cronometro: conta solo l'ORDINE dei gol (il minuto e' nella lista
+    "da fare", docs/DA_FARE.md).
+  - Avvio: pulsante "Inizia diretta" sulla partita; se nessuno lo preme, la partita
+    diventa "in diretta" da sola all'orario previsto. Si segnano gol solo con le
+    squadre assegnate.
+  - Correzioni: "Annulla ultimo" sempre a portata; ogni gol dell'elenco si puo'
+    eliminare o cambiare marcatore.
+  - Rete scarsa al campo: i gol si salvano sul telefono e partono appena torna il
+    segnale (indicazione "da inviare"), senza doppioni.
+  - Pagina pubblica: "IN DIRETTA" con punteggio e marcatori che si aggiornano da
+    soli; se nessuno chiude, dopo 2 ORE dall'inizio diventa "Risultato da
+    confermare".
+  - "Fine partita": salva risultato e marcatori dalla diretta; poi l'admin mette i
+    voti in pagella e segna "giocata" (che apre il voto MVP), come prima.
 - **Convocati**: la lista la inserisce l'admin (il gruppo si organizza su
   WhatsApp, nessuno userebbe un "ci sono" nell'app). Niente risposte dei giocatori.
 - **Formazioni sul campo** stile "leghe Fantagazzetta": l'admin sceglie il MODULO
