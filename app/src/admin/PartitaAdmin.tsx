@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { leggi } from '../lib/api'
 import { giornoOra, plurale } from '../lib/formato'
-import type { Badge, Mvp, Stagione } from '../lib/tipi'
+import type { Badge, Diretta, Mvp, Stagione } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
 import { Link, useRotta, useTitolo, vai } from '../router'
-import { Attesa, Badges, Carta, Figurina, Icona, Intestazione, Pulsante, Scelta, Sezione } from '../ui'
+import { Attesa, Badges, Carta, Figurina, Icona, Intestazione, Pulsante, PulsanteLink, Scelta, Sezione } from '../ui'
 import { CampoModuli } from './CampoModuli'
 import { Conferma, EsitoScrittura, Fld, useEsito } from './comuni'
 import { ScegliConvocati } from './Convocati'
@@ -36,22 +36,23 @@ export function PartitaAdmin({ id }: { id: number }) {
   const campi = useApi<{ campi: CampoAdmin[] }>('/api/admin/campi')
   // il pubblico vede il campo ma non il suo id: per la tendina serve quello dell'admin
   const admin = useApi<{ campo_id: number | null }>(`/api/admin/partite/${id}`)
+  const diretta = useApi<Diretta>(`/api/admin/partite/${id}/diretta`)
   const carico = {
-    dati: partita.dati && giocatori.dati && badge.dati && stagioni.dati && campi.dati && admin.dati
-      ? { p: partita.dati, g: giocatori.dati.giocatori, b: badge.dati.badge, s: stagioni.dati.stagioni, c: campi.dati.campi, campoId: admin.dati.campo_id }
+    dati: partita.dati && giocatori.dati && badge.dati && stagioni.dati && campi.dati && admin.dati && diretta.dati
+      ? { p: partita.dati, g: giocatori.dati.giocatori, b: badge.dati.badge, s: stagioni.dati.stagioni, c: campi.dati.campi, campoId: admin.dati.campo_id, d: diretta.dati }
       : null,
-    errore: partita.errore ?? giocatori.errore ?? badge.errore ?? stagioni.errore ?? campi.errore ?? admin.errore,
-    ricarica: () => { partita.ricarica(); giocatori.ricarica(); badge.ricarica(); stagioni.ricarica(); campi.ricarica(); admin.ricarica() },
+    errore: partita.errore ?? giocatori.errore ?? badge.errore ?? stagioni.errore ?? campi.errore ?? admin.errore ?? diretta.errore,
+    ricarica: () => { partita.ricarica(); giocatori.ricarica(); badge.ricarica(); stagioni.ricarica(); campi.ricarica(); admin.ricarica(); diretta.ricarica() },
   }
   return (
     <>
       <Link verso="/admin/partite" className="indietro"><Icona id="i-arrow" />Tutte le partite</Link>
-      <Attesa carico={carico} testo="Carico la partita…" figli={({ p, g, b, s, c, campoId }) => <Editor iniziale={p} giocatori={g} badge={b} stagioni={s} campi={c} campoId={campoId} />} />
+      <Attesa carico={carico} testo="Carico la partita…" figli={({ p, g, b, s, c, campoId, d }) => <Editor iniziale={p} giocatori={g} badge={b} stagioni={s} campi={c} campoId={campoId} direttaIniziale={d} />} />
     </>
   )
 }
 
-function Editor({ iniziale, giocatori, badge, stagioni, campi, campoId }: { iniziale: Dati; giocatori: GiocatoreAdmin[]; badge: Badge[]; stagioni: Stagione[]; campi: CampoAdmin[]; campoId: number | null }) {
+function Editor({ iniziale, giocatori, badge, stagioni, campi, campoId, direttaIniziale }: { iniziale: Dati; giocatori: GiocatoreAdmin[]; badge: Badge[]; stagioni: Stagione[]; campi: CampoAdmin[]; campoId: number | null; direttaIniziale: Diretta }) {
   const id = iniziale.id
   const { parametri } = useRotta()
   const [p, setP] = useState<Dati>(iniziale)
@@ -125,6 +126,7 @@ function Editor({ iniziale, giocatori, badge, stagioni, campi, campoId }: { iniz
         <i className={`tu${giocata ? '' : ' chiusa'}`}>{giocata ? 'Giocata' : 'In convocazione'}</i>
         <Link verso={`/partite/${id}`} className="indietro">Vedi la pagina pubblica</Link>
       </p>
+      {!giocata && <CartaDiretta id={id} iniziale={direttaIniziale} salvata={p.giocatori} sporche={righeSporche} onSquadre={() => setSez('squadre')} />}
       <Scelta tipo="pillole" etichetta="Sezioni della partita" voci={[...SEZIONI]} valore={sez} onScegli={setSez} />
 
       {sez === 'convocati' && (
@@ -213,6 +215,58 @@ function Editor({ iniziale, giocatori, badge, stagioni, campi, campoId }: { iniz
       )}
       <EsitoScrittura esito={esito} />
     </>
+  )
+}
+
+/**
+ * La diretta della partita: "Inizia diretta" (solo con le squadre assegnate E salvate: il server controlla quelle salvate), poi LIVE.
+ * Se nessuno la preme, parte da sola all'orario della partita (se ci sono le squadre).
+ */
+function CartaDiretta({ id, iniziale, salvata, sporche, onSquadre }: { id: number; iniziale: Diretta; salvata: Riga[]; sporche: boolean; onSquadre: () => void }) {
+  const [d, setD] = useState<Diretta>(iniziale)
+  const { esito, esegui, occupato } = useEsito()
+  const squadreOk = CODICI.every((c) => salvata.some((r) => r.squadra === c))
+
+  async function inizia() {
+    const r = await esegui('Avvio la diretta', () => scrivi<{ diretta: Diretta }>('POST', `/api/admin/partite/${id}/diretta/inizia`, {}), 'Diretta avviata')
+    if (r) {
+      setD(r.diretta)
+      vai(`/admin/partite/${id}/live`)
+    }
+  }
+
+  return (
+    <Carta className="carta-diretta">
+      {d.stato === 'in_diretta' ? (
+        <>
+          <p className="stato-diretta"><span className="live-dot" aria-hidden="true" /> <b>In diretta adesso</b></p>
+          <div className="azioni-modulo"><PulsanteLink variante="ghost" className="blocco lg" verso={`/admin/partite/${id}/live`}>Apri LIVE</PulsanteLink></div>
+        </>
+      ) : d.stato === 'da_confermare' ? (
+        <>
+          <p className="stato-diretta"><b>Diretta finita</b>: il risultato aspetta la tua conferma.</p>
+          <div className="azioni-modulo"><PulsanteLink variante="ghost" className="blocco lg" verso={`/admin/partite/${id}/live`}>Vedi i gol della diretta</PulsanteLink></div>
+          <p className="note">I voti in pagella e “Segna come giocata” sono nella sezione Risultato.</p>
+        </>
+      ) : (
+        <>
+          <p className="stato-diretta"><b>Diretta</b>: segna i gol mentre si gioca, anche con poco segnale.</p>
+          {squadreOk ? (
+            <div className="azioni-modulo">
+              <Pulsante variante="yes" className="blocco lg" onClick={inizia} disabled={occupato || sporche} aria-busy={occupato}>Inizia diretta</Pulsante>
+            </div>
+          ) : (
+            <>
+              <p className="note">Per iniziare servono le squadre: assegna almeno un giocatore a ciascuna e salva.</p>
+              <div className="azioni-modulo"><Pulsante className="blocco lg" onClick={onSquadre}>Vai alle Squadre</Pulsante></div>
+            </>
+          )}
+          {squadreOk && sporche && <p className="note">Salva prima le modifiche: la diretta usa le squadre salvate.</p>}
+          <p className="note">Se non la inizi tu, parte da sola all'orario della partita.</p>
+        </>
+      )}
+      <EsitoScrittura esito={esito} />
+    </Carta>
   )
 }
 

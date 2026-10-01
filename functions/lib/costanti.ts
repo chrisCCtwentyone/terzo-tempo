@@ -17,6 +17,17 @@ export const FUSO_ORARIO = 'Europe/Rome';
 export const FINESTRA_VOTO_MVP_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * Partita in diretta (decisioni dell'utente, 01/10/2026): la diretta e' pubblica come "IN DIRETTA" fino a "Fine partita",
+ * oppure per al massimo DUE ORE dall'inizio (manuale, o dall'orario della partita se parte da sola). Dopo diventa
+ * "Risultato da confermare". Le due ore stanno qui, in un punto solo.
+ */
+export const DURATA_MASSIMA_DIRETTA_MS = 2 * 60 * 60 * 1000;
+/** Eventi al massimo per partita (annullati compresi: un telefono impazzito non deve riempire la tabella). */
+export const MAX_EVENTI_DIRETTA = 200;
+/** L'id_client degli eventi e delle azioni: un UUID generato dal telefono (o simile), solo lettere, cifre, trattino e sottolineatura. */
+export const FORMA_ID_CLIENT = /^[A-Za-z0-9_-]{8,64}$/;
+
+/**
  * Minimo di partite per comparire nelle classifiche "media voto" (partite CON
  * voto) e "% vittorie" (presenze). Vale anche per il generatore di squadre.
  * 0 = nessun minimo (decisione dell'utente, 30/09/2026: compaiono tutti subito).

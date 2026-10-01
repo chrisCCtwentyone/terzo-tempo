@@ -55,7 +55,7 @@ describe('regole per percorso', () => {
     expect(prove('e2e/e2e.ts')).toEqual(SOLO_PUBBLICO);
     expect(prove('e2e/e2e_admin.ts')).toEqual(SOLO_ADMIN);
     // i finti e le visite che usa solo l'admin
-    for (const f of ['e2e/access_simulato.ts', 'e2e/google_simulato.ts', 'e2e/moduli.ts']) expect(prove(f), f).toEqual(SOLO_ADMIN);
+    for (const f of ['e2e/live.ts', 'e2e/access_simulato.ts', 'e2e/google_simulato.ts', 'e2e/moduli.ts']) expect(prove(f), f).toEqual(SOLO_ADMIN);
     // l'elenco delle schermate del rilevatore lo usano tutti e due i giri
     expect(prove('e2e/schermate_trabocchi.ts')).toEqual(TUTTI);
   });

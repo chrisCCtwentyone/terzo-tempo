@@ -24,6 +24,9 @@ const RICHIESTE: Record<string, Richiesta[]> = {
     ['POST', '/api/partite/10/mvp', { giocatore_id: 1 }], // 409 chiusa
     ['POST', '/api/partite/12/mvp', { giocatore_id: 999 }], // 400
   ],
+  // la diretta (partita 12: giocata -> "finita"; 11: in convocazione senza squadre -> "non iniziata"; l'admin non c'entra)
+  '/api/diretta': [['GET', '/api/diretta']],
+  '/api/partite/:id/diretta': [['GET', '/api/partite/10/diretta'], ['GET', '/api/partite/11/diretta'], ['GET', '/api/partite/12/diretta'], ['GET', '/api/partite/999/diretta'], ['GET', '/api/partite/abc/diretta']],
   '/api/giocatori': [['GET', '/api/giocatori'], ['GET', '/api/giocatori?tutti=1']],
   '/api/giocatori/:id': [['GET', '/api/giocatori/1'], ['GET', '/api/giocatori/14'], ['GET', '/api/giocatori/16?stagione=2'], ['GET', '/api/giocatori/1?stagione=sempre'], ['GET', '/api/giocatori/999']],
 };

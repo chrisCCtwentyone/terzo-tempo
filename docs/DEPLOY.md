@@ -52,7 +52,7 @@ salta e perche'. Le regole stanno in `scripts/verifiche_mirate.mjs` (la prima ch
 | `app/src/pagine/**` | solo `e2e` pubblico |
 | `app/src/ui/**`, `app/src/stili/**`, `app/src/lib/**`, `app/index.html`, `app/public/**`, `shared/**`, `functions/**`, `migrations/**`, `vite.config.*`, `package.json`, `package-lock.json`, `e2e/impianto.ts`, `e2e/trabocchi.ts`, `e2e/schermate_trabocchi.ts` | TUTTE E DUE |
 | `e2e/e2e.ts` | solo `e2e` pubblico |
-| `e2e/e2e_admin.ts`, `e2e/access_simulato.ts`, `e2e/google_simulato.ts`, `e2e/moduli.ts` | solo `e2e:admin` |
+| `e2e/e2e_admin.ts`, `e2e/live.ts`, `e2e/access_simulato.ts`, `e2e/google_simulato.ts`, `e2e/moduli.ts` | solo `e2e:admin` |
 | `scripts/pubblica.sh`, `scripts/verifiche_mirate.*` (la logica che sceglie), `scripts/seed_prova.sql` (i dati di tutte le prove) | COMPLETO |
 | solo `*.md`, `docs/**`, `LICENSE`, `test/**`, altri file in `scripts/` | nessuna prova nel browser |
 | qualunque altro percorso (es. `app/src/App.tsx`, `wrangler.toml`, `tsconfig*.json`, `.gitignore`) | COMPLETO: nel dubbio si prova |
@@ -79,7 +79,7 @@ Cloudflare registra un commit vero. Alla fine lo script stampa i secondi di ogni
 
 `scripts/controlla_produzione.sh [indirizzo-della-pubblicazione]` si puo' lanciare da solo quando si
 vuole. Controlla il sito VERO: pagine e API pubbliche danno 200; `/admin` e ogni `/api/admin/*`
-(elenco ricavato da `functions/api/admin`, GET e POST) rimandano al login di Access (302 verso
+(elenco ricavato da `functions/api/admin`, GET e POST; i segmenti `[id]`, `[eid]`... diventano `1`, quindi anche le rotte della diretta, con in piu' una prova esplicita di POST/PATCH/DELETE senza credenziali su `.../diretta/*`: mai 2xx) rimandano al login di Access (302 verso
 `cloudflareaccess.com`) o danno 401/403, mai 200; "livello" non compare in nessuna risposta
 pubblica; `/manifest.webmanifest` (200, `application/manifest+json`, JSON valido, icone dichiarate raggiungibili) e `/apple-touch-icon.png` (200, `image/png`, 180x180: il sito risponde 200 con la pagina dell'app anche per un file che non c'e', quindi si guardano content-type e byte del PNG); intestazioni di sicurezza e CSP presenti (senza `unsafe-*`, con HSTS); l'indirizzo della singola
 pubblicazione (`<hash>.terzo-tempo.pages.dev`) e' tutto dietro Access.
@@ -163,7 +163,7 @@ npx wrangler d1 execute terzo-tempo --remote --command "SELECT id, nome, attivo 
    controllare e passa: non e' un errore, ma ricordare che i nomi veri non vanno mai in git.
 3b. In locale `.dev.vars` (copia di `.dev.vars.example`) apre l'admin solo con Access NON configurato: l'esempio azzera
    `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD`, che altrimenti verrebbero da `wrangler.toml`. `npm run e2e:admin` li passa con `--binding` (insieme a `GOOGLE_MAPS_PROVA`, l'indirizzo del finto Google locale: vedi `docs/API.md`, sezione Campi; in produzione quella variabile non va mai messa e, se ci fosse, verrebbe ignorata).
-   Le migrazioni si applicano anche alla base locale: `npm run db:migra` (la `0003` aggiunge `voti_mvp.hash_ip`, la `0004` la tabella `campi` e `partite.campo_id`: nessun dato, i campi li inserisce l'admin).
+   Le migrazioni si applicano anche alla base locale: `npm run db:migra` (la `0003` aggiunge `voti_mvp.hash_ip`, la `0004` la tabella `campi` e `partite.campo_id`: nessun dato, i campi li inserisce l'admin; la `0005` la partita in diretta: `partite.diretta_iniziata_il` / `diretta_finita_il`, le tabelle `tipi_evento` (con `gol` e `autogol`) ed `eventi_partita`, vuote. E' solo additiva: le partite esistenti restano com'erano, e una partita con le squadre assegnate e l'orario passato parte da sola "in diretta" per le 2 ore successive).
 4. Dopo ogni pubblicazione, prova nel browser sul sito vero a 390x844 (`vite preview`/`wrangler pages dev`
    non bastano): console pulita, zero violazioni CSP, niente scroll orizzontale, `/admin` che porta al login
    di Access. Chromium e' gia' installato: mai `playwright install`.

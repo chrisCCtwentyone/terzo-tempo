@@ -44,7 +44,7 @@ export const REGOLE = [
   { nome: 'impianto comune delle prove nel browser', percorsi: ['e2e/impianto.ts', 'e2e/trabocchi.ts', 'e2e/schermate_trabocchi.ts'], prove: TUTTI },
   //    Un file e2e specifico: solo il suo giro.
   { nome: 'prova e2e pubblica', percorsi: ['e2e/e2e.ts'], prove: SOLO_PUBBLICO },
-  { nome: 'prove e2e admin e i loro finti (Access, Google, moduli)', percorsi: ['e2e/e2e_admin.ts', 'e2e/access_simulato.ts', 'e2e/google_simulato.ts', 'e2e/moduli.ts'], prove: SOLO_ADMIN },
+  { nome: 'prove e2e admin e i loro finti (Access, Google, moduli, diretta)', percorsi: ['e2e/e2e_admin.ts', 'e2e/live.ts', 'e2e/access_simulato.ts', 'e2e/google_simulato.ts', 'e2e/moduli.ts'], prove: SOLO_ADMIN },
 
   // 3. Interfaccia: l'area admin e le pagine pubbliche.
   { nome: 'area admin (app/src/admin)', percorsi: ['app/src/admin/**'], prove: SOLO_ADMIN },

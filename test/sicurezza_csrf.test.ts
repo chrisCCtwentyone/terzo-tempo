@@ -33,7 +33,7 @@ const DA_FUORI: Record<string, string>[] = [
 describe('scritture admin da un altro sito: 403 dal controllo anti-CSRF, PRIMA ancora del login', () => {
   it('ogni rotta admin, ogni metodo di scrittura, ogni tipo di richiesta "da fuori"', async () => {
     const d = db();
-    const conta = () => d.tutti('SELECT (SELECT COUNT(*) FROM giocatori) g, (SELECT COUNT(*) FROM partite) p, (SELECT COUNT(*) FROM badge) b, (SELECT COUNT(*) FROM stagioni) s, (SELECT COUNT(*) FROM campi) c, (SELECT COUNT(*) FROM campi WHERE archiviato = 1) ca, (SELECT COUNT(*) FROM partite WHERE campo_id IS NOT NULL) pc');
+    const conta = () => d.tutti('SELECT (SELECT COUNT(*) FROM giocatori) g, (SELECT COUNT(*) FROM partite) p, (SELECT COUNT(*) FROM badge) b, (SELECT COUNT(*) FROM stagioni) s, (SELECT COUNT(*) FROM campi) c, (SELECT COUNT(*) FROM campi WHERE archiviato = 1) ca, (SELECT COUNT(*) FROM partite WHERE campo_id IS NOT NULL) pc, (SELECT COUNT(*) FROM eventi_partita) e, (SELECT COUNT(*) FROM partite WHERE diretta_iniziata_il IS NOT NULL OR diretta_finita_il IS NOT NULL) di, (SELECT SUM(gol + autogol) FROM partecipazioni) gp');
     const prima = conta();
     for (const f of ROTTE_ADMIN) {
       for (const metodo of SCRITTURE) {

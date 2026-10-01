@@ -4,6 +4,7 @@ import type { HomeDati, Partita } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
 import { useTitolo } from '../router'
 import { Attesa, Carta, Cart, Figurina, Icona, Intestazione, Luogo, Podio, PulsanteLink, Riga, Sezione, Tabellone } from '../ui'
+import { CartaDirettaHome } from './Diretta'
 import { BollinoMvp, EsitoMvp } from './Mvp'
 
 function UltimaPartita({ p }: { p: Partita }) {
@@ -77,6 +78,12 @@ export function Home() {
       <Intestazione kick={`Terzo Tempo${carico.dati?.stagione ? ` · ${carico.dati.stagione.nome}` : ''}`} titolo="Home" />
       <Attesa carico={carico} testo="Carico la home…" figli={(d) => (
         <>
+          {d.diretta && (
+            <Carta className="hero att diretta" i={0}>
+              <CartaDirettaHome d={d.diretta} />
+              <PulsanteLink variante="ghost" className="go" verso={`/partite/${d.diretta.partita_id}`}>{d.diretta.stato === 'in_diretta' ? 'Segui la diretta' : 'Vedi la partita'}</PulsanteLink>
+            </Carta>
+          )}
           <Sezione>Ultima partita</Sezione>
           {d.ultima_partita ? <UltimaPartita p={d.ultima_partita} /> : <Carta className="vuota">Ancora nessuna partita giocata.</Carta>}
 

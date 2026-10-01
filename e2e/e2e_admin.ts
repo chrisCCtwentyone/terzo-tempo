@@ -17,6 +17,7 @@ import { chromium, type Browser, type CDPSession, type Page } from 'playwright-c
 import { caselle } from '../shared/moduli.ts'
 import { avviaAccessSimulato } from './access_simulato.ts'
 import { avviaGoogleSimulato, type GoogleSimulato } from './google_simulato.ts'
+import { provaLive, provaLiveMovimentoRidotto, provaLiveTrabocchi, provaLiveXss } from './live.ts'
 import { visitaModuli } from './moduli.ts'
 import { schermateAdmin } from './schermate_trabocchi.ts'
 import { provaRilevatore, provaSelettoreData, provaTrabocchi } from './trabocchi.ts'
@@ -347,7 +348,7 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   const scorciatoia = p.getByRole('button', { name: '+ Nuovo campo' })
   verifica((await p.getByRole('link', { name: '+ Nuovo campo' }).count()) === 0 && (await scorciatoia.getAttribute('aria-expanded')) === 'false' && !(await p.getByLabel('Link di Google Maps').count()), `${tema} nuova partita: "+ Nuovo campo" e' un bottone chiuso, senza link verso un'altra pagina`)
   verifica(await p.getByRole('button', { name: 'Crea la partita' }).isDisabled(), `${tema} nuova partita: senza data e convocati non si crea`)
-  await p.getByLabel('Data e ora').fill('2026-10-08T21:00')
+  await p.getByLabel('Data e ora').fill('2036-10-08T21:00')
   await p.getByLabel('Campo', { exact: true }).selectOption({ label: nomeCampo })
   for (const n of [...NOMI_CONV, nomeNuovo]) await p.locator('.conv-scelta label', { hasText: n }).click()
   verifica(await p.getByText('10 convocati').isVisible(), `${tema} nuova partita: 10 convocati scelti toccando le figurine`)
@@ -358,7 +359,7 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   await scorciatoia.click()
   await p.getByLabel('Link di Google Maps').waitFor()
   const bozzaIntatta = async () =>
-    (await p.getByLabel('Data e ora').inputValue()) === '2026-10-08T21:00' && (await p.getByLabel('Campo', { exact: true }).inputValue()) === String(campoScelto) && (await p.getByText('10 convocati').isVisible())
+    (await p.getByLabel('Data e ora').inputValue()) === '2036-10-08T21:00' && (await p.getByLabel('Campo', { exact: true }).inputValue()) === String(campoScelto) && (await p.getByText('10 convocati').isVisible())
   const campoScelto = Number(await p.getByLabel('Campo', { exact: true }).inputValue())
   verifica(new URL(p.url()).pathname === '/admin/partite/nuova' && (await scorciatoia.getAttribute('aria-expanded')) === 'true', `${tema} nuova partita: "+ Nuovo campo" apre il modulo sulla stessa pagina (${p.url()})`)
   verifica((await p.locator('form form').count()) === 0 && (await p.locator('form .campo-nuovo form').count()) === 0, `${tema} nuova partita: nessun form dentro il form della partita`)
@@ -378,7 +379,7 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   verifica(new URL(p.url()).pathname === '/admin/partite/nuova' && (await api<{ partite: unknown[] }>(p, '/api/partite')).json.partite.length === partiteAvvio, `${tema} nuova partita: creare il campo non crea la partita`)
   verifica((await p.getByLabel('Campo', { exact: true }).inputValue()) === String(nuovoCampo?.id) && (await p.getByLabel('Campo', { exact: true }).locator('option', { hasText: nomeCampoBozza }).count()) === 1, `${tema} nuova partita: il campo appena creato e' nella tendina ed e' gia' scelto`)
   verifica(!(await p.getByLabel('Link di Google Maps').count()) && (await scorciatoia.getAttribute('aria-expanded')) === 'false' && (await p.getByRole('status').filter({ hasText: `Aggiunto il campo ${nomeCampoBozza}` }).count()) === 1, `${tema} nuova partita: il modulo si chiude e un messaggio dice che il campo e' stato aggiunto`)
-  verifica((await p.getByLabel('Data e ora').inputValue()) === '2026-10-08T21:00' && (await p.getByText('10 convocati').isVisible()), `${tema} nuova partita: dopo la creazione del campo data e convocati sono intatti`)
+  verifica((await p.getByLabel('Data e ora').inputValue()) === '2036-10-08T21:00' && (await p.getByText('10 convocati').isVisible()), `${tema} nuova partita: dopo la creazione del campo data e convocati sono intatti`)
   await schermata(p, 'partita-nuova-campo-creato', tema)
   // si riapre e si richiude senza salvare: niente cambia
   await scorciatoia.click()
@@ -391,7 +392,7 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   await p.waitForURL(/\/admin\/partite\/\d+\?sez=squadre/)
   const id = Number(new URL(p.url()).pathname.split('/').pop())
   const conv = await api<PartitaDati>(p, `/api/partite/${id}`)
-  verifica(conv.json.stato === 'convocazione' && conv.json.giocatori.length === 10 && conv.json.data_ora === '2026-10-08T19:00:00Z' && conv.json.stagione_id === stagioneId, `${tema} partita creata: 10 convocati, 21:00 di Roma = 19:00Z, stagione giusta`)
+  verifica(conv.json.stato === 'convocazione' && conv.json.giocatori.length === 10 && conv.json.data_ora === '2036-10-08T19:00:00Z' && conv.json.stagione_id === stagioneId, `${tema} partita creata: 10 convocati, 21:00 di Roma = 19:00Z, stagione giusta`)
   verifica(conv.json.campo?.nome === nomeCampo && conv.json.campo?.url_indicazioni === `${DIR}44.1234567,10.7654321`, `${tema} partita creata col campo scelto (${JSON.stringify(conv.json.campo)})`)
   const campoId = c1!.id as number
   verifica((await api<{ campo_id: number | null }>(p, `/api/admin/partite/${id}`)).json.campo_id === campoId, `${tema} l'admin vede campo_id della partita`)
@@ -959,10 +960,20 @@ async function main() {
   const pubblico: string[] = []
   try {
     // prima di tutto: le prove qui sotto creano, modificano ed eliminano dati
-    await provaRilevatore(browser, BASE)
-    await provaSelettoreData(browser, BASE)
-    await provaTrabocchi(browser, BASE, 'admin', schermateAdmin(BASE_SENZA), { touch: true })
+    if (process.env.E2E_SOLO !== 'diretta') {
+      await provaRilevatore(browser, BASE)
+      await provaSelettoreData(browser, BASE)
+      await provaTrabocchi(browser, BASE, 'admin', schermateAdmin(BASE_SENZA), { touch: true })
+    }
     if (process.env.E2E_SOLO === 'trabocchi') return
+    if (process.env.E2E_SOLO === 'diretta') {
+      await provaLive(browser, BASE, SCHERMATE, 'light')
+      await provaLive(browser, BASE, SCHERMATE, 'dark')
+      await provaLiveXss(browser, BASE)
+      await provaLiveMovimentoRidotto(browser, BASE)
+      await provaLiveTrabocchi(browser, BASE)
+      return
+    }
     await provaLayoutModuli(browser, 'light')
     await provaLayoutModuli(browser, 'dark')
     await provaAdmin(browser, 'light', pubblico, google)
@@ -974,6 +985,12 @@ async function main() {
     await provaAccessoSimulato(browser, 'dark')
     await provaXss(browser, 'light')
     await provaXss(browser, 'dark')
+    // la partita in diretta (e2e/live.ts): ultima, perche' crea partite che durante la prova sono "in diretta" (scorciatoia LIVE nella navigazione)
+    await provaLive(browser, BASE, SCHERMATE, 'light')
+    await provaLive(browser, BASE, SCHERMATE, 'dark')
+    await provaLiveXss(browser, BASE)
+    await provaLiveMovimentoRidotto(browser, BASE)
+    await provaLiveTrabocchi(browser, BASE)
   } finally {
     await browser.close()
     google.chiudi()

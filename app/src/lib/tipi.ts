@@ -53,11 +53,31 @@ export const CATEGORIE = ['gol', 'presenze', 'media_voto', 'mvp', 'pct_vittorie'
 export type Categoria = (typeof CATEGORIE)[number]
 export type Classifiche = { stagione: { id: number; nome: string; aperta: boolean } | null; minimo_partite: number } & Record<Categoria, RigaClassifica[]>
 
+/**
+ * La partita in diretta (GET /api/partite/:id/diretta e, con l'id_client, /api/admin/partite/:id/diretta). `squadra` di un evento e' la
+ * squadra che INCASSA il punto: per un autogol e' quella avversaria del giocatore.
+ */
+export type StatoDiretta = 'non_iniziata' | 'in_diretta' | 'da_confermare' | 'finita'
+export type TipoEvento = 'gol' | 'autogol'
+export type EventoDiretta = { id: number; id_client?: string; tipo: TipoEvento; autogol: boolean; squadra: Codice; giocatore_id: number; nome: string }
+export type Diretta = {
+  partita_id: number
+  stato: StatoDiretta
+  inizio: string | null
+  scade_il: string | null
+  squadre: SquadraPunteggio[]
+  max_eventi: number
+  eventi: EventoDiretta[]
+}
+/** La partita in diretta (o da confermare) per la home e per la scorciatoia LIVE: GET /api/diretta. */
+export type DirettaCorrente = { partita_id: number; stato: 'in_diretta' | 'da_confermare'; data_ora: string; squadre: SquadraPunteggio[] }
+
 export type HomeDati = {
   stagione: { id: number; nome: string } | null
   ultima_partita: Partita | null
   prossima_partita: Partita | null
   top_marcatori: RigaClassifica[]
+  diretta: DirettaCorrente | null
 }
 
 export type GiocatoreListone = {

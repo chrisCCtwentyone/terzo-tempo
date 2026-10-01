@@ -30,7 +30,7 @@ Gli esempi vengono dai dati di prova (`scripts/seed_prova.sql`: nomi inventati).
 - **Statistiche non calcolabili**: `null`, non `0`.
 - **Livello segreto**: non esce mai dalle rotte pubbliche (nemmeno come campo nullo; un test lo garantisce). Esiste
   solo in `/api/admin/giocatori*`.
-- **Cache**: tutte le risposte sono `no-store`. **CSP**: il sito puo' caricare solo risorse proprie (font self-hosted,
+- **Cache**: tutte le risposte sono `no-store` (compresa la diretta, che cambia ogni minuto). **CSP**: il sito puo' caricare solo risorse proprie (font self-hosted,
   es. `@fontsource`; niente Google Fonts, niente CDN), senza `unsafe-inline` ne' `unsafe-eval`
   (`script-src 'self'`, `style-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`...).
   Si allarga in `functions/_middleware.ts` se serve, e si dice perche'. Ogni risposta porta anche HSTS,
@@ -39,7 +39,7 @@ Gli esempi vengono dai dati di prova (`scripts/seed_prova.sql`: nomi inventati).
 - Le scritture (POST/PUT/PATCH/DELETE) dal browser devono partire dallo stesso sito (altrimenti 403): il middleware
   controlla `Origin` e `Sec-Fetch-Site` su tutte le scritture di `/api`, voto MVP compreso.
 - **Limiti degli ingressi** (`functions/lib/costanti.ts`, `functions/lib/valida.ts`): corpo JSON al massimo 64 KB (`413`);
-  nome badge 40, descrizione badge 120, nome stagione 60, nome campo 80, link di Google Maps 2000, cognome 40, iniziali 3, cronaca 5000 caratteri; elenchi
+  id_client 8-64 caratteri, eventi della diretta 200 per partita, nome badge 40, descrizione badge 120, nome stagione 60, nome campo 80, link di Google Maps 2000, cognome 40, iniziali 3, cronaca 5000 caratteri; elenchi
   (convocati, giocatori di una partita, badge di un giocatore) al massimo 60 elementi (`400` col nome del campo);
   nei testi sono vietati i caratteri di controllo e quelli invisibili che ribaltano il verso di scrittura
   (i soli a capo e tabulazioni ammessi sono quelli della cronaca).
@@ -86,10 +86,14 @@ Ultima partita giocata, prossima partita, top marcatori della stagione aperta.
   },
   "top_marcatori": [
     { "posizione": 1, "giocatore_id": 11, "nome": "Bruno T.", "attivo": true, "valore": 8, "presenze": 7 }
-  ]
+  ],
+  "diretta": { "partita_id": 12, "stato": "in_diretta", "data_ora": "2026-10-08T19:00:00Z",
+               "squadre": [ { "codice": "A", "nome": "Casaccati", "gol": 2 }, { "codice": "B", "nome": "Smollicati", "gol": 1 } ] }
 }
 ```
 
+- `diretta` e' la partita **in diretta adesso** (`stato: "in_diretta"`) oppure, se non ce n'e', quella **"da confermare"** piu' recente, oppure `null`.
+  Leggerissima (nessun nome, nessuna lista di gol): vedi "Partita in diretta (pubblico)" sotto.
 - `stagione` e `top_marcatori` (`[]`) sono vuoti se nessuna stagione e' aperta. `ultima_partita` / `prossima_partita`
   sono `null` se non ce ne sono.
 - `ultima_partita` = la giocata piu' recente (di qualunque stagione). `prossima_partita` = la partita **in convocazione**
@@ -227,6 +231,48 @@ POST /api/partite/12/mvp   Content-Type: application/json   { "giocatore_id": 2 
   ci sono 4 caratteri di un hash SHA-256 di partita+rete (16 bit, ~65 mila indirizzi per valore: non si risale a nessuno).
   Chi ha gia' votato dal suo telefono riceve `409`, non `429`. Senza l'intestazione (solo sviluppo locale) il limite non si applica.
 
+## Partita in diretta (pubblico)
+
+Un admin segna i gol **mentre si gioca** (CLAUDE.md, "Partita in diretta"). Qui sotto cio' che vede il pubblico; le scritture sono nelle rotte admin.
+
+**Stato** (`stato`), calcolato alla lettura, senza cron (come la chiusura del voto MVP):
+
+| `stato` | Quando |
+|---|---|
+| `non_iniziata` | nessuno l'ha iniziata e non e' ancora l'orario; **oppure** l'orario e' passato ma le squadre non sono assegnate (non parte da sola: niente "IN DIRETTA 0-0" su una partita senza squadre); oppure e' passata la finestra di 2 ore senza che ci sia stato nessun gol e nessuno l'abbia iniziata |
+| `in_diretta` | l'admin ha premuto "Inizia diretta" (e non e' passato piu' di 2 ore), **oppure** e' l'orario della partita (`data_ora`) e le due squadre hanno almeno un giocatore ciascuna: parte da sola, dura 2 ore dall'orario |
+| `da_confermare` | "Fine partita" premuto, **oppure** passate le 2 ore (`DURATA_MASSIMA_DIRETTA_MS` in `functions/lib/costanti.ts`) senza che nessuno chiudesse: il risultato aspetta voti in pagella e "Segna come giocata" |
+| `finita` | la partita e' `giocata` |
+
+### `GET /api/partite/:id/diretta`
+
+```json
+{
+  "partita_id": 12, "stato": "in_diretta", "inizio": "2026-10-08T19:00:00Z", "scade_il": "2026-10-08T21:00:00Z", "max_eventi": 200,
+  "squadre": [ { "codice": "A", "nome": "Casaccati", "gol": 2 }, { "codice": "B", "nome": "Smollicati", "gol": 1 } ],
+  "eventi": [
+    { "id": 41, "tipo": "gol",     "autogol": false, "squadra": "A", "giocatore_id": 1, "nome": "Rossi M." },
+    { "id": 42, "tipo": "gol",     "autogol": false, "squadra": "B", "giocatore_id": 5, "nome": "Russo D." },
+    { "id": 43, "tipo": "autogol", "autogol": true,  "squadra": "A", "giocatore_id": 6, "nome": "Romano G." }
+  ]
+}
+```
+
+- `eventi` in **ordine di arrivo** (niente minuto: la scelta dell'utente, il cronometro e' in `docs/DA_FARE.md`), gli annullati non compaiono.
+- `squadra` e' la squadra che **incassa il punto**: per un gol quella del marcatore, per un **autogol quella avversaria** (qui Romano G. e' di B: il punto e' di A).
+  Stessa regola di tutto il resto: "il punteggio di una squadra = gol dei suoi giocatori + autogol degli avversari".
+- `inizio` e `scade_il` (inizio + 2 ore) servono solo se `in_diretta`; altrimenti `scade_il` e' `null` (e `inizio` e' `null` se non e' iniziata).
+- A partita `finita` il punteggio e' quello ufficiale (`gol_a`/`gol_b`) e `eventi` e' **vuoto**: la fonte e' `GET /api/partite/:id`.
+- Niente `id_client`, niente livello. `404` partita inesistente. **Cache-Control: no-store**. La pagina pubblica lo rilegge ogni ~10 secondi, solo
+  mentre e' visibile (`visibilitychange`) e solo se `in_diretta`.
+- In `GET /api/partite/:id` una partita in diretta o da confermare e' ancora `"stato": "convocazione"` con `gol: null`: il punteggio sta qui. Dopo "Segna come giocata" tutto torna come sempre.
+
+### `GET /api/diretta`
+
+`{ "diretta": null }` oppure `{ "diretta": { "partita_id", "stato": "in_diretta" | "da_confermare", "data_ora", "squadre": [{ codice, nome, gol }] } }`: la stessa
+forma di `home.diretta`. La usa la scorciatoia "LIVE" dell'area admin. Se ce n'e' piu' di una, vince quella `in_diretta`, poi la "da confermare" piu' recente.
+Una convocazione vecchia, senza diretta e senza gol, non compare mai.
+
 ## `GET /api/giocatori[?tutti=1]`
 
 Il listone, con badge e totali (su tutte le stagioni), per cognome. Di default solo gli attivi; `?tutti=1` include gli archiviati.
@@ -354,7 +400,8 @@ L'elenco e' pubblico (`GET /api/stagioni`). **Una sola stagione alla volta puo' 
 ## Partite
 
 Flusso: **crea la convocazione** -> **salva squadre e pedine** (ripetibile) -> a partita finita **inserisci gol, autogol e pagelle**
--> **segna giocata** col risultato -> eventuale cronaca / correzioni. Il generatore e' un aiuto alla fase "squadre".
+-> **segna giocata** col risultato -> eventuale cronaca / correzioni. Il generatore e' un aiuto alla fase "squadre". In alternativa ai gol inseriti a
+mano, la **diretta** (sezione piu' sotto) li registra durante la partita e "Fine partita" li porta nella stessa schermata Risultato.
 
 - `POST /api/admin/partite` `{ "data_ora": "2026-10-08T21:00", "giocatori": [1, 2, 3], "stagione_id"?: 2, "campo_id"?: 1 }` -> `201`
   `{ "id": 12, "stagione_id": 2, "data_ora": "2026-10-08T19:00:00Z", "stato": "convocazione", "campo_id": 1 }`.
@@ -383,6 +430,60 @@ Flusso: **crea la convocazione** -> **salva squadre e pedine** (ripetibile) -> a
 **`avvisi`** (`string[]`): se i gol dei giocatori (autogol avversari compresi) non tornano col risultato, per ogni squadra
 un messaggio, es. `"Smollicati: il risultato e' 2, i gol registrati (autogol avversari compresi) sono 1"`. Sono avvisi, non errori:
 il server non inventa mai un gol per far tornare i conti; si mostrano all'admin. Vuoto se tutto torna (o se la partita non e' ancora giocata).
+
+## Partita in diretta (admin)
+
+Flusso: **"Inizia diretta"** (a mano, oppure parte da sola all'orario se ci sono le squadre) -> si segnano **gol e autogol** (tocco sulla figurina, poi conferma) ->
+**"Fine partita"** porta i gol per giocatore nei campi della schermata Risultato (`partecipazioni.gol` / `.autogol`) -> l'admin mette i voti e preme **"Segna come
+giocata"** (`POST .../giocata`, come sempre; solo allora si apre il voto MVP). Modello dati: `migrations/0005_diretta.sql`; logica: `functions/lib/diretta.ts`.
+
+**Identificativi.** Ogni gol e ogni azione "annulla ultimo" ha un `id_client`: un UUID generato dal telefono (8-64 caratteri, lettere/cifre/`-`/`_`, **non di sole cifre**).
+E' `UNIQUE` nel database, e rende ogni invio **idempotente**: se il telefono non ha visto la risposta e ripete la richiesta, il server restituisce lo stesso gol senza
+duplicarlo. Per lo stesso motivo `PATCH` e `DELETE` accettano come `:eid` sia l'**id numerico** del server sia l'**id_client**: offline il telefono conosce solo il secondo.
+L'annullamento e' **logico** (`annullato = 1`, la riga resta): cosi' un invio in ritardo con l'id_client di un gol gia' annullato non lo fa risorgere. Nessuna email e nessun
+dato di chi segna nel database. Al massimo `MAX_EVENTI_DIRETTA` (200, annullati compresi) eventi per partita: oltre, `409`.
+
+Risposta di ogni scrittura: `{ "evento": { id, id_client, tipo, squadra, giocatore_id, nome, annullato }, "diretta": <come GET .../diretta, con id_client> }`.
+
+- `GET /api/admin/partite/:id/diretta` -> lo stato come sopra, **con l'`id_client`** di ogni gol (serve al telefono per riconoscere i propri gol gia' arrivati).
+- `POST /api/admin/partite/:id/diretta/inizia` -> `{ diretta }`. Idempotente. `409` senza le squadre (serve almeno un giocatore per squadra; il messaggio manda alla sezione
+  Squadre) o se la diretta e' gia' finita / la partita e' giocata. Se la diretta era gia' partita da sola ne fissa l'inizio effettivo (l'orario della partita).
+- `POST /api/admin/partite/:id/diretta/eventi` `{ "id_client", "tipo": "gol" | "autogol", "giocatore_id" }` -> `201` col gol nuovo, **`200` col gol che c'e' gia'** se l'`id_client`
+  era gia' stato visto (anche se nel frattempo e' stato annullato o la partita e' finita: un invio ripetuto riesce sempre). La squadra si deduce dal giocatore, che deve avere una
+  squadra **in quella partita**: `400 "giocatore_id: non è in campo in questa partita"` altrimenti. `400` campi non validi (col nome del campo), `404` partita inesistente,
+  `409` se la partita non e' in diretta (non iniziata / finita / giocata) o se si supera il limite, `409` se l'`id_client` e' di un'altra partita.
+- `PATCH /api/admin/partite/:id/diretta/eventi/:eid` `{ "tipo"?, "giocatore_id"? }` cambia il marcatore o il tipo (gol <-> autogol: il punto passa agli avversari). Idempotente
+  (stessi valori = `200`). `404` gol inesistente (o di un'altra partita), `409` se il gol e' annullato o la diretta non e' aperta, `400` corpo vuoto o giocatore non in campo.
+- `DELETE /api/admin/partite/:id/diretta/eventi/:eid` elimina (annulla) un gol. Idempotente (gia' annullato = `200`). `404` / `409` come sopra.
+- `POST /api/admin/partite/:id/diretta/annulla-ultimo` `{ "id_client" }` annulla l'**ultimo gol non annullato**. L'`id_client` e' quello dell'**azione**: ripetuta con lo stesso, restituisce
+  lo stesso gol senza annullarne un altro. `409` se non c'e' niente da annullare o la diretta non e' aperta. (L'interfaccia LIVE non la usa: indica il gol da togliere per `id_client`
+  con `DELETE`, cosi' una vista non aggiornata non fa annullare il gol di un altro admin; la rotta resta per chi vuole "annulla l'ultimo" dal server.)
+- `POST /api/admin/partite/:id/diretta/fine` -> `{ diretta, risultato: { A, B } }`. Calcola dagli eventi i gol e gli autogol **per giocatore** e li scrive in `partecipazioni.gol` / `.autogol`
+  (dentro la stessa transazione che segna `diretta_finita_il`); la partita **resta in convocazione**. **Idempotente e senza ricalcolo**: una seconda pressione non tocca niente
+  (altrimenti cancellerebbe le correzioni fatte a mano nella schermata Risultato). Ammesso anche se le 2 ore sono scadute senza chiusura. `409` se non e' iniziata o e' gia' giocata.
+- **Concorrenza**: ogni scrittura controlla "la diretta e' ancora aperta" **dentro la stessa istruzione SQL**, quindi un gol che arriva mentre un altro admin preme "Fine partita" o
+  viene registrato e contato, o viene rifiutato (`409`): mai perso in silenzio. Due admin che segnano insieme: entrambi gli eventi sono registrati, l'ordine e' quello di arrivo.
+- Durante la diretta (finche' non e' premuto "Fine partita") `PUT .../convocati` rifiuta (`409`) di **togliere o spostare di squadra** chi ha un gol registrato.
+
+### La schermata LIVE e la rete (`app/src/admin/Live.tsx`, `coda_live.ts`, `useLive.ts`)
+
+Al campo il segnale e' scarso: ogni tocco finisce **subito** in una coda sul telefono (`localStorage`, chiave `tt_live_coda_<id partita>`, sempre in `try/catch`) con il suo `id_client`,
+il tabellone e l'elenco mostrano il gol "in invio", e la coda si svuota da sola, **una voce alla volta e in ordine**.
+
+| Cosa | Come |
+|---|---|
+| Quando riprova | ritorno della rete (`online`), ritorno in primo piano (`visibilitychange`), controllo ogni 2 s; dopo un guasto attese crescenti 1,5 / 3 / 6 / 12 / 24 / 30 s (massimo); rete e primo piano azzerano l'attesa |
+| Cosa riprova | rete assente, 408, 425, 429, 5xx |
+| Cosa NON riprova | un rifiuto del server (400, 404, 409...): la voce resta in un riquadro rosso con la ragione ("la diretta è finita"...), l'admin la legge e la **scarta**. Una voce rifiutata toglie anche quelle che dipendevano da lei |
+| Sessione di Access scaduta | 401/403/rinvio al login: i gol restano sul telefono, l'indicatore lo dice, "Ricarica la pagina" porta al login; nessun martellamento |
+| Indicatore | "**N da inviare**" (con "· senza rete" se manca), "**tutto inviato**", "**senza rete**", "sessione scaduta" |
+| Stato mostrato | stato del server + coda applicata in ordine; **a coda vuota e' esattamente quello del server** (riletto dopo l'ultimo invio e ogni ~10 s) |
+| Ricarica della pagina / app chiusa e riaperta | la coda resta e riparte. Giocatori in campo e ultimo stato del server sono copiati sul telefono (`tt_live_partita_*`, `tt_live_stato_*`): ricaricando con le chiamate in errore la schermata si disegna lo stesso |
+| Piu' schede dello stesso telefono | si sincronizzano (`storage`); un invio doppio e' innocuo (stesso `id_client`) |
+
+**Limite documentato: nessun service worker.** La pagina LIVE deve essere **gia' aperta** o riaperta **con un po' di rete**: senza segnale il browser non puo' caricare `/admin`
+(Access sta davanti, e l'app e' una pagina servita dalla rete). I gol segnati restano sul telefono e partono alla prima apertura con rete. Un service worker minimo per lo shell
+`/admin` e' stato valutato e **rimandato** (`docs/DOMANDE_APERTE.md`): `worker-src` nella CSP e' ancora `'none'`.
 
 ## Generatore di squadre
 

@@ -17,7 +17,7 @@
 #   scripts/pubblica.sh, verifiche_mirate.*, scripts/seed_prova.sql            -> COMPLETO (e2e pubblico + e2e admin)
 #   e2e/impianto.ts, trabocchi.ts, schermate_trabocchi.ts                      -> COMPLETO
 #   e2e/e2e.ts                                                                 -> solo e2e pubblico
-#   e2e/e2e_admin.ts, access_simulato.ts, google_simulato.ts, moduli.ts        -> solo e2e admin
+#   e2e/e2e_admin.ts, live.ts, access_simulato.ts, google_simulato.ts, moduli.ts -> solo e2e admin
 #   app/src/admin/**                                                           -> solo e2e admin
 #   app/src/pagine/**                                                          -> solo e2e pubblico
 #   app/src/ui/**, stili/**, lib/**, app/index.html, app/public/**, shared/**,
