@@ -141,7 +141,7 @@ export async function provaLive(browser: Browser, BASE: string, SCHERMATE: strin
   // 3 gol e 1 autogol: ogni tocco e' uno in piu' (tessera + conferma), con feedback subito
   await tessera('Rossi M.').click()
   await pannello.getByRole('button', { name: 'Gol', exact: true }).click()
-  await p.locator('.live-tabellone .half.a .sc.salta').waitFor({ timeout: 2000 })
+  await p.locator('.live-tabellone .half.a .sc.punto-nuovo').waitFor({ timeout: 2000 })
   verifica((await punti()) === '1-0', `${t}: il punteggio salta subito, prima ancora dell'invio (1-0)`)
   verifica((await p.evaluate(() => (window as unknown as { __vibra: unknown[] }).__vibra.length)) >= 1, `${t}: vibrazione al gol (navigator.vibrate chiamato)`)
   await tessera('Russo D.').click()

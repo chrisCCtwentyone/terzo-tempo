@@ -103,7 +103,7 @@ function Corpo({ p, inCampo, live, stato }: { p: PartitaLive; inCampo: Giocatore
           {(['A', 'B'] as const).map((c) => (
             <div key={c} className={`half ${c === 'A' ? 'a' : 'b'}`}>
               <span className="tn">{nomi[c]}</span>
-              <b className={`sc${(c === 'A' ? saltaA : saltaB) ? ' salta' : ''}`} aria-label={`${nomi[c]}: ${live.punti[c]}`}>{live.punti[c]}</b>
+              <b className={`sc${(c === 'A' ? saltaA : saltaB) ? ' punto-nuovo' : ''}`} aria-label={`${nomi[c]}: ${live.punti[c]}`}>{live.punti[c]}</b>
             </div>
           ))}
           <span className="fin">{apertaOra ? 'Live' : stato === 'non_iniziata' ? 'Da giocare' : 'Finita'}</span>
