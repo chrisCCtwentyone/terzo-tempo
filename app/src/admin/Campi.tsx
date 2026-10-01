@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ErroreApi } from '../lib/api'
 import { indicazioni } from '../../../shared/indicazioni'
 import { useApi } from '../lib/useCarica'
-import { useRotta, useTitolo } from '../router'
+import { useTitolo } from '../router'
 import { Attesa, Carta, Icona, Intestazione, Pulsante } from '../ui'
 import { EsitoScrittura, Fld, IconaAdmin, useEsito } from './comuni'
 import { scrivi } from './rete'
@@ -20,9 +20,7 @@ const messaggioLink = (e: ErroreApi) => {
 export function CampiAdmin() {
   useTitolo('Campi · Admin')
   const carico = useApi<{ campi: CampoAdmin[] }>('/api/admin/campi')
-  const { parametri } = useRotta()
-  // "+ Nuovo campo" dalla partita porta qui col modulo gia' aperto
-  const [aperto, setAperto] = useState<number | 'nuovo' | null>(parametri.get('nuovo') === '1' ? 'nuovo' : null)
+  const [aperto, setAperto] = useState<number | 'nuovo' | null>(null)
   const [nota, setNota] = useState<string | null>(null)
   return (
     <>
@@ -74,8 +72,14 @@ export function CampiAdmin() {
   )
 }
 
-/** Form di un campo. Nuovo: si incolla il link di Google Maps e si tocca "Ricava nome"; il nome resta sempre modificabile. */
-function ModificaCampo({ campo, onFatto }: { campo: CampoAdmin | null; onFatto: (nota: string, chiudi?: boolean) => void }) {
+/**
+ * Form di un campo. Nuovo: si incolla il link di Google Maps e si tocca "Ricava nome"; il nome resta sempre modificabile.
+ *
+ * `incorporato`: il modulo sta DENTRO un altro form (la partita, vedi SceltaCampo). Un <form> dentro un <form> non e' HTML
+ * valido, e un Invio o un "Aggiungi" di tipo submit invierebbero la partita: quindi qui niente <form>, pulsante `button` e
+ * Invio che salva il campo (mai la partita). `onCreato` riceve il campo appena creato, cosi' chi lo ospita lo seleziona.
+ */
+export function ModificaCampo({ campo, onFatto, incorporato = false, onCreato }: { campo: CampoAdmin | null; onFatto: (nota: string, chiudi?: boolean) => void; incorporato?: boolean; onCreato?: (c: CampoAdmin) => void }) {
   const [link, setLink] = useState(campo?.link_originale ?? '')
   const [nome, setNome] = useState(campo?.nome ?? '')
   const [pos, setPos] = useState<{ lat: number | null; lng: number | null }>({ lat: campo?.lat ?? null, lng: campo?.lng ?? null })
@@ -112,8 +116,10 @@ function ModificaCampo({ campo, onFatto }: { campo: CampoAdmin | null; onFatto: 
   async function salva() {
     if (!pulito || occupato) return
     const corpo = { nome: pulito, link: link.trim() || null, lat: pos.lat, lng: pos.lng }
-    const ok = await esegui('Salvataggio', () => (campo ? scrivi('PATCH', `/api/admin/campi/${campo.id}`, corpo) : scrivi('POST', '/api/admin/campi', corpo)), campo ? `Salvato il campo ${pulito}` : `Aggiunto il campo ${pulito}`)
-    if (ok) onFatto(campo ? `Salvato il campo ${pulito}` : `Aggiunto il campo ${pulito}`)
+    const ok = await esegui('Salvataggio', () => (campo ? scrivi('PATCH', `/api/admin/campi/${campo.id}`, corpo) : scrivi<CampoAdmin>('POST', '/api/admin/campi', corpo)), campo ? `Salvato il campo ${pulito}` : `Aggiunto il campo ${pulito}`)
+    if (!ok) return
+    if (!campo && onCreato) onCreato(ok as CampoAdmin)
+    onFatto(campo ? `Salvato il campo ${pulito}` : `Aggiunto il campo ${pulito}`)
   }
 
   async function archivia(si: boolean) {
@@ -121,8 +127,8 @@ function ModificaCampo({ campo, onFatto }: { campo: CampoAdmin | null; onFatto: 
     if (ok) onFatto(si ? `Archiviato il campo ${campo!.nome}` : `Riattivato il campo ${campo!.nome}`)
   }
 
-  return (
-    <form className="modulo" onSubmit={(e) => { e.preventDefault(); void salva() }} noValidate>
+  const corpo = (
+    <>
       <h2 className="sr">{campo ? `Modifica ${campo.nome}` : 'Nuovo campo'}</h2>
       <div className="ricava">
         <Fld etichetta="Link di Google Maps" errore={linkErr} aiuto='In Google Maps tocca "Condividi", copia il link e incollalo qui (va bene anche con del testo intorno).'>
@@ -152,13 +158,24 @@ function ModificaCampo({ campo, onFatto }: { campo: CampoAdmin | null; onFatto: 
         <p className="note" style={{ marginTop: 0 }}>{pos.lat !== null ? 'Usa la posizione presa dal link.' : 'Senza posizione nel link, Google Maps cerca il campo per nome.'}</p>
       </div>
       <div className="azioni-modulo">
-        <button type="submit" className="btn yes" disabled={!pulito || occupato || ricavando || invariato} aria-busy={occupato}>
+        <button type={incorporato ? 'button' : 'submit'} className="btn yes" onClick={incorporato ? () => void salva() : undefined} disabled={!pulito || occupato || ricavando || invariato} aria-busy={occupato}>
           <Icona id="i-check" />{occupato ? 'Attendi…' : campo ? 'Salva le modifiche' : 'Aggiungi il campo'}
         </button>
         {campo && <Pulsante variante={campo.archiviato ? '' : 'no'} onClick={() => void archivia(!campo.archiviato)} disabled={occupato || ricavando}>{campo.archiviato ? 'Riattiva il campo' : 'Archivia il campo'}</Pulsante>}
       </div>
       {!pulito && <p className="note" style={{ marginTop: 0 }}>Senza nome il campo non si salva.</p>}
       <EsitoScrittura esito={esito} />
-    </form>
+    </>
+  )
+
+  if (!incorporato) return <form className="modulo" onSubmit={(e) => { e.preventDefault(); void salva() }} noValidate>{corpo}</form>
+  return (
+    <div className="modulo" role="group" aria-label="Nuovo campo" onKeyDown={(e) => {
+      // Invio in un campo di testo non deve MAI inviare la partita che sta intorno: nel link ricava il nome (lo fa il campo
+      // stesso, che ha gia' bloccato l'evento), altrove salva il campo.
+      if (e.key !== 'Enter' || !(e.target instanceof HTMLInputElement) || e.defaultPrevented) return
+      e.preventDefault()
+      void salva()
+    }}>{corpo}</div>
   )
 }

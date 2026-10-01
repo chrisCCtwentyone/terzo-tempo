@@ -162,4 +162,8 @@
 .indicazioni .luogo{justify-self:start}
 .campo-scelta{display:grid;grid-template-columns:minmax(0,1fr);gap:0;min-width:0}
 .nuovo-campo{display:inline-flex;align-items:center;justify-self:start;max-width:100%;min-height:44px;font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--bluet);text-decoration:underline;text-underline-offset:3px}
+button.nuovo-campo{background:none;border:0;padding:0;font-family:inherit;text-align:left;cursor:pointer}
+.nuovo-campo:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* il modulo "Nuovo campo" aperto dentro la partita: un riquadro tratteggiato sotto la tendina */
+.campo-nuovo{margin-top:6px;padding:12px;border:2px dashed var(--edge);border-radius:6px;background:var(--card2);min-width:0}
 .badge-riga .who b .tu{margin-left:8px;vertical-align:middle}
