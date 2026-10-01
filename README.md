@@ -28,6 +28,7 @@ L'app è pensata per un gruppo di circa venti amici che giocano a calcetto e vog
 | **Campo con moduli** | Le formazioni sul campo, in stile fantacalcio: modulo scelto per la partita (per esempio 2-1-2 o 3-2-1) e giocatori sulle loro caselle. |
 | **Voto MVP dal telefono** | Ogni partita ha la sua votazione: si vota dal telefono, **senza login**, un voto per dispositivo. |
 | **Campo da gioco** | Dove si gioca: ogni partita può avere un campo, e il suo nome è un link che apre **Google Maps sulle indicazioni stradali** (app del telefono, se c'è). L'admin aggiunge un campo incollando il link "Condividi" di Google Maps. |
+| **Partita in diretta** | Un admin in panchina segna i **gol mentre si gioca** (anche con poco segnale: restano sul telefono e partono da soli, senza doppioni). Chi guarda vede in Home la carta **IN DIRETTA** col pallino rosso e, aprendo la partita, punteggio e marcatori che si aggiornano da soli. |
 | **Generatore di squadre** | Dai convocati propone due squadre bilanciate; poi chi organizza ritocca a mano. |
 | **Stagioni** | Aperte e chiuse a mano: classifiche per stagione e storico. |
 | **Area admin** | Giocatori, badge, campi, stagioni, partite, risultati e MVP. Protetta da Cloudflare Access. |
@@ -65,7 +66,12 @@ flowchart TD
     A["📋 Convocati<br/>(li inserisce l'admin)"] --> B["🎲 Genera squadre<br/>bilanciate"]
     B --> C["✋ Ritocco a mano"]
     C --> D["📐 Moduli e campo<br/>giocatori sulle caselle"]
-    D --> E["🥅 Risultato, gol e voti<br/>in pagella"]
+    D --> L1["🔴 Diretta: 'Inizia diretta'<br/>o parte da sola all'orario<br/>(se ci sono le squadre)"]
+    L1 --> L2["⚽ L'admin segna gol e autogol<br/>(coda sul telefono, senza doppioni)"]
+    L2 --> L3{"Fine"}
+    L3 -->|"'Fine partita'"| E
+    L3 -->|"2 ore senza chiusura:<br/>'Risultato da confermare'"| E
+    D --> E["🥅 Risultato, gol e voti<br/>in pagella<br/>(a mano, oppure dalla diretta)"]
     E --> F["✅ Partita 'giocata'"]
     F --> G["🗳️ Voto MVP aperto<br/>a tutto il gruppo"]
     G --> H{"Chiusura"}
@@ -93,6 +99,53 @@ flowchart TD
 ```
 
 La scadenza automatica si calcola sull'**orario della partita**, non su quando la si carica: se l'admin inserisce il risultato in ritardo, nessuno può comunque votare giorni dopo. Non c'è nessun cron: la chiusura viene applicata alla prima lettura o al primo voto successivi.
+
+---
+
+## La partita in diretta
+
+Un admin in panchina segna i gol **mentre si gioca**: tocca la figurina di chi ha segnato, poi *Gol* o *Autogol* (un autogol vale un punto per gli avversari, come in tutto il resto del sito). Niente cronometro: conta l'ordine dei gol. Chi segue da casa vede **IN DIRETTA** con punteggio e marcatori che si aggiornano da soli ogni circa 10 secondi, solo mentre la pagina è visibile.
+
+Lo stato non è una colonna: si **calcola alla lettura**, senza cron, come la chiusura del voto MVP.
+
+```mermaid
+stateDiagram-v2
+    [*] --> non_iniziata
+    non_iniziata --> in_diretta: "Inizia diretta" (a mano)<br/>oppure l'orario della partita<br/>se le squadre sono assegnate
+    in_diretta --> da_confermare: "Fine partita"<br/>oppure 2 ore dall'inizio
+    da_confermare --> finita: l'admin mette i voti<br/>e "Segna come giocata"
+    finita --> [*]
+```
+
+"**Fine partita**" calcola dagli eventi i gol e gli autogol di ogni giocatore e li scrive negli stessi campi della schermata *Risultato*; poi l'admin mette i voti e preme *Segna come giocata* come prima (il voto MVP si apre solo allora).
+
+**Senza segnale.** Ogni tocco finisce subito in una coda sul telefono con un identificativo suo (`id_client`); l'interfaccia mostra il gol "in invio" e un indicatore dice *N da inviare*, *tutto inviato* o *senza rete*. La coda resiste alla ricarica e alla chiusura dell'app, riprova da sola (ritorno della rete, ritorno in primo piano, attese crescenti) e il server, vedendo un `id_client` già noto, non crea doppioni. Un invio che il server rifiuta (partita già chiusa) si mostra e **non** si ritenta all'infinito.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor A as Admin (telefono)
+    participant Q as Coda sul telefono
+    participant API as Pages Functions
+    participant DB as D1
+
+    A->>Q: tocca Rossi, poi "Gol" (id_client = UUID)
+    Q-->>A: subito: punteggio che salta, gol "in invio"
+    Q->>API: POST .../diretta/eventi { id_client, tipo, giocatore_id }
+    Note over Q,API: senza rete la richiesta fallisce e resta in coda
+    Q->>API: stessa richiesta, stesso id_client (ritorno della rete)
+    API->>DB: INSERT ... (id_client UNIQUE, partita ancora aperta)
+    alt id_client nuovo
+        DB-->>API: ok
+        API-->>Q: 201 il gol
+    else id_client già visto (risposta persa)
+        DB-->>API: UNIQUE: esiste già
+        API-->>Q: 200 lo stesso gol, nessun doppione
+    end
+    Q-->>A: "tutto inviato"; lo stato mostrato torna quello del server
+```
+
+Limite noto: **nessun service worker**, quindi la pagina LIVE deve essere già aperta (o riaperta con un po' di rete); i gol segnati restano sul telefono. Dettagli e perché in [`docs/API.md`](docs/API.md) e [`docs/DOMANDE_APERTE.md`](docs/DOMANDE_APERTE.md).
 
 ---
 
@@ -152,6 +205,9 @@ erDiagram
     GIOCATORI ||--o{ VOTI_MVP : "e' votato"
     PARTITE ||--o| MVP_VINCITORI : "ha un MVP"
     GIOCATORI ||--o{ MVP_VINCITORI : "e' MVP"
+    PARTITE ||--o{ EVENTI_PARTITA : "gol in diretta"
+    GIOCATORI ||--o{ EVENTI_PARTITA : segna
+    TIPI_EVENTO ||--o{ EVENTI_PARTITA : "e' di tipo"
 
     GIOCATORI {
         int id PK
@@ -198,6 +254,22 @@ erDiagram
         text cronaca
         text mvp_stato "aperto, parita_da_decidere, assegnato, nessun_voto"
         text mvp_chiuso_il
+        text diretta_iniziata_il "premuto 'Inizia diretta'"
+        text diretta_finita_il "premuto 'Fine partita'"
+    }
+    EVENTI_PARTITA {
+        int id PK "l'ordine dei gol"
+        int partita_id FK
+        text tipo FK "gol o autogol (tabella tipi_evento)"
+        text squadra "A o B: chi incassa il punto"
+        int giocatore_id FK
+        text id_client UK "UUID del telefono: invio idempotente"
+        int annullato "0 o 1: cancellazione logica"
+        text annullato_da UK "id_client di 'Annulla ultimo'"
+        text creato_il
+    }
+    TIPI_EVENTO {
+        text tipo PK "gol, autogol (poi assist, tiro...)"
     }
     PARTECIPAZIONI {
         int partita_id PK, FK
@@ -222,7 +294,7 @@ erDiagram
     }
 ```
 
-`VOTI_MVP` ha un vincolo `UNIQUE (partita_id, hash_token)`: un dispositivo, un voto per partita. Un campo si **archivia**, non si cancella: resta sulle partite passate ma non si sceglie più per le nuove. Schema completo in [`migrations/`](migrations/).
+`VOTI_MVP` ha un vincolo `UNIQUE (partita_id, hash_token)`: un dispositivo, un voto per partita. `EVENTI_PARTITA.id_client` è `UNIQUE`: un invio ripetuto non crea un doppione; il tipo di evento sta in una tabella (`TIPI_EVENTO`), così aggiungere "assist" o "tiro" in futuro è una `INSERT`, non il rifacimento della tabella; niente email né nomi di chi segna. Un campo si **archivia**, non si cancella: resta sulle partite passate ma non si sceglie più per le nuove. Schema completo in [`migrations/`](migrations/).
 
 ---
 

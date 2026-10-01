@@ -84,10 +84,10 @@ aperto() {
 }
 
 PAGINE_PUBBLICHE=(/ /classifiche /partite /giocatori /info)
-API_PUBBLICHE=(/api/home /api/classifiche /api/partite /api/giocatori /api/stagioni)
+API_PUBBLICHE=(/api/home /api/classifiche /api/partite /api/giocatori /api/stagioni /api/diretta)
 
 # Ogni rotta admin, ricavata dai file di functions/api/admin: l'elenco non si dimentica di niente.
-mapfile -t API_ADMIN < <(cd functions/api && find admin -name '*.ts' | sed -e 's/\.ts$//' -e 's/\/index$//' -e 's/\[id\]/1/g' | sort -u | sed 's|^|/api/|')
+mapfile -t API_ADMIN < <(cd functions/api && find admin -name '*.ts' | sed -e 's/\.ts$//' -e 's/\/index$//' -e 's/\[[a-z]*\]/1/g' | sort -u | sed 's|^|/api/|')
 if [ "${#API_ADMIN[@]}" -lt 5 ]; then male "elenco delle rotte admin sospetto (${#API_ADMIN[@]}): controlla functions/api/admin"; fi
 
 echo "-> parte pubblica su $SITO (deve dare 200)"
@@ -231,6 +231,15 @@ non_aperto "HEAD /api/admin/me" HEAD "$SITO/api/admin/me"
 non_aperto "OPTIONS /api/admin/me" OPTIONS "$SITO/api/admin/me"
 non_aperto "OPTIONS /api/admin/me con Origin esterna" OPTIONS "$SITO/api/admin/me" -H 'Origin: https://evil.example' -H 'Access-Control-Request-Method: POST'
 
+# la partita in diretta: ogni scrittura verso l'admin, senza credenziali, non deve mai avere successo (e non scrive niente: Access o il backend rifiutano prima)
+echo "-> la diretta: nessuna scrittura senza credenziali (POST/PATCH/DELETE: mai 2xx)"
+for p in /api/admin/partite/1/diretta /api/admin/partite/1/diretta/inizia /api/admin/partite/1/diretta/eventi /api/admin/partite/1/diretta/fine /api/admin/partite/1/diretta/annulla-ultimo /api/admin/partite/1/diretta/eventi/1 /api/admin/partite/1/diretta/eventi/00000000-0000-4000-8000-000000000000; do
+  non_aperto "POST $p" POST "$SITO$p" -H 'Content-Type: application/json' -d '{"id_client":"00000000-0000-4000-8000-000000000000","tipo":"gol","giocatore_id":1}'
+  non_aperto "PATCH $p" PATCH "$SITO$p" -H 'Content-Type: application/json' -d '{"tipo":"autogol"}'
+  non_aperto "DELETE $p" DELETE "$SITO$p"
+  non_aperto "GET $p" GET "$SITO$p"
+done
+
 echo "-> JWT, cookie e intestazioni contraffatti su /api/admin (mai 2xx)"
 for jwt in "$JWT_NONE" "$JWT_HS256" "$JWT_RS256" "abc" ""; do
   nome=${jwt:0:12}
@@ -334,7 +343,7 @@ done
 echo "-> id e parametri malevoli su rotte pubbliche in sola lettura: mai 5xx, mai stack, mai livello"
 MALEVOLI=("%27%20OR%201%3D1--" "1%3B%20DROP%20TABLE%20giocatori%3B--" "1%20UNION%20SELECT%20nome%2C2%2C3%20FROM%20giocatori--" "99999999999999999999999" "-1" "0" "NaN" "1e3" "0x10" "%00" "%zz" "%E0%A4%A" "%D9%A3" "abc")
 for m in "${MALEVOLI[@]}"; do
-  for p in "/api/giocatori/$m" "/api/partite/$m" "/api/partite/$m/mvp" "/api/classifiche?stagione=$m" "/api/partite?stagione=$m" "/api/giocatori/1?stagione=$m" "/api/giocatori?tutti=$m"; do
+  for p in "/api/giocatori/$m" "/api/partite/$m" "/api/partite/$m/mvp" "/api/partite/$m/diretta" "/api/classifiche?stagione=$m" "/api/partite?stagione=$m" "/api/giocatori/1?stagione=$m" "/api/giocatori?tutti=$m"; do
     tmp=$(mktemp)
     codice=$(curl -s -o "$tmp" -w "%{http_code}" --max-time 20 "$SITO$p") || codice="000"
     # un timeout di rete non e' un errore del sito: si riprova una volta

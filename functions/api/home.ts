@@ -1,6 +1,10 @@
-/** GET /api/home: ultima partita, prossima con convocati, top marcatori della stagione aperta. */
+/**
+ * GET /api/home: ultima partita, prossima con convocati, top marcatori della stagione aperta e `diretta`: la partita in diretta
+ * adesso (o quella "da confermare"), oppure null (functions/lib/diretta.ts).
+ */
 import { TOP_MARCATORI_HOME } from '../lib/costanti';
 import { hashDelDispositivo } from '../lib/dispositivo';
+import { direttaCorrente } from '../lib/diretta';
 import { dettaglio, stagioneAperta } from '../lib/partite';
 import { json, perMetodo } from '../lib/risposta';
 import { classifica, totaliStagione } from '../lib/statistiche';
@@ -21,6 +25,7 @@ export const onRequest = perMetodo({
       ultima_partita: ultima ? await dettaglio(env.DB, ultima, hash, adesso) : null,
       prossima_partita: prossima ? await dettaglio(env.DB, prossima, hash, adesso) : null,
       top_marcatori: marcatori,
+      diretta: await direttaCorrente(env.DB, adesso),
     });
   },
 });

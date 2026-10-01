@@ -1,6 +1,7 @@
 import './admin.css'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import type { ErroreApi } from '../lib/api'
+import { leggi, type ErroreApi } from '../lib/api'
+import type { DirettaCorrente } from '../lib/tipi'
 import { cambiaTema } from '../lib/tema'
 import { useApi } from '../lib/useCarica'
 import { Link, useRotta, useTitolo } from '../router'
@@ -11,6 +12,7 @@ import { BadgeAdmin } from './Badge'
 import { CampiAdmin } from './Campi'
 import { StagioniAdmin } from './Stagioni'
 import { ElencoPartite, NuovaPartita } from './Partite'
+import { Live } from './Live'
 import { PartitaAdmin } from './PartitaAdmin'
 
 // L'area admin sta in un pezzo a parte (React.lazy in App.tsx): chi guarda solo i turni non la scarica.
@@ -90,6 +92,7 @@ function Riservata() {
 
 function Contenuto({ segmenti }: { segmenti: string[] }) {
   const [, sez, id, ...resto] = segmenti
+  if (sez === 'partite' && id !== undefined && /^\d+$/.test(id) && resto.length === 1 && resto[0] === 'live') return <Live key={id} id={Number(id)} />
   if (resto.length === 0) {
     if (sez === undefined || (sez === 'partite' && id === undefined)) return <ElencoPartite />
     if (sez === 'partite' && id === 'nuova') return <NuovaPartita />
@@ -107,6 +110,28 @@ function Contenuto({ segmenti }: { segmenti: string[] }) {
   )
 }
 
+/**
+ * La partita in diretta adesso, per la scorciatoia LIVE della navigazione (GET /api/diretta, leggerissima): si legge all'apertura,
+ * a ogni cambio di pagina e ogni 20 secondi mentre la pagina e' visibile. Solo la diretta IN CORSO: una "da confermare" non e' live.
+ */
+function useDirettaInCorso(attivo: boolean, percorso: string): DirettaCorrente | null {
+  const [d, setD] = useState<DirettaCorrente | null>(null)
+  useEffect(() => {
+    if (!attivo) return
+    let vivo = true
+    const carica = () => {
+      leggi<{ diretta: DirettaCorrente | null }>('/api/diretta').then((r) => vivo && setD(r.diretta), () => undefined)
+    }
+    carica()
+    const t = setInterval(() => document.visibilityState === 'visible' && carica(), 20_000)
+    return () => {
+      vivo = false
+      clearInterval(t)
+    }
+  }, [attivo, percorso])
+  return d && d.stato === 'in_diretta' ? d : null
+}
+
 export default function Admin() {
   useTitolo('Area admin')
   const { percorso, segmenti } = useRotta()
@@ -115,6 +140,7 @@ export default function Admin() {
   // fotografia all'apertura: l'effetto qui sotto segna il tentativo, il disegno deve ricordare com'era PRIMA
   const [giaProvato] = useState(tentativoFatto)
   const accesso = servAccesso(me.errore)
+  const dirInCorso = useDirettaInCorso(!!me.dati, percorso)
   useEffect(() => {
     window.scrollTo(0, 0)
     main.current?.focus({ preventScroll: true })
@@ -134,6 +160,7 @@ export default function Admin() {
     return <Attesa><Caricamento testo="Verifica accesso…" /></Attesa>
   }
   const attiva = segmenti[1] ?? 'partite'
+  const inLive = segmenti[3] === 'live'
 
   return (
     <>
@@ -153,9 +180,15 @@ export default function Admin() {
         </main>
       </div>
       <nav className="nav adm" aria-label="Sezioni admin">
-        <div className="nav-in cinque">
+        <div className={`nav-in ${dirInCorso ? 'sei' : 'cinque'}`}>
+          {dirInCorso && (
+            <Link verso={`/admin/partite/${dirInCorso.partita_id}/live`} className="live-link" aria-current={inLive ? 'page' : undefined}>
+              <span className="live-dot" aria-hidden="true" />
+              Live
+            </Link>
+          )}
           {SEZIONI.map((s) => (
-            <Link key={s.chiave} verso={s.verso} aria-current={attiva === s.chiave ? 'page' : undefined}>
+            <Link key={s.chiave} verso={s.verso} aria-current={attiva === s.chiave && !inLive ? 'page' : undefined}>
               {s.icona.startsWith('a-') ? <IconaAdmin id={s.icona as 'a-badge' | 'a-cal'} /> : <Icona id={s.icona as 'i-pitch' | 'i-user' | 'i-pin'} />}
               {s.nome}
             </Link>

@@ -120,3 +120,37 @@ presentazione. Da confermare con l'utente.
     "Salva". "Genera squadre", "Rigenera" e "Segna come giocata" salvano prima la bozza (il backend lavora sui dati salvati).
     Convocati modificabili solo in convocazione. Gli "avvisi" sui conti li mostra il backend dopo ogni salvataggio; in piu' l'app segnala se il risultato
     salvato differisce da quello calcolato e offre "Aggiorna il risultato".
+
+## Partita in diretta (01/10/2026): scelte fatte dove CLAUDE.md non copriva, tutte semplici e reversibili
+
+Specifica: CLAUDE.md, "Partita in diretta". Codice: `functions/lib/diretta.ts`, `app/src/admin/Live.tsx`. Da confermare con l'utente quando vuole.
+
+29. **Partenza automatica solo con le squadre assegnate.** Una partita con l'orario passato ma SENZA squadre (almeno un giocatore per squadra) **non** diventa
+    "in diretta" da sola: mostrerebbe "IN DIRETTA 0-0" su una partita senza squadre, e CLAUDE.md dice "si segnano gol solo con le squadre assegnate". Per cambiare:
+    `statoDiretta` in `functions/lib/diretta.ts` (il ramo "partenza automatica"). La partita vera del 01/10/2026 (22:00 ora italiana) ha le squadre: parte da sola.
+30. **"Da confermare" solo se c'e' stata una diretta.** Scaduta la finestra di 2 ore senza "Fine partita": se c'e' stato almeno un gol (o l'admin ha premuto "Inizia")
+    diventa "Risultato da confermare"; se la partita era partita da sola e nessuno ha segnato niente torna `non_iniziata` (altrimenti ogni convocazione dimenticata, con le
+    squadre, mostrerebbe per sempre "Risultato da confermare 0-0" nella Home). "Da confermare" non ha scadenza: resta finche' l'admin non segna la partita giocata.
+31. **Dopo le 2 ore (o dopo "Fine partita") i gol non si registrano piu'** (`409`). Se una partita dura piu' di 2 ore: "Fine partita" si puo' premere comunque
+    (anche a finestra scaduta) e i gol mancanti si aggiustano nella schermata Risultato. La costante e' una sola (`DURATA_MASSIMA_DIRETTA_MS`).
+32. **Nessun "riapri la diretta".** Dopo "Fine partita" le correzioni si fanno nella schermata Risultato (come sempre). Se serve, e' una rotta in piu'.
+33. **"Fine partita" scrive solo i contatori dei giocatori** (`partecipazioni.gol` / `.autogol`), non `partite.gol_a` / `gol_b`: quelli li scrive "Segna come giocata", come
+    prima, cosi' in convocazione `gol` resta `null` (contratto di `docs/API.md`). Il punteggio della diretta si ricava dagli eventi. Una seconda pressione di "Fine partita"
+    NON ricalcola (cancellerebbe le correzioni a mano).
+34. **Chi segna non e' registrato.** Il database non ha email ne' un "hash breve" di chi ha inserito il gol (l'utente lo permetteva "oppure niente"): meno dati, nessun
+    rischio. Se un giorno servisse una traccia: una colonna in `eventi_partita`.
+35. **Cancellazione logica, non vera.** `annullato = 1`: un invio in ritardo (telefono senza rete) con l'`id_client` di un gol gia' eliminato non lo fa risorgere.
+36. **Il tipo di evento sta in una tabella (`tipi_evento`) e non in un CHECK**, cosi' per 'assist' e 'tiro' basta una INSERT (piu' il codice che li conta). Un CHECK di SQLite non si modifica senza ricostruire la tabella.
+37. **"Annulla ultimo" dell'interfaccia elimina il gol che SI VEDE come ultimo, per `id_client`**, non chiama `annulla-ultimo` del server: con due admin e una vista non
+    aggiornata il server annullerebbe il gol di un altro. La rotta `.../diretta/annulla-ultimo` (idempotente sull'id dell'azione) c'e' ed e' provata, ma l'app non la usa.
+38. **L'ordine dei gol e' l'ordine di arrivo al server.** Con un telefono senza rete i gol arrivano tutti insieme al ritorno del segnale, nell'ordine in cui sono stati segnati
+    su quel telefono; se un altro admin segna nel frattempo, i suoi gol possono stare in mezzo. Senza minuto (decisione dell'utente) non c'e' modo migliore.
+39. **Limite di 200 eventi per partita** (`MAX_EVENTI_DIRETTA`), annullati compresi. Con un limite piu' basso un admin che corregge molto potrebbe esaurirlo.
+40. **Nessun service worker** (valutato, rimandato). Motivi: (a) l'app e' una pagina servita da dietro Cloudflare Access: un service worker che serve lo shell `/admin` offline
+    dovrebbe lasciar passare il redirect al login e non mettere in cache niente di `/api/admin`, e non si puo' provare davvero senza l'Access vero; (b) la CSP oggi ha
+    `worker-src 'none'` e andrebbe aperta a `'self'`; (c) un service worker che sbaglia serve codice vecchio per giorni. Costo del limite: se l'app si chiude **senza segnale** non si
+    riapre finche' non torna un po' di campo; i gol in coda restano sul telefono e partono alla prima apertura con rete. Se l'utente vuole, e' il passo successivo.
+41. **Se `/api/admin/me` fallisce per la rete mentre si e' "online"** la guscio dell'admin lo prende per una sessione scaduta (comportamento che c'era gia'): ricaricando la pagina
+    LIVE con rete a meta' puo' comparire "Area riservata" invece della schermata. I gol in coda restano sul telefono; "Accedi" li ritrova.
+42. **Le date delle prove nel browser** (`e2e/`) sono nel 2036, non piu' nel 2026: con la partenza automatica all'orario, una partita di prova con le squadre e la data passata
+    sarebbe diventata "in diretta" da sola e avrebbe cambiato la navigazione (scorciatoia LIVE) a meta' di una prova.

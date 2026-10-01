@@ -7,6 +7,7 @@
  */
 import { avvisiCoerenza, controllaGiocabile, type Convocato } from '../../../../lib/admin';
 import { CODICI_SQUADRA, MAX_CONVOCATI } from '../../../../lib/costanti';
+import { controllaConvocatiConDiretta } from '../../../../lib/diretta';
 import { caricaPartita } from '../../../../lib/mvp';
 import { dettaglio } from '../../../../lib/partite';
 import { ErroreApi, idDa, json, leggiOggetto, perMetodo } from '../../../../lib/risposta';
@@ -40,6 +41,7 @@ export const onRequest = perMetodo({
     const p = await caricaPartita(env.DB, id);
     if (!p) throw new ErroreApi(404, 'partita non trovata');
     if (p.stato === 'giocata') controllaGiocabile(righe);
+    await controllaConvocatiConDiretta(env.DB, p, righe); // durante la diretta chi ha segnato non si toglie ne' si sposta
 
     try {
       await env.DB.batch([

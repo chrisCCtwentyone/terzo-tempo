@@ -66,7 +66,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
         await p.locator('.conv-scelta label').nth(0).click()
         await p.locator('.conv-scelta label').nth(8).click()
         await p.locator('.conv-scelta label').last().click()
-        await p.getByLabel('Data e ora').fill('2026-10-22T21:00')
+        await p.getByLabel('Data e ora').fill('2036-10-22T21:00')
         await p.getByLabel('Campo', { exact: true }).selectOption({ label: 'Polisportiva Comunale Giovanni Battista Montefiascone-Vannozzi e Figli' })
       },
     },
@@ -166,7 +166,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       attesa: '.conv-scelta label',
       prepara: async (p) => {
         await p.locator('.conv-scelta label').nth(0).click()
-        await p.getByLabel('Data e ora').fill('2026-10-22T21:00')
+        await p.getByLabel('Data e ora').fill('2036-10-22T21:00')
         await p.getByRole('button', { name: '+ Nuovo campo' }).click()
         await p.getByLabel('Link di Google Maps').fill('Guarda questo posto bellissimo e lunghissimo: https://maps.app.goo.gl/EsempioLinkMoltoLungoSenzaSpaziChePuoUscireDalCampoDiTestoDelModulo')
         await p.getByLabel('Nome del campo').fill('Polisportiva Comunale Giovanni Battista Montefiascone-Vannozzi e Figli')

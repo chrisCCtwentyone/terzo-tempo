@@ -62,7 +62,7 @@ export function aggiungiDatiEstremi() {
         (91, 'Supercalifragilistichespiralidosoimpiantosportivocomunalenuovissimo', NULL, NULL, NULL);`,
       `INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b, cronaca, mvp_stato, mvp_chiuso_il, campo_id) VALUES
         (120, 90, '2025-05-01T19:00:00Z', 'giocata', 6, 5, 'Serata memorabile: Wolfeschlegelsteinhausenbergerdorff ha segnato due volte e poi ha inseguito il pallone fino a https://esempio.invalid/una/strada/lunghissima/senza/spazi/che/non/finisce/mai', 'assegnato', '2025-05-02T19:00:00Z', 90),
-        (121, 2, '2026-10-15T19:00:00Z', 'convocazione', NULL, NULL, NULL, 'aperto', NULL, 91);`,
+        (121, 2, '2036-10-15T19:00:00Z', 'convocazione', NULL, NULL, NULL, 'aperto', NULL, 91);`,
       pos(120, [
         [90, 'A', 16.7, 19.6, 3, 0, 9.5], [1, 'A', 50, 19.6, 2, 0, 8], [2, 'A', 83.3, 19.6, 1, 0, 7],
         [3, 'A', 16.7, 33, 0, 0, 6.5], [4, 'A', 50, 33, 0, 0, 6], [5, 'A', 83.3, 33, 0, 0, 5.5],
