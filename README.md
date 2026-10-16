@@ -392,6 +392,10 @@ Si pubblica con un solo comando, che si ferma al primo errore e alla fine contro
 
 Account Cloudflare, Access, secret e trappole già incontrate: [`docs/DEPLOY.md`](docs/DEPLOY.md). Contratto delle API: [`docs/API.md`](docs/API.md).
 
+### Usarlo nel tuo gruppo
+
+Vuoi un Terzo Tempo per il tuo gruppo, sul tuo account Cloudflare? Fai un fork, poi lancia `node scripts/nuovo_gruppo.mjs`: crea progetto e database, chiede le email degli admin e pubblica. La guida passo passo è in [`docs/NUOVO_GRUPPO.md`](docs/NUOVO_GRUPPO.md). Il tuo sito avrà dati e admin tuoi, del tutto separati da questo.
+
 ---
 
 ## Sicurezza e privacy

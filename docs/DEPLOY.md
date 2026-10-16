@@ -152,6 +152,13 @@ Per vedere i giocatori in produzione:
 npx wrangler d1 execute terzo-tempo --remote --command "SELECT id, nome, attivo FROM giocatori ORDER BY nome"
 ```
 
+## Altri gruppi (fork su un altro account)
+
+Chi vuole un Terzo Tempo suo usa `scripts/nuovo_gruppo.mjs` (prima configurazione) e `scripts/aggiorna_gruppo.mjs`
+(pubblicazioni successive): guida in `docs/NUOVO_GRUPPO.md`, funzioni provate da `test/gruppo.test.ts`. Questo sito non
+li usa mai: `aggiorna_gruppo.mjs` si rifiuta se `wrangler.toml` ha `name = "terzo-tempo"`, e `nuovo_gruppo.mjs` si rifiuta
+se l'account collegato contiene gia' il database di `wrangler.toml`. Qui si pubblica solo con `./scripts/pubblica.sh`.
+
 ## Una sessione nuova (macchina o sessione senza memoria)
 
 1. Nell'ambiente devono esserci `CLOUDFLARE_API_TOKEN` (token API con permessi su Pages, D1 e
