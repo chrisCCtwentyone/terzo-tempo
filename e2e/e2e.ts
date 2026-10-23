@@ -284,6 +284,27 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica(!/Esposito\s*\n?\s*1/.test(await p.locator('#voto-mvp').innerText()), `${tema} voto: nessun conteggio per giocatore mentre e' aperto`)
   await foto(p, `${tema}-partita-voto-registrato`)
 
+  // "Condividi il voto": anche dopo aver votato. Con il menu di condivisione del telefono (qui finto) passa testo e link giusti...
+  const condividi = p.getByRole('button', { name: 'Condividi il voto' })
+  verifica(await condividi.isVisible(), `${tema} condividi: pulsante nel blocco del voto aperto`)
+  await p.evaluate(() => {
+    const w = window as unknown as { condiviso: ShareData[] }
+    w.condiviso = []
+    Object.defineProperty(navigator, 'share', { configurable: true, value: async (d: ShareData) => { w.condiviso.push(d) } })
+  })
+  await condividi.click()
+  const dati = await p.evaluate(() => (window as unknown as { condiviso: ShareData[] }).condiviso)
+  verifica(dati.length === 1 && dati[0].url === `${BASE}/partite/100#voto-mvp` && /Vota l'MVP della partita di .+! Si chiude .+\./.test(dati[0].text ?? ''),
+    `${tema} condividi: menu di condivisione con testo e link alla partita (${dati[0]?.url} | ${dati[0]?.text})`)
+  // ...senza menu di condivisione (computer) copia il link, o lo mostra da copiare a mano se la copia non e' permessa
+  await p.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: undefined }))
+  await condividi.click()
+  await p.locator('.condividi .note').waitFor()
+  const copiato = await p.getByText('Link copiato: incollalo nel gruppo.').count()
+  const aMano = copiato ? '' : await p.locator('.condividi input').inputValue()
+  verifica(copiato === 1 || aMano === `${BASE}/partite/100#voto-mvp`, `${tema} condividi: senza menu, link copiato o da copiare a mano (${copiato ? 'copiato' : aMano})`)
+  await foto(p, `${tema}-partita-voto-condividi`)
+
   // secondo voto direttamente all'API: 409
   const r2 = await p.evaluate(async () => {
     const r = await fetch('/api/partite/100/mvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ giocatore_id: 2 }) })
