@@ -221,9 +221,10 @@ POST /api/partite/12/mvp   Content-Type: application/json   { "giocatore_id": 2 
 - Il dispositivo e' riconosciuto da un cookie con un token casuale assegnato dal server al primo voto (il frontend non
   deve fare niente: basta che il browser mandi i cookie, `fetch` same-origin lo fa da solo). Nel DB c'e' solo l'hash SHA-256.
   Incognito o un altro browser = un altro dispositivo (limite accettato).
-- Si puo' votare **chiunque sia nel listone** (giocatori attivi), anche se stessi e anche chi non ha giocato.
+- Si puo' votare **solo chi ha giocato questa partita** (convocato con una squadra), anche se stessi (decisione dell'utente, 23/10/2026).
+  Il frontend prende l'elenco da `giocatori` del dettaglio partita.
 - Errori: `409` `"hai gia' votato per questa partita"`; `409` `"votazione chiusa"`; `409` `"la partita non e' ancora stata giocata"`;
-  `400` `"giocatore_id: non e' nel listone"` (inesistente o archiviato); `404` partita inesistente;
+  `400` `"giocatore_id: non ha giocato questa partita"` (inesistente o non convocato con una squadra); `404` partita inesistente;
   `429` `"troppi voti da questa rete per questa partita..."`.
 - **Freno agli script**: al massimo `LIMITE_VOTI_PER_IP` (10) voti per rete e per partita, cosi' una famiglia sullo stesso
   wifi vota senza problemi. La rete e' l'intestazione `CF-Connecting-IP` (la mette Cloudflare, il client non la puo'
@@ -510,7 +511,7 @@ il tabellone e l'elenco mostrano il gol "in invio", e la coda si svuota da sola,
 - `POST /api/admin/partite/:id/mvp/decidi` `{ "giocatore_id": 13 }` assegna l'MVP -> il blocco `mvp` (`assegnato`). Ammesso solo in due casi:
   - `mvp.stato === "parita_da_decidere"`: si sceglie fra i pari merito (`mvp.candidati`); `400` se non e' fra loro;
   - `mvp.stato === "nessun_voto"` (votazione chiusa senza nessun voto): si sceglie fra i **giocatori della partita** (quelli con una squadra);
-    `400` se non ha giocato. *Scelta provvisoria, da confermare* (alternativa: tutti gli attivi; `CANDIDATI_SENZA_VOTI` in `functions/lib/mvp.ts`).
+    `400` se non ha giocato. Sono gli stessi giocatori votabili (`CANDIDATI_SENZA_VOTI` in `functions/lib/mvp.ts`).
   - In ogni altro stato (`non_aperto`, `aperto`, `assegnato`) `409`. Il vincitore e' sempre uno solo.
 
 ---

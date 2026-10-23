@@ -245,7 +245,8 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica(await p.getByText(/Chiude|chiude/).first().isVisible(), `${tema} voto: c'e' la chiusura`)
   const conto = await p.locator('[role="timer"]').innerText()
   verifica(/\d\d:\d\d:\d\d/.test(conto), `${tema} voto: conto alla rovescia (${conto.split('\n')[0]})`)
-  verifica((await p.locator('.vota input[type=radio]').count()) === 19, `${tema} voto: tutti i giocatori votabili (16 del seed + 3 di prova con nomi lunghi)`)
+  verifica((await p.locator('.vota input[type=radio]').count()) === 6, `${tema} voto: votabili solo i 6 che hanno giocato la partita 100`)
+  verifica((await p.locator('.vota label', { hasText: 'Colombo' }).count()) === 0, `${tema} voto: chi non ha giocato (Colombo) non si puo' votare`)
   verifica((await p.locator('.ped').count()) === 6, `${tema} partita 100: sei pedine (una squadra con ripiego automatico)`)
   const invitoHome = await (async () => {
     const q = await s.ctx.newPage()
@@ -268,10 +269,10 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   await vecchia.goto(BASE + '/partite/100')
   await vecchia.locator('.vota').waitFor()
 
-  await p.getByText('Colombo P.', { exact: false }).first().waitFor({ state: 'attached' })
-  await p.locator('.vota label', { hasText: 'Colombo' }).click()
+  await p.getByText('Esposito F.', { exact: false }).first().waitFor({ state: 'attached' })
+  await p.locator('.vota label', { hasText: 'Esposito' }).click()
   await p.getByRole('group', { name: 'Conferma del voto' }).waitFor()
-  verifica((await p.getByRole('group', { name: 'Conferma del voto' }).innerText()).includes('Colombo P.'), `${tema} voto: conferma nella pagina, non confirm()`)
+  verifica((await p.getByRole('group', { name: 'Conferma del voto' }).innerText()).includes('Esposito F.'), `${tema} voto: conferma nella pagina, non confirm()`)
   await p.waitForTimeout(400)
   await foto(p, `${tema}-partita-voto-conferma`)
   await p.getByRole('button', { name: 'Conferma il voto' }).click()
@@ -280,7 +281,7 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica((await p.locator('.vota').count()) === 0, `${tema} voto: dopo il voto l'elenco sparisce`)
   verifica(await p.getByText(/Hai già votato da questo telefono/).isVisible(), `${tema} voto: "hai già votato"`)
   verifica((tema === 'light' ? /1 ha votato/ : /2 hanno votato/).test(await p.locator('#voto-mvp').innerText()), `${tema} voto: solo il numero dei votanti, mentre e' aperto`)
-  verifica(!/Colombo\s*\n?\s*1/.test(await p.locator('#voto-mvp').innerText()), `${tema} voto: nessun conteggio per giocatore mentre e' aperto`)
+  verifica(!/Esposito\s*\n?\s*1/.test(await p.locator('#voto-mvp').innerText()), `${tema} voto: nessun conteggio per giocatore mentre e' aperto`)
   await foto(p, `${tema}-partita-voto-registrato`)
 
   // secondo voto direttamente all'API: 409

@@ -151,7 +151,7 @@ Limite noto: **nessun service worker**, quindi la pagina LIVE deve essere già a
 
 ## Il voto MVP
 
-Vota tutto il gruppo, non solo chi ha giocato, senza login e in modo anonimo. Il server riconosce il telefono da un cookie casuale e ne salva **solo l'hash**.
+Vota tutto il gruppo, non solo chi ha giocato, senza login e in modo anonimo; ma si vota **solo uno dei giocatori della partita** (i convocati con una squadra), anche se stessi. Il server riconosce il telefono da un cookie casuale e ne salva **solo l'hash**.
 
 ```mermaid
 sequenceDiagram
