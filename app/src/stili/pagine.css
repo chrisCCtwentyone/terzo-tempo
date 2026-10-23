@@ -58,6 +58,10 @@
 .esito-voto{display:flex;align-items:center;gap:10px;font-weight:800;margin-top:12px}
 .esito-voto>span{min-width:0}
 .esito-voto .ico{color:var(--green);stroke-width:3}
+.condividi{margin-top:14px;padding-top:12px;border-top:2px dashed var(--edge)}
+.condividi .btn{width:100%}
+.condividi .note{margin-top:8px}
+.condividi input{display:block;width:100%;margin-top:6px;font:inherit;font-size:14px;padding:8px;border:2px solid var(--edge);border-radius:6px;background:var(--card2);color:inherit}
 .avviso{margin-top:10px;font-size:13px;font-weight:800;color:var(--hot)}
 .avviso.ok{color:var(--ink)}
 .vincitore{display:flex;align-items:center;gap:12px}

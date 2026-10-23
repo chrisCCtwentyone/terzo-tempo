@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { votaMvp, type ErroreApi } from '../lib/api'
-import { conto, giornoOra, plurale } from '../lib/formato'
+import { conto, giorno, giornoOra, plurale } from '../lib/formato'
 import type { Badge, Mvp, Partita } from '../lib/tipi'
 import { Link } from '../router'
 import { Bollino, Carta, Cart, Figurina, Icona, Pulsante, Sezione } from '../ui'
@@ -76,6 +76,47 @@ function ContoAllaRovescia({ fine, onScaduto }: { fine: string; onScaduto: () =>
     <div className="conto" role="timer">
       {scaduto ? 'Chiusura in corso…' : conto(resto)}
       <small>{scaduto ? 'un attimo' : 'alla chiusura del voto'}</small>
+    </div>
+  )
+}
+
+/**
+ * "Condividi il voto": il link alla partita, gia' sul blocco del voto, da mandare nel gruppo (decisione dell'utente,
+ * 23/10/2026). Sul telefono apre il menu di condivisione (WhatsApp compreso); dove non c'e' copia il link; se anche la
+ * copia non si puo', mostra il link da copiare a mano.
+ */
+function CondividiVoto({ partita, chiude }: { partita: Partita; chiude: string }) {
+  const [esito, setEsito] = useState<'copiato' | 'a-mano' | null>(null)
+  const url = `${location.origin}/partite/${partita.id}#voto-mvp`
+  const testo = `Vota l'MVP della partita di ${giorno(partita.data_ora)}! Si chiude ${giornoOra(chiude)}.`
+
+  async function condividi() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Voto MVP', text: testo, url })
+      } catch {
+        // chiuso il menu senza scegliere: niente da fare
+      }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(`${testo} ${url}`)
+      setEsito('copiato')
+    } catch {
+      setEsito('a-mano')
+    }
+  }
+
+  return (
+    <div className="condividi">
+      <Pulsante variante="ghost" onClick={condividi}>Condividi il voto</Pulsante>
+      {esito === 'copiato' && <p className="note" role="status">Link copiato: incollalo nel gruppo.</p>}
+      {esito === 'a-mano' && (
+        <label className="note">
+          Copia questo link e mandalo nel gruppo:
+          <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
+        </label>
+      )}
     </div>
   )
 }
@@ -164,6 +205,7 @@ function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa, badge }: {
           )}
         </>
       )}
+      <CondividiVoto partita={partita} chiude={mvp.chiude_il} />
     </Carta>
   )
 }
