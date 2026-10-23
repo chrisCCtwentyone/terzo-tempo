@@ -5,7 +5,7 @@ import { useCarica } from './useCarica'
 
 type Listone = { giocatori: GiocatoreListone[] }
 
-// Il listone serve in piu' schermate (badge sulle figurine, votabili): una sola
+// Il listone serve in piu' schermate (badge sulle figurine): una sola
 // richiesta ogni minuto al massimo, condivisa.
 let cache: { t: number; p: Promise<Listone> } | null = null
 function caricaListone(): Promise<Listone> {

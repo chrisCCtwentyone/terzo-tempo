@@ -80,11 +80,14 @@ describe('voto MVP', () => {
     expect(altro.cookie).not.toBe(t.cookie);
   });
 
-  it('si puo\' votare se stessi e chi non ha giocato; non chi non e\' nel listone', async () => {
-    const { db, R, N, id } = scenario();
+  it('si vota solo chi ha giocato questa partita (anche se stessi): non chi non ha giocato, ne\' chi non esiste', async () => {
+    const { db, R, B, N, id } = scenario();
     a(H);
     expect((await telefono(db).vota(id, R)).stato).toBe(201); // R ha giocato (anche se stesso)
-    expect((await telefono(db).vota(id, N)).stato).toBe(201); // N non ha giocato
+    expect((await telefono(db).vota(id, B)).stato).toBe(201); // B ha giocato nell'altra squadra
+    const fuori = await telefono(db).vota(id, N); // N e' nel listone ma non ha giocato
+    expect(fuori.stato).toBe(400);
+    expect(fuori.json.errore).toContain('non ha giocato');
     expect((await telefono(db).vota(id, 999)).stato).toBe(400);
     const archiviato = giocatore(db, 'X. Vecchio', null, 0);
     expect((await telefono(db).vota(id, archiviato)).stato).toBe(400);

@@ -262,7 +262,10 @@ describe('id incrociati e stati non validi', () => {
     expect((await chiama(db, 'POST', '/api/partite/64/mvp', { corpo: { giocatore_id: 9999 } })).stato).toBe(400);
     expect((await chiama(db, 'POST', '/api/partite/64/mvp', { corpo: { giocatore_id: 900 } })).stato).toBe(400); // archiviato
     expect(righe('voti_mvp')).toBe(voti);
-    // e un voto per il giocatore di un'ALTRA partita (non convocato qui) e' valido: si vota tutto il listone
+    // si vota solo chi ha giocato QUESTA partita: il giocatore di un'altra partita no, un convocato con la squadra si'
+    expect((await chiama(db, 'POST', '/api/partite/64/mvp', { corpo: { giocatore_id: 1 } })).stato).toBe(400);
+    expect(righe('voti_mvp')).toBe(voti);
+    db.esegui("INSERT INTO partecipazioni (partita_id, giocatore_id, squadra) VALUES (64, 1, 'A')");
     expect((await chiama(db, 'POST', '/api/partite/64/mvp', { corpo: { giocatore_id: 1 } })).stato).toBe(201);
   });
 

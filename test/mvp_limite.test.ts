@@ -16,7 +16,11 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(Date.parse('2026-09-30T20:00:00Z'));
   db = new D1Finto(true);
-  for (const id of [80, 81]) db.esegui("INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b) VALUES (?, 2, '2026-09-30T19:00:00Z', 'giocata', 1, 0)", id);
+  for (const id of [80, 81]) {
+    db.esegui("INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b) VALUES (?, 2, '2026-09-30T19:00:00Z', 'giocata', 1, 0)", id);
+    // si vota solo chi ha giocato: i giocatori 1-5 sono convocati con una squadra
+    for (const g of [1, 2, 3, 4, 5]) db.esegui('INSERT INTO partecipazioni (partita_id, giocatore_id, squadra) VALUES (?, ?, ?)', id, g, g % 2 ? 'A' : 'B');
+  }
 });
 afterEach(() => vi.useRealTimers());
 

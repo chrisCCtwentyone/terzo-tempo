@@ -4,7 +4,7 @@
  */
 import { LIMITE_VOTI_PER_IP } from '../../../lib/costanti';
 import { cookieDispositivo, hashDelDispositivo, hashRete, hashToken, leggiToken, nuovoToken } from '../../../lib/dispositivo';
-import { bloccoMvp, sincronizza, votazioneAperta } from '../../../lib/mvp';
+import { bloccoMvp, haGiocato, sincronizza, votazioneAperta } from '../../../lib/mvp';
 import { ErroreApi, idDa, json, leggiOggetto, perMetodo } from '../../../lib/risposta';
 import { intero } from '../../../lib/valida';
 
@@ -24,9 +24,8 @@ export const onRequest = perMetodo({
     if (!p) throw new ErroreApi(404, 'partita non trovata');
     if (p.stato !== 'giocata') throw new ErroreApi(409, 'la partita non è ancora stata giocata');
     if (!votazioneAperta(p, adesso)) throw new ErroreApi(409, 'votazione chiusa');
-    // Si vota chiunque sia nel listone (anche se stessi, anche chi non ha giocato).
-    const nelListone = await env.DB.prepare('SELECT 1 AS x FROM giocatori WHERE id = ? AND attivo = 1').bind(giocatoreId).first();
-    if (!nelListone) throw new ErroreApi(400, 'giocatore_id: non è nel listone');
+    // Si vota solo chi ha giocato questa partita (anche se stessi): i convocati con una squadra.
+    if (!(await haGiocato(env.DB, p.id, giocatoreId))) throw new ErroreApi(400, 'giocatore_id: non ha giocato questa partita');
 
     const esistente = leggiToken(request);
     const token = esistente ?? nuovoToken();

@@ -135,6 +135,11 @@ export async function bloccoMvp(db: D1Database, p: PartitaDb, hashDispositivo: s
 const CANDIDATI_SENZA_VOTI =
   'SELECT giocatore_id FROM partecipazioni WHERE partita_id = ? AND squadra IS NOT NULL';
 
+/** Ha giocato la partita = convocato con una squadra. Solo lui si puo' votare come MVP (decisione dell'utente, 23/10/2026). */
+export async function haGiocato(db: D1Database, partitaId: number, giocatoreId: number): Promise<boolean> {
+  return (await db.prepare(`${CANDIDATI_SENZA_VOTI} AND giocatore_id = ?`).bind(partitaId, giocatoreId).first()) !== null;
+}
+
 /** L'admin sceglie l'MVP: fra i pari merito, oppure (solo se nessuno ha votato) fra i giocatori della partita. */
 export async function decidiParita(db: D1Database, p: PartitaDb, giocatoreId: number): Promise<void> {
   if (p.mvp_stato !== 'parita_da_decidere' && p.mvp_stato !== 'nessun_voto') {

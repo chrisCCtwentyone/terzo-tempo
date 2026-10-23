@@ -36,8 +36,8 @@ Chi risponde puo' cambiare la scelta nel punto indicato.
 7. **Gol non attribuiti.** Se i gol dei giocatori non sommano al risultato il server non blocca: risponde con `avvisi`
    (l'admin decide). Preferisce un blocco (errore 409)?
 
-8. **Chi si puo' votare come MVP.** "Chiunque sia nel listone" = i giocatori **attivi**. Un giocatore archiviato dopo aver
-   giocato non e' piu' votabile per le partite vecchie ancora aperte (rarissimo: la finestra e' di 24 ore). Va bene?
+8. ~~**Chi si puo' votare come MVP.**~~ Deciso dall'utente il 23/10/2026: solo chi ha giocato la partita (convocati con una
+   squadra), archiviato o no.
 
 9. **Prossima partita in home** = la partita in convocazione con la data piu' vicina, anche se la data e' passata e
    l'admin non l'ha segnata giocata (cosi' non si nasconde niente: se e' rimasta li' si vede e si corregge o cancella).

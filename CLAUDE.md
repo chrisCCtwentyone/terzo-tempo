@@ -75,6 +75,8 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   - un voto per telefono, anonimo, senza login (il telefono ricorda di aver
     votato). L'utente sa che si aggira con incognito/altro browser e lo accetta;
   - vota tutto il gruppo, non solo chi ha giocato; ci si puo' votare da soli;
+  - si VOTA solo uno dei giocatori della partita, cioe' i convocati con una squadra
+    (decisione dell'utente, 23/10/2026: "non posso votare uno che non ha giocato");
   - la votazione la chiude l'admin a mano; se non lo fa, si chiude da sola 24 ore
     dopo l'ORARIO DELLA PARTITA (es. partita gio 21:00 -> chiusa ven 21:00), anche
     se l'admin carica la partita in ritardo. Nessuno deve poter votare giorni dopo;

@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { votaMvp, type ErroreApi } from '../lib/api'
 import { conto, giornoOra, plurale } from '../lib/formato'
-import { useListone } from '../lib/listone'
 import type { Badge, Mvp, Partita } from '../lib/tipi'
 import { Link } from '../router'
-import { Bollino, Carta, Cart, Errore, Figurina, Icona, Pulsante, Sezione } from '../ui'
+import { Bollino, Carta, Cart, Figurina, Icona, Pulsante, Sezione } from '../ui'
 
 type ConBadge = (id: number) => Badge[] | undefined
 
@@ -81,8 +80,6 @@ function ContoAllaRovescia({ fine, onScaduto }: { fine: string; onScaduto: () =>
   )
 }
 
-type Votabile = { id: number; nome: string; badge: Badge[] }
-
 function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa, badge }: {
   partita: Partita
   mvp: Extract<Mvp, { stato: 'aperto' }>
@@ -92,16 +89,14 @@ function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa, badge }: {
   avvisa: (testo: string, ok: boolean) => void
   badge: ConBadge
 }) {
-  const lista = useListone()
   const [scelto, setScelto] = useState<number | null>(null)
   const [invio, setInvio] = useState(false)
-  const gg: Votabile[] = lista.dati?.giocatori ?? []
+  // Si vota solo chi ha giocato questa partita (i convocati con una squadra), in ordine alfabetico.
+  const gg = partita.giocatori
+    .filter((g) => g.squadra !== null)
+    .map((g) => ({ id: g.giocatore_id, nome: g.nome }))
+    .sort((x, y) => x.nome.localeCompare(y.nome, 'it'))
   const chi = gg.find((g) => g.id === scelto)
-  // l'elenco allunga la pagina: solo quando c'e' il blocco puo' stare in cima
-  const pronta = gg.length > 0
-  useEffect(() => {
-    if (pronta) vaiAlBlocco()
-  }, [pronta])
 
   async function conferma() {
     if (scelto === null || invio) return
@@ -142,9 +137,7 @@ function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa, badge }: {
         </p>
       ) : (
         <>
-          <p className="note">Vota chi è stato l'MVP: un voto per telefono, senza accedere. Puoi votare chiunque, anche te stesso.</p>
-          {lista.caricando && <p className="note" role="status">Carico l'elenco dei giocatori…</p>}
-          {lista.errore && <Errore errore={lista.errore} onRiprova={lista.ricarica} />}
+          <p className="note">Vota chi è stato l'MVP fra chi ha giocato: un voto per telefono, senza accedere. Puoi votare anche te stesso.</p>
           {gg.length > 0 && (
             <fieldset>
               <legend className="sr">Scegli chi votare come MVP</legend>

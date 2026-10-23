@@ -15,6 +15,7 @@ const concreto = (f: string) => rottaDi(f).replace(/:\w+/g, '1');
 function db() {
   const d = new D1Finto(true);
   d.esegui("INSERT INTO partite (id, stagione_id, data_ora, stato, gol_a, gol_b) VALUES (50, 2, '2999-01-01T19:00:00Z', 'giocata', 1, 0)");
+  d.esegui("INSERT INTO partecipazioni (partita_id, giocatore_id, squadra) VALUES (50, 1, 'A')"); // si vota solo chi ha giocato
   return d;
 }
 
