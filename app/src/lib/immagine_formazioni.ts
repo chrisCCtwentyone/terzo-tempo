@@ -21,6 +21,7 @@ const carica = (url: string) =>
     const i = new Image()
     i.onload = () => ok(i)
     i.onerror = () => ok(null)
+    setTimeout(() => ok(null), 8000) // una richiesta appesa non blocca il pulsante: segnaposto
     i.src = url
   })
 
@@ -80,7 +81,8 @@ function pedina(c: CanvasRenderingContext2D, cx: number, cy: number, nome: strin
   c.strokeStyle = INCHIOSTRO
   c.lineWidth = 3
   c.beginPath()
-  c.roundRect(cx - w / 2, ty, w, h, 6)
+  if (c.roundRect) c.roundRect(cx - w / 2, ty, w, h, 6)
+  else c.rect(cx - w / 2, ty, w, h)
   c.fill()
   c.stroke()
   c.fillStyle = INCHIOSTRO

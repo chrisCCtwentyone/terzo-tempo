@@ -47,7 +47,7 @@ export function CartaGiocatore({ id, nome, fascia = true, decorativa = false, ea
       {url ? (
         <img src={url} alt={decorativa ? '' : nome} width={CARTA_L} height={CARTA_H} loading={eager ? 'eager' : 'lazy'} decoding="async" draggable={false} style={{ clipPath: SAGOMA }} />
       ) : (
-        <span className="seg" {...(decorativa ? { 'aria-hidden': true } : { role: 'img', 'aria-label': nome })}>
+        <span className="segposto" {...(decorativa ? { 'aria-hidden': true } : { role: 'img', 'aria-label': nome })}>
           <SegnapostoCarta />
           {fascia && <span className="nm" aria-hidden="true">{nome}</span>}
         </span>

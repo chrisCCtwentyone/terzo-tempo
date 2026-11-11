@@ -26,7 +26,7 @@
 
 /* carta esagonale del giocatore: la sagoma e' in lib/carte.ts (clip-path via prop style); qui ombra stampata e segnaposto */
 .esa{position:relative;display:block;width:100%;container-type:inline-size;filter:drop-shadow(3px 3px 0 var(--sh))}
-.esa>img,.esa>.seg,.esa>.seg>svg{display:block;width:100%;height:100%}
+.esa>img,.esa>.segposto,.esa>.segposto>svg{display:block;width:100%;height:100%}
 .esa>img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none}
 .esa .nm{position:absolute;left:10%;right:10%;bottom:20%;background:var(--yellow);color:#1a1712;border:2px solid #1a1712;font-family:Anton,Impact,sans-serif;font-size:clamp(9px,12.5cqw,26px);line-height:1.25;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .esa.mini{filter:drop-shadow(2px 2px 0 rgba(0,0,0,.4))}

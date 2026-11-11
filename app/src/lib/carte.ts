@@ -29,15 +29,20 @@ let avviata = false
 const ascoltatori = new Set<() => void>()
 
 async function leggiArchivio() {
-  let nuove: Record<string, number> = {}
+  let nuove: Record<string, number> | null = null
   try {
     const r = await fetch('/api/carte')
     const j = r.ok ? ((await r.json()) as { carte?: unknown }) : null
     if (j && typeof j.carte === 'object' && j.carte !== null) nuove = j.carte as Record<string, number>
   } catch {
-    // niente carte: ovunque il segnaposto, nessun errore a schermo
+    // rete assente: nessun errore a schermo
   }
-  carte = nuove
+  if (nuove) carte = nuove
+  else if (carte === null) {
+    // la prima lettura e' fallita: segnaposto ovunque, e al prossimo montaggio si riprova
+    carte = {}
+    avviata = false
+  } // altrimenti si tengono le carte gia' note
   ascoltatori.forEach((f) => f())
 }
 

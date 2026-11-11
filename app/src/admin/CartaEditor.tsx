@@ -13,6 +13,7 @@ const ES_X = (Q_L - ES_L) / 2
 const ES_Y = (Q_H - ES_H) / 2
 const LATO_MAX = 2000 // le foto del telefono sono enormi: si riducono subito
 const MAX_BYTE = 400 * 1024 // il limite del server
+const OBIETTIVO_BYTE = 150 * 1024 // la stessa immagine va anche nelle viste piccole: si tiene leggera
 
 type Sorgente = CanvasImageSource & { width: number; height: number }
 type Posa = { cx: number; cy: number; s: number } // centro dell'immagine nel quadro e scala
@@ -161,7 +162,9 @@ function EditorCarta({ file, nome, annulla, salva, occupato, esito }: {
     if (!prima || !posa) return
     const u = unita()
     if (m.size === 1) {
-      setPosa({ ...posa, cx: posa.cx + (e.clientX - prima.x) * u, cy: posa.cy + (e.clientY - prima.y) * u })
+      const dx = (e.clientX - prima.x) * u
+      const dy = (e.clientY - prima.y) * u
+      setPosa((p) => p && { ...p, cx: p.cx + dx, cy: p.cy + dy })
     } else if (m.size === 2) {
       const altro = [...m.entries()].find(([k]) => k !== e.pointerId)![1]
       const r = tela.current!.getBoundingClientRect()
@@ -169,7 +172,7 @@ function EditorCarta({ file, nome, annulla, salva, occupato, esito }: {
       const dopo = Math.hypot(e.clientX - altro.x, e.clientY - altro.y)
       const mx = ((e.clientX + altro.x) / 2 - r.left) * u
       const my = ((e.clientY + altro.y) / 2 - r.top) * u
-      setPosa(zoom(posa, (posa.s * dopo) / prima2, { x: mx, y: my }))
+      setPosa((p) => p && zoom(p, (p.s * dopo) / prima2, { x: mx, y: my }))
     }
     m.set(e.pointerId, { x: e.clientX, y: e.clientY })
   }
@@ -186,8 +189,8 @@ function EditorCarta({ file, nome, annulla, salva, occupato, esito }: {
     ctx.imageSmoothingQuality = 'high'
     disegna(ctx, img, posa, CARTA_L / ES_L, -ES_X, -ES_Y)
     const toBlob = (q: number) => new Promise<Blob | null>((r) => c.toBlob(r, 'image/jpeg', q))
-    let blob = await toBlob(0.85)
-    if (blob && blob.size > MAX_BYTE) blob = await toBlob(0.6)
+    let blob = await toBlob(0.82)
+    if (blob && blob.size > OBIETTIVO_BYTE) blob = await toBlob(0.65)
     if (!blob || blob.size > MAX_BYTE) {
       setErrore('Non riesco a ridurre abbastanza il file: prova con un\'altra immagine.')
       return

@@ -133,5 +133,5 @@
 .live-marcatori .chi small{font-size:12px;font-weight:700;color:var(--mute)}
 .live-marcatori .vuoto,.live-marcatori .nota-live{font-size:12px;font-weight:700;color:var(--mute);margin-top:6px}
 .card.diretta .foot{border-top:2px solid var(--edge)}
-.condividi{margin-top:14px}
-.condividi .errore-inline{margin-top:8px;font-weight:700;color:var(--hot)}
+.condividi-form{margin-top:14px}
+.condividi-form .errore-inline{margin-top:8px;font-weight:700;color:var(--hot)}

@@ -50,6 +50,8 @@ function preparaDati() {
       // campi (nomi inventati, vedi aggiungiDatiEstremi): la home mostra l'ultima (100) e la prossima (11) con un campo dal nome lungo
       `UPDATE partite SET campo_id = 91 WHERE id = 100;`,
       `UPDATE partite SET campo_id = 90 WHERE id = 11;`,
+      // una carta SINTETICA (PNG 52x80 a tinta unita, MAI un'immagine vera) per Rossi M.: gli altri restano col segnaposto
+      `INSERT INTO carte (giocatore_id, immagine, tipo, versione) VALUES (1, X'89504E470D0A1A0A0000000D4948445200000034000000500802000000D97FC1F00000006A49444154789CEDCE3101C02000C030C0C824A11D4773B0A30F3B120599CF3EE3AFD6EDC017B94AAE92ABE42AB94AAE92ABE42AB94AAE92ABE42AB94AAE92ABE42AB94AAE92ABE42AB94AAE92ABE42AB94AAE92ABE42AB94AAE92ABE42AB94AAE92ABE42AB94AAE92AB5EAA4401DFDFA269620000000049454E44AE426082', 'image/png', 1);`,
     ].join('\n'),
   )
 }
@@ -169,6 +171,9 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica(await p.getByText('Voto MVP').first().isVisible(), `${tema} partita 10: blocco voto`)
   verifica((await p.locator('.hero .luogo').getAttribute('href')) === `${DIR}Palestra%20di%20Prova` && (await p.locator('.hero .luogo').innerText()).replace(/\s+/g, ' ').trim() === 'Palestra di Prova →', `${tema} partita 10: il campo e' un link alle indicazioni ("Palestra di Prova →")`)
   verifica((await p.locator('#voto-mvp .stamp').count()) === 1, `${tema} partita 10: bollino del vincitore`)
+  // Condividi formazioni: senza menu Condividi (Chromium di prova) l'immagine si scarica
+  const [scarico] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: /Condividi formazioni/ }).click()])
+  verifica(/\.png$/.test(scarico.suggestedFilename()), `${tema} partita 10: "Condividi formazioni" crea un PNG (${scarico.suggestedFilename()})`)
 
   await vai(p, '/partite/120', 'partita-campo-nome-lungo', tema)
   verifica((await p.locator('.hero .luogo').count()) === 1 && (await p.locator('.hero .luogo').getAttribute('href')) === `${DIR}44.2,10.2`, `${tema} partita 120: campo dal nome lungo, con le coordinate`)
@@ -188,7 +193,11 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica((await p.locator('.album .bdg').count()) > 10, `${tema} giocatori: badge nel listone (album)`)
   verifica(await p.locator('.bdg.neg').first().isVisible(), `${tema} giocatori: badge negativi`)
   verifica((await p.locator('.album > li').count()) > 10 && (await p.locator('.album > li .esa').count()) === (await p.locator('.album > li').count()), `${tema} giocatori: album, una carta (o segnaposto) per giocatore`)
-  verifica((await p.locator('.album .esa .nm').count()) === (await p.locator('.album > li').count()), `${tema} giocatori: senza carte (API assente) il segnaposto col nome in fascia`)
+  verifica((await p.locator('.album .esa .nm').count()) === (await p.locator('.album > li').count()) - 1, `${tema} giocatori: chi non ha la carta ha il segnaposto col nome in fascia`)
+  await p.locator('.album .esa img').first().scrollIntoViewIfNeeded()
+  await p.locator('.album .esa img').first().evaluate((x) => (x as HTMLImageElement).decode().catch(() => undefined))
+  const carteVere = await p.locator('.album .esa img').evaluateAll((im) => im.map((x) => (x as HTMLImageElement).complete && (x as HTMLImageElement).naturalWidth))
+  verifica(carteVere.length === 1 && carteVere[0] === 52, `${tema} giocatori: la carta caricata si vede (immagine dal sito, dentro la CSP) (${carteVere.join(',')})`)
   await vai(p, '/giocatori/1', 'scheda-giocatore', tema)
   verifica((await p.locator('.stat').count()) === 5, `${tema} scheda: cinque statistiche`)
   verifica((await p.locator('.dot').count()) === 5, `${tema} scheda: ultimi 5 V/P/S`)
