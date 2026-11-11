@@ -5,7 +5,7 @@ import type { Partita as Dati } from '../lib/tipi'
 import { useApi } from '../lib/useCarica'
 import { useDiretta } from '../lib/useDiretta'
 import { Link, useTitolo } from '../router'
-import { Attesa, Campo, Carta, Cart, Figurina, Icona, Intestazione, Luogo, Marcatori, Pagella, Sezione, Tabellone } from '../ui'
+import { Attesa, Campo, Carta, Cart, CondividiFormazioni, Figurina, Icona, Intestazione, Luogo, Marcatori, Pagella, Sezione, Tabellone } from '../ui'
 import { BloccoDiretta } from './Diretta'
 import { BloccoMvp, BollinoMvp, EsitoMvp } from './Mvp'
 
@@ -61,6 +61,7 @@ function Dettaglio({ p, ricarica, dir }: { p: Dati; ricarica: () => void; dir: R
         <>
           <Sezione>Formazioni</Sezione>
           <Campo giocatori={inCampo} squadre={p.squadre} conVoti={giocata} mvpId={mvpId} badge={badge} />
+          <CondividiFormazioni partita={p} />
         </>
       )}
 

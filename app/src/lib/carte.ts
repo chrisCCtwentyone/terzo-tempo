@@ -58,3 +58,9 @@ export function useCarta(id: number): string | null {
   const v = useSyncExternalStore(segui, () => carte?.[String(id)] ?? null, () => null)
   return v === null ? null : urlCarta(id, v)
 }
+
+/** L'archivio (id -> versione) fuori da un componente: lo legge se serve (per disegnare l'immagine da condividere). */
+export async function archivioCarte(): Promise<Readonly<Record<string, number>>> {
+  if (carte === null) await leggiArchivio()
+  return carte ?? {}
+}
