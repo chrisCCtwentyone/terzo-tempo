@@ -185,8 +185,10 @@ async function provaTema(browser: Browser, tema: 'light' | 'dark') {
   verifica((await p.getByRole('heading', { name: 'Voto MVP' }).count()) === 0, `${tema} partita 11: nessun voto MVP prima della partita`)
 
   await vai(p, '/giocatori', 'giocatori', tema)
-  verifica((await p.locator('.row .bdg').count()) > 10, `${tema} giocatori: badge nel listone`)
+  verifica((await p.locator('.album .bdg').count()) > 10, `${tema} giocatori: badge nel listone (album)`)
   verifica(await p.locator('.bdg.neg').first().isVisible(), `${tema} giocatori: badge negativi`)
+  verifica((await p.locator('.album > li').count()) > 10 && (await p.locator('.album > li .esa').count()) === (await p.locator('.album > li').count()), `${tema} giocatori: album, una carta (o segnaposto) per giocatore`)
+  verifica((await p.locator('.album .esa .nm').count()) === (await p.locator('.album > li').count()), `${tema} giocatori: senza carte (API assente) il segnaposto col nome in fascia`)
   await vai(p, '/giocatori/1', 'scheda-giocatore', tema)
   verifica((await p.locator('.stat').count()) === 5, `${tema} scheda: cinque statistiche`)
   verifica((await p.locator('.dot').count()) === 5, `${tema} scheda: ultimi 5 V/P/S`)
