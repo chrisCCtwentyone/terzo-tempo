@@ -23,7 +23,8 @@ class Preparata {
   }
 
   bind(...valori: unknown[]): Preparata {
-    return new Preparata(this.db, this.sql, valori);
+    // node:sqlite vuole i BLOB come Uint8Array; D1 vero accetta ArrayBuffer
+    return new Preparata(this.db, this.sql, valori.map((v) => (v instanceof ArrayBuffer ? new Uint8Array(v) : v)));
   }
 
   async first<T>(): Promise<T | null> {

@@ -53,13 +53,13 @@ export function perMetodo(gestori: Partial<Record<Metodo, (c: Contesto) => Promi
 }
 
 /**
- * Legge il corpo fermandosi a MAX_CORPO_BYTE: un corpo enorme non deve riempire la memoria del Worker
+ * Legge il corpo (byte) fermandosi a `massimo`: un corpo enorme non deve riempire la memoria del Worker
  * (ne' con Content-Length dichiarato, ne' a pezzi senza dichiararlo).
  */
-async function leggiCorpoLimitato(request: Request): Promise<string> {
+export async function leggiByteLimitati(request: Request, massimo: number): Promise<Uint8Array> {
   const dichiarato = Number(request.headers.get('Content-Length'));
-  if (Number.isFinite(dichiarato) && dichiarato > MAX_CORPO_BYTE) throw new ErroreApi(413, 'corpo della richiesta troppo grande');
-  if (!request.body) return '';
+  if (Number.isFinite(dichiarato) && dichiarato > massimo) throw new ErroreApi(413, 'corpo della richiesta troppo grande');
+  if (!request.body) return new Uint8Array(0);
   const lettore = request.body.getReader();
   const pezzi: Uint8Array[] = [];
   let totale = 0;
@@ -67,7 +67,7 @@ async function leggiCorpoLimitato(request: Request): Promise<string> {
     const { done, value } = await lettore.read();
     if (done) break;
     totale += value.byteLength;
-    if (totale > MAX_CORPO_BYTE) {
+    if (totale > massimo) {
       await lettore.cancel().catch(() => undefined);
       throw new ErroreApi(413, 'corpo della richiesta troppo grande');
     }
@@ -79,8 +79,10 @@ async function leggiCorpoLimitato(request: Request): Promise<string> {
     tutto.set(p, i);
     i += p.byteLength;
   }
-  return new TextDecoder().decode(tutto);
+  return tutto;
 }
+
+const leggiCorpoLimitato = async (request: Request): Promise<string> => new TextDecoder().decode(await leggiByteLimitati(request, MAX_CORPO_BYTE));
 
 /** Corpo JSON (deve essere un oggetto, al massimo MAX_CORPO_BYTE). Il Content-Type deve essere application/json. */
 export async function leggiOggetto(request: Request): Promise<Record<string, unknown>> {

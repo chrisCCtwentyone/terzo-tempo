@@ -52,6 +52,8 @@ export type Chiamata = {
   corpo?: unknown;
   /** corpo grezzo (per provare JSON non valido) */
   grezzo?: string;
+  /** corpo binario (le carte): il Content-Type va dato in `headers` */
+  binario?: Uint8Array;
   cookie?: string;
   token?: string;
   headers?: Record<string, string>;
@@ -62,7 +64,7 @@ export type Chiamata = {
   origine?: string;
 };
 
-export type Esito = { stato: number; testo: string; json: any; headers: Headers };
+export type Esito = { stato: number; testo: string; json: any; headers: Headers; byte: Uint8Array };
 
 /** Configurazione admin di prova, senza bypass. */
 export const ENV_ADMIN = { ACCESS_TEAM_DOMAIN: 'team-di-prova.cloudflareaccess.com', ACCESS_AUD: 'aud-di-prova-0123456789', EMAIL_AUTORIZZATE: 'admin@prova.invalid' };
@@ -73,9 +75,9 @@ export async function chiama(db: D1Finto, metodo: string, percorso: string, c: C
   const headers: Record<string, string> = { ...c.headers };
   if (c.cookie) headers['Cookie'] = c.cookie;
   if (c.token) headers['Cf-Access-Jwt-Assertion'] = c.token;
-  let body: string | undefined = c.grezzo;
+  let body: string | Uint8Array | undefined = c.grezzo ?? c.binario;
   if (c.corpo !== undefined) body = JSON.stringify(c.corpo);
-  if (body !== undefined) headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
+  if (body !== undefined && !c.binario) headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
   const request = new Request((c.origine ?? (c.locale ? LOCALE : PUBBLICO)) + percorso, { method: metodo, headers, body });
   const env = { DB: db, ...c.env } as unknown as Env;
   const trovata = trova(new URL(request.url).pathname);
@@ -87,12 +89,13 @@ export async function chiama(db: D1Finto, metodo: string, percorso: string, c: C
     return modulo.onRequest(ctx);
   };
   const risposta = await (middleware as unknown as Handler)(ctx);
-  const testo = await risposta.text();
+  const byte = new Uint8Array(await risposta.arrayBuffer());
+  const testo = new TextDecoder().decode(byte);
   let parsed: unknown = null;
   try {
     parsed = JSON.parse(testo);
   } catch {
     // non JSON
   }
-  return { stato: risposta.status, testo, json: parsed, headers: risposta.headers };
+  return { stato: risposta.status, testo, json: parsed, headers: risposta.headers, byte };
 }

@@ -274,6 +274,17 @@ Un admin segna i gol **mentre si gioca** (CLAUDE.md, "Partita in diretta"). Qui 
 forma di `home.diretta`. La usa la scorciatoia "LIVE" dell'area admin. Se ce n'e' piu' di una, vince quella `in_diretta`, poi la "da confermare" piu' recente.
 Una convocazione vecchia, senza diretta e senza gol, non compare mai.
 
+## `GET /api/carte`
+
+Le carte dei giocatori (immagine caricata da un admin), solo chi ce l'ha: `{ "carte": { "2": 1790000000000, "5": 1790000123456 } }` = `giocatore_id` -> `versione`
+(un numero che cambia a ogni caricamento). Non contiene altro. Chi non e' nella mappa non ha la carta: si mostra il segnaposto.
+
+## `GET /api/carte/:id[?v=<versione>]`
+
+I byte dell'immagine, con `Content-Type` del file salvato (`image/jpeg`, `image/webp` o `image/png`), `Cache-Control: public, max-age=31536000, immutable` e
+`X-Content-Type-Options: nosniff`. Il frontend aggiunge `?v=<versione>` solo per cambiare l'URL quando la carta cambia (il server lo ignora).
+`404` (JSON `{ "errore" }`) se il giocatore non ha la carta o l'id non e' valido.
+
 ## `GET /api/giocatori[?tutti=1]`
 
 Il listone, con badge e totali (su tutte le stagioni), per cognome. Di default solo gli attivi; `?tutti=1` include gli archiviati.
@@ -327,6 +338,10 @@ Tutte richiedono l'accesso (sopra). Corpo JSON con `Content-Type: application/js
 - `PATCH /api/admin/giocatori/:id` `{ "cognome"?, "iniziali"? (`null` o `""` le toglie), "attivo"?, "livello_segreto"? }` (`livello_segreto: null` lo toglie; cambiando solo una delle due parti del nome, l'altra resta).
 - `DELETE /api/admin/giocatori/:id` solo se non ha partite ne' voti, altrimenti `409` (si archivia con `attivo: false`).
 - `PUT /api/admin/giocatori/:id/badge` `{ "badge_ids": [1, 7] }` sostituisce i badge del giocatore -> `{ "giocatore_id": 14, "badge_ids": [1, 7] }`.
+- `PUT /api/admin/giocatori/:id/carta` carica o sostituisce la carta. Il corpo sono i **byte** dell'immagine (non JSON), con `Content-Type: image/jpeg`, `image/webp` o `image/png`;
+  al massimo 400 KB (`413` oltre). Il server riconosce il tipo dai primi byte (magic bytes) e rifiuta se non coincide con quello dichiarato o non e' un'immagine
+  (`400`); un `Content-Type` diverso e' `415`; `404` se il giocatore non esiste. Risposta `{ "versione": 1790000000000 }`.
+- `DELETE /api/admin/giocatori/:id/carta` toglie la carta -> `{ "ok": true }` (anche se non c'era); `404` se il giocatore non esiste. Cancellando il giocatore sparisce anche la carta.
 
 ## Badge
 

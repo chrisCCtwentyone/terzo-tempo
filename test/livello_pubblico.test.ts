@@ -27,6 +27,8 @@ const RICHIESTE: Record<string, Richiesta[]> = {
   // la diretta (partita 12: giocata -> "finita"; 11: in convocazione senza squadre -> "non iniziata"; l'admin non c'entra)
   '/api/diretta': [['GET', '/api/diretta']],
   '/api/partite/:id/diretta': [['GET', '/api/partite/10/diretta'], ['GET', '/api/partite/11/diretta'], ['GET', '/api/partite/12/diretta'], ['GET', '/api/partite/999/diretta'], ['GET', '/api/partite/abc/diretta']],
+  '/api/carte': [['GET', '/api/carte']],
+  '/api/carte/:id': [['GET', '/api/carte/1'], ['GET', '/api/carte/999'], ['GET', '/api/carte/abc']],
   '/api/giocatori': [['GET', '/api/giocatori'], ['GET', '/api/giocatori?tutti=1']],
   '/api/giocatori/:id': [['GET', '/api/giocatori/1'], ['GET', '/api/giocatori/14'], ['GET', '/api/giocatori/16?stagione=2'], ['GET', '/api/giocatori/1?stagione=sempre'], ['GET', '/api/giocatori/999']],
 };

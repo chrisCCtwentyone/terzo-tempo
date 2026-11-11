@@ -51,6 +51,8 @@ export const CIFRE_HASH_RETE = 4;
 
 /** Corpo massimo di una richiesta JSON, in byte. */
 export const MAX_CORPO_BYTE = 64 * 1024;
+/** Carta di un giocatore: immagine al massimo di 400 KB (di solito 40-90 KB). */
+export const MAX_CARTA_BYTE = 400 * 1024;
 /** Convocati (e giocatori di una nuova partita) al massimo: il generatore ne ammette 24, qui c'e' margine. */
 export const MAX_CONVOCATI = 60;
 /** Nome di un campo da gioco (come gli altri nomi: testo senza caratteri di controllo). */
