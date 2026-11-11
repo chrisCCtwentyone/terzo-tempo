@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { marcatori, pedine, righe } from '../app/src/lib/campo';
-import { cognome, conto, iniziali, media, voto } from '../app/src/lib/formato';
+import { cognome, conto, media, voto } from '../app/src/lib/formato';
 import type { GiocatoreInPartita } from '../app/src/lib/tipi';
 
 const g = (id: number, nome: string, squadra: 'A' | 'B' | null, extra: Partial<GiocatoreInPartita> = {}): GiocatoreInPartita => ({
@@ -8,19 +8,13 @@ const g = (id: number, nome: string, squadra: 'A' | 'B' | null, extra: Partial<G
 });
 
 describe('formato', () => {
-  it('cognome e iniziali (anche con due iniziali e cognomi composti)', () => {
+  it('cognome (anche con due iniziali e cognomi composti)', () => {
     expect(cognome('Verdi A.G.')).toBe('Verdi');
     expect(cognome('De Luca V.')).toBe('De Luca');
-    expect(iniziali('Verdi A.G.')).toBe('AV');
-    expect(iniziali('De Luca V.')).toBe('VD');
   });
-  it('senza iniziali del nome: solo il nome scritto; figurina = prime due lettere, o una lettera per parola', () => {
+  it('senza iniziali del nome: solo il nome scritto', () => {
     expect(cognome('Gianni')).toBe('Gianni');
     expect(cognome('Amico Gianni')).toBe('Amico Gianni');
-    expect(iniziali('Gianni')).toBe('GI');
-    expect(iniziali('Amico Gianni')).toBe('AG');
-    expect(iniziali('Dal Bosco Z.')).toBe('ZD');
-    expect(iniziali('X')).toBe('X');
   });
   it('voto mancante = n.d., mai un valore di ripiego', () => {
     expect(voto(null)).toBe('n.d.');

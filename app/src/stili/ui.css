@@ -155,7 +155,7 @@
 .figw .voto{font-size:11px;padding:0 3px;min-width:22px;line-height:1.15;box-shadow:1px 1px 0 rgba(0,0,0,.4)}
 .figw .balls{position:absolute;right:-8px;top:1px;display:flex;z-index:2}
 .figw .balls .ball{width:14px;height:14px;margin-left:-6px}
-.figw .stamp{position:absolute;right:-13px;top:50%;--s:24px;z-index:2}
+.figw .stamp{position:absolute;right:-13px;top:30%;--s:24px;z-index:2}
 .figw .mks{right:auto;left:-5px;bottom:24%}
 .figw .mk{width:9px;height:9px}
 

@@ -6,6 +6,7 @@ import { useApi } from '../lib/useCarica'
 import { useTitolo } from '../router'
 import { Attesa, Badges, Carta, Figurina, Icona, Intestazione, Pulsante } from '../ui'
 import { EsitoScrittura, Fld, IconaAdmin, ScalaLivello, useEsito } from './comuni'
+import { SezioneCarta } from './CartaEditor'
 import { scrivi } from './rete'
 import type { GiocatoreAdmin } from './tipi'
 
@@ -149,6 +150,8 @@ function ModificaGiocatore({ g, badge, onFatto }: { g: GiocatoreAdmin | null; ba
           )
         ))}
       </fieldset>
+
+      {id !== null && g !== null && <SezioneCarta id={id} nome={g.nome} />}
 
       {g !== null && (
         <Pulsante className="blocco" aria-pressed={!attivo} onClick={() => setAttivo(!attivo)}>

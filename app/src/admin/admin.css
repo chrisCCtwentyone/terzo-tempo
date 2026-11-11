@@ -218,3 +218,15 @@ button.nuovo-campo{background:none;border:0;padding:0;font-family:inherit;text-a
 .live-cambia .live-tessera{min-height:56px}
 .live-annulla .ico{transform:scaleX(-1)}
 .live-tessera,.live-conferma .btn,.live-annulla,.live-riga-az .btn,.live-cambia .seg button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+/* carta del giocatore: anteprima ed editor di ritaglio */
+.sez-carta .carta-prev{width:min(180px,60%);margin:4px auto 10px}
+.azioni-carta{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.azioni-carta>*{flex:1 1 140px}
+.azioni-carta label.btn:focus-within{outline:3px solid var(--focus);outline-offset:2px}
+.crop{position:relative;width:min(300px,100%);margin:10px auto 0;aspect-ratio:1008/1070;border:2px solid var(--edge);border-radius:8px;overflow:hidden;background:#fff}
+.crop canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+.crop svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.crop-attesa{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;font-weight:800}
+.zoom-cursore{display:flex;align-items:center;gap:12px;width:min(300px,100%);margin:12px auto 0;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.zoom-cursore input{flex:1;min-width:0;min-height:44px;accent-color:var(--blue)}

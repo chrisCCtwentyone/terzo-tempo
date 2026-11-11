@@ -511,7 +511,7 @@ async function provaAdmin(browser: Browser, tema: 'light' | 'dark', pubblico: st
   const vicino = await chiHa(2)
   await p.keyboard.press('Shift')
   await p.locator(ped(tastiera)).focus()
-  const focusVisibile = await p.locator(ped(tastiera)).evaluate((e) => getComputedStyle(e.querySelector('.fig')!).outlineStyle)
+  const focusVisibile = await p.locator(ped(tastiera)).evaluate((e) => getComputedStyle(e.querySelector('.esa')!).outlineStyle)
   await p.keyboard.press('Enter')
   verifica((await p.locator(ped(tastiera)).getAttribute('aria-pressed')) === 'true', `${tema} tastiera: Invio seleziona la pedina`)
   await p.keyboard.press('ArrowRight')
