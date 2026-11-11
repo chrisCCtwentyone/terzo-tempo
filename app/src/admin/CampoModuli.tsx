@@ -2,7 +2,7 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { moduliPer } from '../../../shared/moduli'
 import { pedine as automatiche } from '../lib/campo'
 import type { Badge, Codice, Partita } from '../lib/tipi'
-import { Cart, Figurina, Scelta, Terreno } from '../ui'
+import { PedinaCarta, Scelta, Terreno } from '../ui'
 import { CODICI, agganciaA, casellaVerso, dentroMeta, impostaModulo, moduloDi, muoviInCasella, occupanti, squadraDi, type Freccia, type Riga } from './logica'
 
 type Trascina = { id: number; c: Codice; pid: number; x: number; y: number; dx: number; dy: number; mosso: boolean }
@@ -142,13 +142,7 @@ export function CampoModuli({ righe, squadre, onCambia, badge }: {
                       onClick={(e) => { if (e.detail === 0) attiva(c, r.giocatore_id) }}
                       onBlur={() => { if (sel === r.giocatore_id && !drag) setSel(null) }}
                     >
-                      <div className="pin">
-                        <span className="figw">
-                          <Figurina id={r.giocatore_id} nome={r.nome} z={34} decorativa badge={badge?.(r.giocatore_id)} />
-                          {k.ruolo === 'portiere' && <span className="pt" aria-hidden="true">P</span>}
-                        </span>
-                        <Cart nome={r.nome} />
-                      </div>
+                      <PedinaCarta id={r.giocatore_id} nome={r.nome} portiere={k.ruolo === 'portiere'} badge={badge?.(r.giocatore_id)} />
                     </div>
                   )
                 })}
@@ -158,10 +152,7 @@ export function CampoModuli({ righe, squadre, onCambia, badge }: {
               <div key={c}>
                 {automatiche(righe, c).map(({ g, x, y }) => (
                   <div key={g.giocatore_id} className="ped" style={{ left: `${x}%`, top: `${y}%` }} role="group" aria-label={`${g.nome}, ${nomeSq(c)}, disposizione automatica`}>
-                    <div className="pin">
-                      <span className="figw"><Figurina id={g.giocatore_id} nome={g.nome} z={34} decorativa badge={badge?.(g.giocatore_id)} /></span>
-                      <Cart nome={g.nome} />
-                    </div>
+                    <PedinaCarta id={g.giocatore_id} nome={g.nome} badge={badge?.(g.giocatore_id)} />
                   </div>
                 ))}
               </div>

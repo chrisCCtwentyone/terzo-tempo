@@ -24,18 +24,27 @@
 .card{min-width:0;max-width:100%;background-color:var(--card);background-image:var(--grain);border:2px solid var(--edge);border-radius:8px;box-shadow:4px 4px 0 var(--sh);padding:14px}
 .card.vuota{color:var(--mute);font-weight:700}
 
-/* figurina */
-.fig{
-  --z:40px;position:relative;width:var(--z);height:var(--z);flex:none;display:grid;place-items:center;
-  border:2px solid var(--edge);border-radius:5px;box-shadow:2px 2px 0 var(--sh);
-  font-family:Anton,Impact,sans-serif;font-size:calc(var(--z) * .44);line-height:1;letter-spacing:.02em;
-  background-image:radial-gradient(rgba(0,0,0,.2) 1.2px,transparent 1.4px);background-size:6px 6px;
-}
-.k0{background-color:var(--k0);color:var(--k0t)}.k1{background-color:var(--k1);color:var(--k1t)}
-.k2{background-color:var(--k2);color:var(--k2t)}.k3{background-color:var(--k3);color:var(--k3t)}
-.k4{background-color:var(--k4);color:var(--k4t)}.k5{background-color:var(--k5);color:var(--k5t)}
+/* carta esagonale del giocatore: la sagoma e' in lib/carte.ts (clip-path via prop style); qui ombra stampata e segnaposto */
+.esa{position:relative;display:block;width:100%;container-type:inline-size;filter:drop-shadow(3px 3px 0 var(--sh))}
+.esa>img,.esa>.seg,.esa>.seg>svg{display:block;width:100%;height:100%}
+.esa>img{-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none}
+.esa .nm{position:absolute;left:10%;right:10%;bottom:20%;background:var(--yellow);color:#1a1712;border:2px solid #1a1712;font-family:Anton,Impact,sans-serif;font-size:clamp(9px,12.5cqw,26px);line-height:1.25;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.esa.mini{filter:drop-shadow(2px 2px 0 rgba(0,0,0,.4))}
+
+/* carta aperta a tutto schermo (<dialog> nativo) */
+.zoom-apri{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in}
+.zoom{max-width:none;max-height:none;width:100%;height:100%;margin:0;padding:0;border:0;background:transparent;color:inherit;overflow:hidden}
+.zoom[open]{display:grid;place-items:center}
+.zoom::backdrop{background:rgba(8,6,2,.86)}
+.zoom .esa.grande{width:min(86vw,calc(82vh * 520 / 799));filter:drop-shadow(4px 4px 0 rgba(0,0,0,.5))}
+.zoom-chiudi{position:absolute;right:max(14px,env(safe-area-inset-right,0px));top:max(14px,env(safe-area-inset-top,0px))}
+
+/* figurina: esagonino col volto (sfondo = carta) o segnaposto. Larghezza e altezza arrivano da Figurina.tsx */
+.fig{--z:40px;position:relative;display:block;flex:none;filter:drop-shadow(1.5px 1.5px 0 var(--sh))}
+.fig>.in{position:absolute;inset:0;display:block}
+.fig>.in>i,.fig>.in>svg{position:absolute;left:1.5px;top:1.5px;width:calc(100% - 3px);height:calc(100% - 3px);display:block}
 /* i badge sulla figurina: tondo = positivo, rombo = negativo */
-.mks{position:absolute;right:-5px;bottom:-6px;display:flex;gap:1px}
+.mks{position:absolute;right:-6px;bottom:-4px;display:flex;gap:1px}
 .mk{width:max(9px,calc(var(--z) * .27));height:max(9px,calc(var(--z) * .27));border:1.5px solid var(--edge);background:var(--green);border-radius:50%}
 .mk.neg{background:var(--red);border-radius:2px;transform:rotate(45deg) scale(.85)}
 
@@ -134,16 +143,21 @@
 .pitch>svg.lines{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:var(--pline);stroke-width:.9}
 .tag{position:absolute;left:8px;z-index:2;color:#fff;font-family:Anton,Impact,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;border:2px solid #fffaf0;border-radius:3px;box-shadow:2px 2px 0 rgba(0,0,0,.35);max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tag.a{background:var(--red);top:8px}.tag.b{background:var(--blue);bottom:8px}
-/* la pedina si restringe col campo (4 per fila su 320 px = 72 px ciascuna): mai piu' larga della sua fetta, cosi' due nomi vicini non si toccano */
+/* la pedina e' una mini-carta: --cw (larghezza della carta) si restringe col campo, cosi' la fila di 4 per meta' non si sovrappone
+   nemmeno a 320 px (lo scarto fra l'ultima fila di A e quella di B e' il 10% dell'altezza = 17,8% della larghezza del campo) */
+.pitch{container-type:inline-size;--cw:min(42px,10.6cqw)}
 .ped{position:absolute;transform:translate(-50%,-50%);width:min(72px,23%);z-index:1}
-.pin{display:flex;flex-direction:column;align-items:center;gap:2px}
-.figw{position:relative;display:block}
-.pitch .fig{border-color:#fffaf0;box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.pin{display:flex;flex-direction:column;align-items:center}
+.figw{position:relative;display:block;width:var(--cw)}
 .cart{background:#fffaf0;color:#1a1712;border:1.5px solid #1a1712;border-radius:3px;padding:1px 4px;font-size:10.5px;font-weight:800;line-height:1.15;white-space:nowrap;max-width:min(72px,100%);overflow:hidden;text-overflow:ellipsis}
-.pitch .cart{font-size:10px;padding:1px 3px}
-.ped .voto{font-size:12px;padding:0 4px;min-width:26px}
-.balls{position:absolute;right:-12px;top:-9px;display:flex}
-.figw .stamp{position:absolute;left:-15px;top:-13px;--s:28px}
+.pitch .cart{position:relative;margin-top:-11px;font-size:9.5px;padding:0 3px}
+.figw .pv{position:absolute;left:-5px;top:3px;z-index:2}
+.figw .voto{font-size:11px;padding:0 3px;min-width:22px;line-height:1.15;box-shadow:1px 1px 0 rgba(0,0,0,.4)}
+.figw .balls{position:absolute;right:-8px;top:1px;display:flex;z-index:2}
+.figw .balls .ball{width:14px;height:14px;margin-left:-6px}
+.figw .stamp{position:absolute;right:-13px;top:50%;--s:24px;z-index:2}
+.figw .mks{right:auto;left:-5px;bottom:24%}
+.figw .mk{width:9px;height:9px}
 
 /* pagella */
 .pag{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -152,7 +166,6 @@
 .ph.a{background:var(--red)}.ph.b{background:var(--blue)}
 .pr{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1.5px dotted var(--mute)}
 .pr:last-child{border-bottom:0}
-.pr .fig{--z:26px;box-shadow:1px 1px 0 var(--sh);border-width:1.5px}
 /* il nome va a capo: in pagella si deve leggere per intero */
 .pr span.n{flex:1;min-width:0;font-size:12.5px;line-height:1.2;font-weight:800}
 .pr .voto{box-shadow:none;font-size:14px}
@@ -169,6 +182,8 @@
   display:grid;grid-template-columns:32px 40px minmax(0,1fr) auto;align-items:center;min-width:0;gap:10px;width:100%;text-align:left;text-decoration:none;
   background-color:var(--card);background-image:var(--grain);color:var(--ink);border:2px solid var(--edge);border-radius:6px;box-shadow:3px 3px 0 var(--sh);padding:8px 10px 8px 8px;
 }
+/* la figurina e' piu' stretta della colonna: sta al centro */
+.row>.fig{justify-self:center}
 a.row:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--sh)}
 .row.semplice{grid-template-columns:48px minmax(0,1fr) auto;padding:8px 10px}
 /* riga dei badge: il nome (in chip) sopra, la descrizione sotto, il conteggio a destra */

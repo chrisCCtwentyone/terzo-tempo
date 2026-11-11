@@ -1,8 +1,8 @@
-import { dataBreve, giornoAnno, iniziali, media, numero, plurale, tinta } from '../lib/formato'
+import { dataBreve, giornoAnno, media, numero, plurale } from '../lib/formato'
 import { useApi } from '../lib/useCarica'
 import type { Scheda as Dati, Stagione, Totali } from '../lib/tipi'
 import { Link, useTitolo } from '../router'
-import { Attesa, Badges, Bollino, Carta, GraficoVoti, Icona, Sezione } from '../ui'
+import { Attesa, Badges, Bollino, Carta, CartaZoom, GraficoVoti, Icona, Sezione } from '../ui'
 
 const STATISTICHE: { et: string; cls: string; val: (t: Totali) => string | null }[] = [
   { et: 'Gol', cls: 'st0', val: (t) => numero(t.gol) },
@@ -41,8 +41,8 @@ function Contenuto({ sempre, stagione }: { sempre: Dati; stagione: Dati | null }
   return (
     <>
       <div className="big att">
-        <div className={`foto k${tinta(g.id)}`}>
-          <b aria-hidden="true">{iniziali(g.nome)}</b>
+        <div className="bigc">
+          <CartaZoom id={g.id} nome={g.nome} />
           {t.mvp > 0 && <Bollino sotto={t.mvp > 1 ? `x${t.mvp}` : undefined} />}
         </div>
         <h2 className="ban">{g.nome}</h2>

@@ -50,6 +50,9 @@
 .vota label{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 2px 6px;border:2px solid transparent;border-radius:6px;cursor:pointer;min-width:0}
 .vota label .cart{max-width:100%}
 .vota input:checked+.voce{outline:0}
+.vota.carte{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.vota.carte label{padding:8px 6px;gap:6px;border-color:var(--edge);background:var(--card);box-shadow:3px 3px 0 var(--sh);border-radius:8px}
+.vota.carte .esa{width:78%}
 .vota label:has(input:checked){background:var(--yellow);border-color:var(--edge);box-shadow:2px 2px 0 var(--sh);color:#1a1712}
 .vota label:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
 .conferma{margin-top:14px;padding:12px;border:2px solid var(--edge);border-radius:6px;background:var(--card2)}
@@ -74,13 +77,19 @@
 .ris li .bar{grid-column:1;margin:0}
 .ris li b{grid-row:1/3;grid-column:2;text-align:right;font-family:Anton,Impact,sans-serif;font-weight:400;font-size:20px}
 
+/* listone = album a due colonne */
+.album{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px}
+.album .it{min-width:0}
+.albo{display:flex;flex-direction:column;gap:6px;min-width:0;text-decoration:none;color:inherit}
+.albo:active .esa{transform:translate(2px,2px)}
+.albo .meta{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:11px;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.albo .meta b{font-family:Anton,Impact,sans-serif;font-size:20px;color:var(--ink);font-weight:400;letter-spacing:0}
+
 /* scheda giocatore */
 .big{background-color:var(--card);background-image:var(--grain);border:2px solid var(--edge);border-radius:10px;box-shadow:5px 5px 0 var(--sh);padding:10px 10px 14px;position:relative}
-.foto{position:relative;height:216px;border:2px solid var(--edge);border-radius:6px;overflow:hidden;display:grid;place-items:center;
-  background-image:repeating-conic-gradient(from 0deg at 50% 62%,rgba(255,255,255,.14) 0 9deg,transparent 9deg 18deg),radial-gradient(rgba(0,0,0,.16) 1.4px,transparent 1.6px);background-size:auto,7px 7px}
-.foto b{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:clamp(84px,30vw,124px);line-height:1;letter-spacing:.02em;max-width:100%;text-shadow:5px 5px 0 rgba(0,0,0,.35);margin-top:-14px}
-.big .stamp{position:absolute;right:8px;top:8px;--s:64px}
-.ban{position:relative;margin:-22px -2px 0;background:var(--yellow);color:#1a1712;border:2px solid var(--edge);padding:4px 14px 3px;transform:rotate(-1.5deg);box-shadow:3px 3px 0 var(--sh);
+.bigc{position:relative;width:min(250px,70%);margin:0 auto}
+.big .bigc .stamp{position:absolute;right:-18px;top:6px;--s:64px}
+.ban{position:relative;margin:14px -2px 0;background:var(--yellow);color:#1a1712;border:2px solid var(--edge);padding:4px 14px 3px;transform:rotate(-1.5deg);box-shadow:3px 3px 0 var(--sh);
   font-family:Anton,Impact,sans-serif;font-size:32px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;line-height:1.15;overflow-wrap:anywhere}
 .sub{margin:16px 4px 0;font-size:13px;font-weight:700;color:var(--mute)}
 .stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}

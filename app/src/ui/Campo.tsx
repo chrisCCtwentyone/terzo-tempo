@@ -2,11 +2,8 @@ import type { ReactNode, Ref } from 'react'
 import { LATO_ALTO, pedine as calcolaPedine, type Pedina } from '../lib/campo'
 import { voto } from '../lib/formato'
 import type { Badge, Partita } from '../lib/tipi'
-import { Cart } from './Cart'
-import { Figurina } from './Figurina'
 import { Pallone } from './Icone'
-import { Bollino } from './Bollino'
-import { Voto } from './Voto'
+import { PedinaCarta } from './PedinaCarta'
 
 type Props = {
   giocatori: Partita['giocatori']
@@ -26,19 +23,8 @@ export function Campo({ giocatori, squadre, conVoti = true, mvpId = null, badge 
       <Terreno squadre={squadre}>
         {tutte.map(({ g, x, y }, i) => (
           <div key={g.giocatore_id} className="ped" style={{ left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%` }} role="group" aria-label={descrivi(g, conVoti)}>
-            <div className="pin att" style={{ '--i': i } as React.CSSProperties}>
-              <span className="figw">
-                <Figurina id={g.giocatore_id} nome={g.nome} z={34} decorativa badge={badge?.(g.giocatore_id)} />
-                {(g.gol > 0 || g.autogol > 0) && (
-                  <span className="balls" aria-hidden="true">
-                    {Array.from({ length: g.gol }, (_, k) => <Pallone key={`g${k}`} />)}
-                    {Array.from({ length: g.autogol }, (_, k) => <Pallone key={`o${k}`} autogol />)}
-                  </span>
-                )}
-                {mvpId === g.giocatore_id && <Bollino z={28} />}
-              </span>
-              <Cart nome={g.nome} />
-              {conVoti && <Voto v={g.voto_pagella} />}
+            <div className="att" style={{ '--i': i } as React.CSSProperties}>
+              <PedinaCarta id={g.giocatore_id} nome={g.nome} conVoto={conVoti} voto={g.voto_pagella} gol={g.gol} autogol={g.autogol} mvp={mvpId === g.giocatore_id} badge={badge?.(g.giocatore_id)} />
             </div>
           </div>
         ))}

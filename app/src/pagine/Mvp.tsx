@@ -3,7 +3,7 @@ import { votaMvp, type ErroreApi } from '../lib/api'
 import { conto, giorno, giornoOra, plurale } from '../lib/formato'
 import type { Badge, Mvp, Partita } from '../lib/tipi'
 import { Link } from '../router'
-import { Bollino, Carta, Cart, Figurina, Icona, Pulsante, Sezione } from '../ui'
+import { Bollino, Carta, CartaGiocatore, Cart, Figurina, Icona, Pulsante, Sezione } from '../ui'
 
 type ConBadge = (id: number) => Badge[] | undefined
 
@@ -121,14 +121,13 @@ function CondividiVoto({ partita, chiude }: { partita: Partita; chiude: string }
   )
 }
 
-function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa, badge }: {
+function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa }: {
   partita: Partita
   mvp: Extract<Mvp, { stato: 'aperto' }>
   haVotato: boolean
   onVotato: () => void
   ricarica: () => void
   avvisa: (testo: string, ok: boolean) => void
-  badge: ConBadge
 }) {
   const [scelto, setScelto] = useState<number | null>(null)
   const [invio, setInvio] = useState(false)
@@ -182,11 +181,11 @@ function Aperto({ partita, mvp, haVotato, onVotato, ricarica, avvisa, badge }: {
           {gg.length > 0 && (
             <fieldset>
               <legend className="sr">Scegli chi votare come MVP</legend>
-              <div className="vota">
+              <div className="vota carte">
                 {gg.map((g) => (
                   <label key={g.id}>
                     <input type="radio" className="sr" name="mvp" value={g.id} checked={scelto === g.id} onChange={() => setScelto(g.id)} />
-                    <Figurina id={g.id} nome={g.nome} z={46} decorativa badge={badge(g.id)} />
+                    <CartaGiocatore id={g.id} nome={g.nome} decorativa fascia={false} />
                     <span className="sr">{g.nome}</span>
                     <Cart nome={g.nome} />
                   </label>
@@ -277,7 +276,7 @@ export function BloccoMvp({ partita, ricarica, badge }: { partita: Partita; rica
       <Sezione id="t-mvp">Voto MVP</Sezione>
       {avviso && <p className={avviso.ok ? 'avviso ok' : 'avviso'} role={avviso.ok ? 'status' : 'alert'} style={{ margin: '0 0 12px' }}>{avviso.testo}</p>}
       {mvp.stato === 'aperto' ? (
-        <Aperto partita={partita} mvp={mvp} haVotato={votato || mvp.ha_votato} onVotato={() => setVotato(true)} ricarica={ricarica} avvisa={(testo, ok) => setAvviso({ testo, ok })} badge={badge} />
+        <Aperto partita={partita} mvp={mvp} haVotato={votato || mvp.ha_votato} onVotato={() => setVotato(true)} ricarica={ricarica} avvisa={(testo, ok) => setAvviso({ testo, ok })} />
       ) : (
         <Chiuso mvp={mvp} badge={badge} />
       )}
