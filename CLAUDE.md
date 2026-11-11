@@ -90,9 +90,23 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   "Rossi S.C.", "De Luca V." (decisione dell'utente, 30/09/2026; prima era
   "S. C. Rossi"). Alcuni giocatori veri hanno solo un nome o un nome provvisorio
   (utente: "lasciali, in futuro si modificano o si eliminano"): le iniziali
-  possono mancare e allora si mostra il solo nome scritto. Niente foto per ora; in futuro forse foto o avatar stile
-  fantacalcio. Lista sempre ampliabile. I giocatori veri li fornisce l'utente DOPO
-  le prove con giocatori generici.
+  possono mancare e allora si mostra il solo nome scritto. Lista sempre ampliabile.
+  I giocatori veri li fornisce l'utente DOPO le prove con giocatori generici.
+- **Carte giocatori** (decisioni dell'utente, 11/11/2026): gli admin caricano piano
+  piano per ogni giocatore una CARTA stile Leghe Fantagazzetta / FUT. Tutte le carte
+  hanno la STESSA sagoma: un ESAGONO allungato (punta leggera in alto, punta profonda
+  in basso; rapporto 520:799). Conta solo l'esagono: lo sfondo intorno sparisce.
+  - Le iniziali su fondo colorato non ci sono piu': chi non ha la carta ha un
+    SEGNAPOSTO, lo stesso esagono grigio chiaro con un omino grigio scuro e un "?".
+  - Scheda giocatore: carta intera grande (si apre a tutto schermo). Listone: album di
+    carte a 2 colonne. Campo formazioni: pedine a mini-carte esagonali stile FUT (voto
+    sull'angolo in alto a sinistra). Voto MVP: griglia di carte. Righe piccole
+    (pagelle, classifiche, convocati): esagonino col volto (zoom sulla parte alta).
+  - L'admin carica la carta dalla galleria, la fa combaciare con la sagoma esagonale
+    (sposta e ingrandisce); il telefono la ritaglia e la comprime (JPEG ~50-90 KB),
+    il database D1 la conserva (tabella `carte`, scelta dell'utente: niente R2).
+  - Le carte sono di persone VERE: MAI nei file tracciati (test ed e2e usano immagini
+    sintetiche generate da codice).
 - **Squadre**: per ora si chiamano sempre "Casaccati" contro "Smollicati"
   (decisione dell'utente, 30/09/2026; potra' cambiare: tenerlo in un solo punto).
 - **Campo da gioco (luogo)** (30/09/2026): elenco di CAMPI salvati dall'admin e
