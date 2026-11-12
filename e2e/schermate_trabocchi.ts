@@ -9,25 +9,25 @@ import type { Schermata } from './trabocchi.ts'
 
 /** Le schermate della parte PUBBLICA. Partite 100/101/110 esistono solo nel seed di e2e.ts (preparaDati). */
 export const schermatePubbliche = (conPartiteDiProva: boolean): Schermata[] => [
-  { nome: 'home', url: '/' },
-  { nome: 'classifiche gol', url: '/classifiche' },
-  { nome: 'classifiche presenze', url: '/classifiche?cat=presenze' },
-  { nome: 'classifiche media voto', url: '/classifiche?cat=media_voto' },
-  { nome: 'classifiche mvp', url: '/classifiche?cat=mvp' },
-  { nome: 'classifiche % vittorie', url: '/classifiche?cat=pct_vittorie' },
-  { nome: 'classifiche tutte le stagioni', url: '/classifiche?stagione=sempre' },
-  { nome: 'classifiche stagione lunga', url: '/classifiche?stagione=90' },
-  { nome: 'partite elenco', url: '/partite' },
-  { nome: 'partita giocata (10)', url: '/partite/10' },
-  { nome: 'partita parita (5)', url: '/partite/5' },
-  { nome: 'partita convocazione (11)', url: '/partite/11' },
-  { nome: 'partita nomi lunghi (120)', url: '/partite/120' },
-  { nome: 'partita convocazione nomi lunghi (121)', url: '/partite/121' },
+  { nome: 'home', gruppo: 'home', url: '/' },
+  { nome: 'classifiche gol', gruppo: 'classifiche', url: '/classifiche' },
+  { nome: 'classifiche presenze', gruppo: 'classifiche', url: '/classifiche?cat=presenze' },
+  { nome: 'classifiche media voto', gruppo: 'classifiche', url: '/classifiche?cat=media_voto' },
+  { nome: 'classifiche mvp', gruppo: 'classifiche', url: '/classifiche?cat=mvp' },
+  { nome: 'classifiche % vittorie', gruppo: 'classifiche', url: '/classifiche?cat=pct_vittorie' },
+  { nome: 'classifiche tutte le stagioni', gruppo: 'classifiche', url: '/classifiche?stagione=sempre' },
+  { nome: 'classifiche stagione lunga', gruppo: 'classifiche', url: '/classifiche?stagione=90' },
+  { nome: 'partite elenco', gruppo: 'partite', url: '/partite' },
+  { nome: 'partita giocata (10)', gruppo: 'partita', url: '/partite/10' },
+  { nome: 'partita parita (5)', gruppo: 'partita', url: '/partite/5' },
+  { nome: 'partita convocazione (11)', gruppo: 'partita', url: '/partite/11' },
+  { nome: 'partita nomi lunghi (120)', gruppo: 'partita', url: '/partite/120' },
+  { nome: 'partita convocazione nomi lunghi (121)', gruppo: 'partita', url: '/partite/121' },
   ...(conPartiteDiProva
     ? [
-        { nome: 'partita voto aperto (100)', url: '/partite/100', attesa: '.vota' },
+        { nome: 'partita voto aperto (100)', gruppo: 'partita', url: '/partite/100', attesa: '.vota' },
         {
-          nome: 'partita voto aperto, conferma (100)',
+          nome: 'partita voto aperto, conferma (100)', gruppo: 'partita',
           url: '/partite/100',
           attesa: '.vota',
           prepara: async (p: Page) => {
@@ -35,18 +35,18 @@ export const schermatePubbliche = (conPartiteDiProva: boolean): Schermata[] => [
             await p.getByRole('group', { name: 'Conferma del voto' }).waitFor()
           },
         },
-        { nome: 'partita senza voti (101)', url: '/partite/101' },
-        { nome: 'partita MVP dell\'admin (110)', url: '/partite/110' },
+        { nome: 'partita senza voti (101)', gruppo: 'partita', url: '/partite/101' },
+        { nome: 'partita MVP dell\'admin (110)', gruppo: 'partita', url: '/partite/110' },
       ]
     : []),
-  { nome: 'giocatori', url: '/giocatori' },
-  { nome: 'scheda giocatore (1)', url: '/giocatori/1' },
-  { nome: 'scheda giocatore nome lungo (90)', url: '/giocatori/90' },
-  { nome: 'scheda giocatore parola lunga (91)', url: '/giocatori/91' },
-  { nome: 'scheda giocatore inesistente', url: '/giocatori/999', attesa: '[role="alert"]' },
-  { nome: 'info', url: '/info' },
-  { nome: 'pagina non trovata', url: '/pagina-che-non-c-e' },
-  { nome: 'area riservata (senza accesso)', url: '/admin', attesa: 'main h1' },
+  { nome: 'giocatori', gruppo: 'giocatori', url: '/giocatori' },
+  { nome: 'scheda giocatore (1)', gruppo: 'scheda', url: '/giocatori/1' },
+  { nome: 'scheda giocatore nome lungo (90)', gruppo: 'scheda', url: '/giocatori/90' },
+  { nome: 'scheda giocatore parola lunga (91)', gruppo: 'scheda', url: '/giocatori/91' },
+  { nome: 'scheda giocatore inesistente', gruppo: 'scheda', url: '/giocatori/999', attesa: '[role="alert"]' },
+  { nome: 'info', gruppo: 'info', url: '/info' },
+  { nome: 'pagina non trovata', gruppo: 'non-trovata', url: '/pagina-che-non-c-e' },
+  { nome: 'area riservata (senza accesso)', gruppo: 'area-riservata', url: '/admin', attesa: 'main h1' },
 ]
 
 const clic = async (p: Page, nome: string | RegExp) => {
@@ -55,11 +55,11 @@ const clic = async (p: Page, nome: string | RegExp) => {
 
 /** Le schermate dell'area ADMIN (server col bypass locale). `senzaAccesso` = origine del server senza bypass. */
 export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
-  const sez = (id: number, s: string, nome: string, prepara?: Schermata['prepara']): Schermata => ({ nome: `admin partita ${id} ${nome}`, url: `/admin/partite/${id}?sez=${s}`, attesa: 'main h1', prepara })
+  const sez = (id: number, s: string, nome: string, prepara?: Schermata['prepara']): Schermata => ({ nome: `admin partita ${id} ${nome}`, gruppo: 'admin-partite', url: `/admin/partite/${id}?sez=${s}`, attesa: 'main h1', prepara })
   return [
-    { nome: 'admin partite elenco', url: '/admin/partite' },
+    { nome: 'admin partite elenco', gruppo: 'admin-partite', url: '/admin/partite' },
     {
-      nome: 'admin nuova partita (con convocati scelti)',
+      nome: 'admin nuova partita (con convocati scelti)', gruppo: 'admin-partite',
       url: '/admin/partite/nuova',
       attesa: '.conv-scelta label',
       prepara: async (p) => {
@@ -91,9 +91,9 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
     sez(121, 'squadre', 'squadre (nomi lunghi)'),
     sez(121, 'campo', 'campo (nomi lunghi)'),
     sez(121, 'partita', 'modifica (stagione lunga)'),
-    { nome: 'admin giocatori elenco', url: '/admin/giocatori', attesa: '.riga-btn' },
+    { nome: 'admin giocatori elenco', gruppo: 'admin-giocatori', url: '/admin/giocatori', attesa: '.riga-btn' },
     {
-      nome: 'admin giocatori nuovo',
+      nome: 'admin giocatori nuovo', gruppo: 'admin-giocatori',
       url: '/admin/giocatori',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -103,7 +103,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin giocatori modifica (nome lungo)',
+      nome: 'admin giocatori modifica (nome lungo)', gruppo: 'admin-giocatori',
       url: '/admin/giocatori',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -112,7 +112,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin giocatori modifica (parola lunga)',
+      nome: 'admin giocatori modifica (parola lunga)', gruppo: 'admin-giocatori',
       url: '/admin/giocatori',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -120,9 +120,9 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
         await p.locator('.lvl').waitFor()
       },
     },
-    { nome: 'admin campi elenco', url: '/admin/campi', attesa: '.riga-btn' },
+    { nome: 'admin campi elenco', gruppo: 'admin-campi', url: '/admin/campi', attesa: '.riga-btn' },
     {
-      nome: 'admin campi nuovo (link e nome lunghi)',
+      nome: 'admin campi nuovo (link e nome lunghi)', gruppo: 'admin-campi',
       url: '/admin/campi',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -132,7 +132,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin campi link non valido',
+      nome: 'admin campi link non valido', gruppo: 'admin-campi',
       url: '/admin/campi',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -143,7 +143,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin campi modifica (nome lungo)',
+      nome: 'admin campi modifica (nome lungo)', gruppo: 'admin-campi',
       url: '/admin/campi',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -152,7 +152,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin campi modifica (parola lunga)',
+      nome: 'admin campi modifica (parola lunga)', gruppo: 'admin-campi',
       url: '/admin/campi',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -161,7 +161,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin nuova partita con "+ Nuovo campo" aperto (link e nome lunghi)',
+      nome: 'admin nuova partita con "+ Nuovo campo" aperto (link e nome lunghi)', gruppo: 'admin-partite',
       url: '/admin/partite/nuova',
       attesa: '.conv-scelta label',
       prepara: async (p) => {
@@ -173,7 +173,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin modifica partita 121 con "+ Nuovo campo" aperto (nomi lunghi)',
+      nome: 'admin modifica partita 121 con "+ Nuovo campo" aperto (nomi lunghi)', gruppo: 'admin-partite',
       url: '/admin/partite/121?sez=partita',
       attesa: 'main h1',
       prepara: async (p) => {
@@ -181,9 +181,9 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
         await p.getByLabel('Nome del campo').fill('Supercalifragilistichespiralidosoimpiantosportivocomunalenuovissimo')
       },
     },
-    { nome: 'admin badge elenco', url: '/admin/badge', attesa: '.riga-btn' },
+    { nome: 'admin badge elenco', gruppo: 'admin-badge', url: '/admin/badge', attesa: '.riga-btn' },
     {
-      nome: 'admin badge nuovo',
+      nome: 'admin badge nuovo', gruppo: 'admin-badge',
       url: '/admin/badge',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -193,7 +193,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin badge modifica (nome lungo)',
+      nome: 'admin badge modifica (nome lungo)', gruppo: 'admin-badge',
       url: '/admin/badge',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -202,7 +202,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin badge elimina (conferma)',
+      nome: 'admin badge elimina (conferma)', gruppo: 'admin-badge',
       url: '/admin/badge',
       attesa: '.riga-btn',
       prepara: async (p) => {
@@ -211,9 +211,9 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
         await p.getByRole('group', { name: 'Conferma' }).waitFor()
       },
     },
-    { nome: 'admin stagioni elenco', url: '/admin/stagioni', attesa: '.stagione' },
+    { nome: 'admin stagioni elenco', gruppo: 'admin-stagioni', url: '/admin/stagioni', attesa: '.stagione' },
     {
-      nome: 'admin stagioni nuova',
+      nome: 'admin stagioni nuova', gruppo: 'admin-stagioni',
       url: '/admin/stagioni',
       attesa: '.stagione',
       prepara: async (p) => {
@@ -223,7 +223,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
       },
     },
     {
-      nome: 'admin stagioni rinomina (nome lungo)',
+      nome: 'admin stagioni rinomina (nome lungo)', gruppo: 'admin-stagioni',
       url: '/admin/stagioni',
       attesa: '.stagione',
       prepara: async (p) => {
@@ -231,7 +231,7 @@ export const schermateAdmin = (senzaAccesso: string): Schermata[] => {
         await p.getByLabel(/Nuovo nome di/).waitFor()
       },
     },
-    { nome: 'admin pagina non trovata', url: '/admin/pagina-che-non-c-e' },
-    { nome: 'admin area riservata (senza accesso)', url: '/admin', base: senzaAccesso },
+    { nome: 'admin pagina non trovata', gruppo: 'admin-non-trovata', url: '/admin/pagina-che-non-c-e' },
+    { nome: 'admin area riservata (senza accesso)', gruppo: 'admin-area-riservata', url: '/admin', base: senzaAccesso },
   ]
 }

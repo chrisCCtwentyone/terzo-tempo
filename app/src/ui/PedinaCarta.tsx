@@ -14,7 +14,7 @@ export function PedinaCarta({ id, nome, voto, conVoto = false, gol = 0, autogol 
   id: number
   nome: string
   voto?: number | null
-  /** mostra il voto (anche "n.d.") */
+  /** mostra il voto, solo se c'e': sul campo un "n.d." coprirebbe la carta (decisione dell'utente, 12/11/2026); il dato mancante resta visibile in pagella */
   conVoto?: boolean
   gol?: number
   autogol?: number
@@ -27,7 +27,7 @@ export function PedinaCarta({ id, nome, voto, conVoto = false, gol = 0, autogol 
     <div className="pin">
       <span className="figw">
         <CartaGiocatore id={id} nome={nome} fascia={false} decorativa className="mini" />
-        {conVoto && <span className="pv"><Voto v={voto ?? null} /></span>}
+        {conVoto && voto != null && <span className="pv"><Voto v={voto} /></span>}
         {(gol > 0 || autogol > 0) && (
           <span className="balls" aria-hidden="true">
             {Array.from({ length: gol }, (_, k) => <Pallone key={`g${k}`} />)}

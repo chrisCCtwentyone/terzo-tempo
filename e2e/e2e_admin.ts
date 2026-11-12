@@ -9,7 +9,7 @@
  * Controlli su ogni schermata: console pulita, CSP, scroll orizzontale, aree di tocco >= 44 px, focus visibile,
  * nessuna risposta pubblica con "livello". Screenshot in E2E_SCREENS (default e2e/schermate/admin, ignorata da git).
  *
- * Variabili: E2E_PORT (8798; il server senza bypass usa la porta successiva), E2E_SCREENS, E2E_CHROMIUM.
+ * Variabili: E2E_PORT (8780; da 8780 a 8783 e 8790: lontane dalla 8799 dell'e2e pubblico, cosi' i due giri possono girare insieme), E2E_SCREENS, E2E_CHROMIUM.
  */
 import { mkdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -23,7 +23,7 @@ import { schermateAdmin } from './schermate_trabocchi.ts'
 import { provaRilevatore, provaSelettoreData, provaTrabocchi } from './trabocchi.ts'
 import { DATI, RADICE, aggiungiDatiEstremi, apri, assesta, avviaServer, chiudiSessione, concludi, falliti, foto, preparaBase, sql, verifica, verificaMarchio, type Sessione } from './impianto.ts'
 
-const PORTA = Number(process.env.E2E_PORT ?? 8798)
+const PORTA = Number(process.env.E2E_PORT ?? 8780)
 const BASE = `http://localhost:${PORTA}`
 const BASE_SENZA = `http://localhost:${PORTA + 1}`
 const PORTA_GOOGLE = PORTA + 10

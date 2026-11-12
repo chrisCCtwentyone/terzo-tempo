@@ -4,10 +4,10 @@
  * dello script vero (`pubblica.sh --solo-piano --simula`, che non esegue niente).
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { classificaFile, REGOLE, verificheMirate } from '../scripts/verifiche_mirate.mjs';
+import { classificaFile, REGOLE, riassuntoTrabocchi, SCHERMATE_PER_FILE, TUTTI_I_GRUPPI, valoreTrabocchi, verificheMirate } from '../scripts/verifiche_mirate.mjs';
 
 const RADICE = join(import.meta.dirname, '..');
 const TUTTI = { e2e: true, e2eAdmin: true };
@@ -163,6 +163,103 @@ describe('combinazioni e opzioni', () => {
   });
 });
 
+describe('rilevatore di trabocchi: su quali schermate', () => {
+  const trab = (...files: string[]) => verificheMirate(files).trabocchi;
+
+  it('un file di pagina o di admin ben identificabile -> solo le schermate di quella pagina', () => {
+    expect(trab('app/src/pagine/Scheda.tsx')).toEqual(['scheda']);
+    expect(trab('app/src/pagine/Home.tsx')).toEqual(['home']);
+    expect(trab('app/src/pagine/Classifiche.tsx')).toEqual(['classifiche']);
+    expect(trab('app/src/admin/Badge.tsx')).toEqual(['admin-badge']);
+    expect(trab('app/src/admin/Stagioni.tsx', 'app/src/pagine/Info.tsx')).toEqual(['info', 'admin-stagioni']);
+  });
+
+  it('i file importati da piu\' pagine valgono per tutte le loro pagine', () => {
+    expect(trab('app/src/pagine/Diretta.tsx')).toEqual(['home', 'partita']);
+    expect(trab('app/src/pagine/Mvp.tsx')).toEqual(['home', 'partita']);
+    expect(trab('app/src/admin/Campi.tsx')).toEqual(['admin-partite', 'admin-campi']); // Campi.tsx sta dentro SceltaCampo
+    expect(trab('app/src/admin/PartitaAdmin.tsx')).toEqual(['admin-partite', 'admin-live']);
+    expect(trab('app/src/admin/CartaEditor.tsx')).toEqual(['admin-giocatori']);
+  });
+
+  it.each([
+    'app/src/ui/Figurina.tsx',
+    'app/src/stili/ui.css',
+    'app/src/lib/api.ts',
+    'shared/moduli.ts',
+    'functions/_middleware.ts',
+    'app/index.html',
+    'e2e/impianto.ts',
+    'e2e/trabocchi.ts',
+    'e2e/schermate_trabocchi.ts',
+    'e2e/e2e.ts',
+    'e2e/e2e_admin.ts',
+    'e2e/live.ts',
+    'package.json',
+    'package-lock.json',
+    'scripts/pubblica.sh',
+    'scripts/verifiche_mirate.mjs',
+    'scripts/seed_prova.sql',
+    // nel dubbio: un file di pagina/admin che la tabella non conosce, o un percorso non previsto
+    'app/src/admin/Admin.tsx',
+    'app/src/admin/comuni.tsx',
+    'app/src/admin/admin.css',
+    'app/src/pagine/NuovaPagina.tsx',
+    'app/src/App.tsx',
+    'wrangler.toml',
+  ])('file comune o dubbio %s -> TUTTE le schermate', (file) => {
+    expect(trab(file)).toBe('tutte');
+  });
+
+  it('solo documenti, test o altri script -> nessuna schermata; nessun file -> nessuna', () => {
+    expect(trab('docs/API.md', 'test/mvp.test.ts', 'scripts/controlla_produzione.sh')).toBe('nessuna');
+    expect(trab('app/src/admin/NOTE.md')).toBe('nessuna');
+    expect(verificheMirate([]).trabocchi).toBe('nessuna');
+  });
+
+  it('un solo file comune fra tanti di pagina basta per tutte; --completo forza tutte', () => {
+    expect(trab('app/src/pagine/Scheda.tsx', 'app/src/ui/Figurina.tsx')).toBe('tutte');
+    expect(verificheMirate(['docs/API.md'], { completo: true }).trabocchi).toBe('tutte');
+    expect(verificheMirate([], { completo: true }).trabocchi).toBe('tutte');
+  });
+
+  it('il valore per gli e2e e il piano per gli umani', () => {
+    expect(valoreTrabocchi('tutte')).toBe('tutte');
+    expect(valoreTrabocchi('nessuna')).toBe('nessuna');
+    expect(valoreTrabocchi(['home', 'scheda'])).toBe('home,scheda');
+    const r = verificheMirate(['app/src/pagine/Scheda.tsx']);
+    const righe = riassuntoTrabocchi(r).join('\n');
+    expect(righe).toMatch(/CONTROLLA solo le schermate di scheda \(app\/src\/pagine\/Scheda\.tsx\)/);
+    expect(righe).toMatch(/SALTA home, classifiche.*admin-live.*nessun file cambiato le riguarda/);
+    expect(riassuntoTrabocchi(verificheMirate(['app/src/lib/api.ts'])).join('\n')).toMatch(/CONTROLLA tutte le schermate.*app\/src\/lib\/api\.ts/);
+    expect(riassuntoTrabocchi(verificheMirate([]), {}).join('\n')).toMatch(/SALTA tutte/);
+    expect(riassuntoTrabocchi(verificheMirate([], { completo: true }), { completo: true }).join('\n')).toMatch(/CONTROLLA tutte.*completo/);
+  });
+
+  it('ogni regola che accende una prova nel browser accende anche il rilevatore (o dice perche\' no)', () => {
+    for (const r of REGOLE) {
+      if (r.prove.e2e || r.prove.admin) expect(r.schermate, r.nome).not.toEqual([]);
+      else expect(r.schermate, r.nome).toEqual([]);
+    }
+  });
+
+  it('i gruppi della tabella e delle schermate esistono davvero (nessun refuso)', () => {
+    for (const r of SCHERMATE_PER_FILE) for (const g of r.gruppi) expect(TUTTI_I_GRUPPI, g).toContain(g);
+    // i gruppi scritti nelle schermate (letti dal testo: importare e2e/ da qui lo farebbe compilare senza la libreria DOM)
+    const gruppiDi = (file: string, da?: string) => {
+      const t = readFileSync(join(RADICE, file), 'utf8');
+      return new Set([...t.slice(da ? t.indexOf(da) : 0).matchAll(/gruppo: '([^']+)'/g)].map((m) => m[1]));
+    };
+    const pubbliche = gruppiDi('e2e/schermate_trabocchi.ts');
+    const admin = gruppiDi('e2e/schermate_trabocchi.ts', 'export const schermateAdmin');
+    const live = gruppiDi('e2e/live.ts', 'export const schermateLive');
+    for (const g of [...pubbliche, ...admin, ...live]) expect(TUTTI_I_GRUPPI, g).toContain(g);
+    // e ogni gruppo ha almeno una schermata
+    const tutti = new Set([...pubbliche, ...admin, ...live]);
+    for (const g of TUTTI_I_GRUPPI) expect(tutti.has(g), g).toBe(true);
+  });
+});
+
 describe.skipIf(!existsSync(join(RADICE, '.git')))('pubblica.sh --solo-piano --simula (a secco: non esegue niente)', () => {
   const piano = (simula: string, ...altre: string[]) => {
     const env = { ...process.env };
@@ -201,6 +298,35 @@ describe.skipIf(!existsSync(join(RADICE, '.git')))('pubblica.sh --solo-piano --s
     const u = piano('README.md', '--completo');
     expect(u).toContain('e2e pubblico: FA');
     expect(u).toContain('e2e admin:    FA');
+  });
+
+  it('solo la scheda giocatore: il rilevatore controlla solo la scheda e lo dice', () => {
+    const u = piano('app/src/pagine/Scheda.tsx');
+    expect(u).toContain('e2e pubblico: FA');
+    expect(u).toContain('e2e admin:    SALTA');
+    expect(u).toContain('CONTROLLA solo le schermate di scheda');
+    expect(u).toContain('SALTA home, classifiche');
+    expect(u).toContain('schermate scelte: scheda');
+  });
+
+  it('pagina admin: solo le sue schermate; le due prove in parallelo solo se servono tutte e due', () => {
+    const a = piano('app/src/admin/Badge.tsx');
+    expect(a).toContain('schermate scelte: admin-badge');
+    expect(a).not.toContain('in parallelo');
+    const b = piano('app/src/admin/Badge.tsx app/src/pagine/Info.tsx');
+    expect(b).toContain('schermate scelte: info,admin-badge');
+    expect(b).toContain('in parallelo');
+  });
+
+  it('file comune e --completo: tutte le schermate, a 2 larghezze', () => {
+    expect(piano('app/src/ui/Figurina.tsx')).toContain('schermate scelte: tutte (2 larghezze: 320 e 390 px)');
+    expect(piano('README.md', '--completo')).toContain('schermate scelte: tutte');
+  });
+
+  it('solo documenti: nessuna schermata e nessun rilevatore', () => {
+    const u = piano('docs/API.md');
+    expect(u).toContain('rilevatore di trabocchi: SALTA tutte');
+    expect(u).not.toContain('schermate scelte');
   });
 
   it("--simula senza --solo-piano e' rifiutato: una pubblicazione vera non si decide su file inventati", () => {

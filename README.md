@@ -364,11 +364,13 @@ npm run typecheck   # tsc -b
 npm test            # Vitest
 npm run e2e         # browser: build di produzione, D1 usa-e-getta, Chromium a 390x844, tema chiaro e scuro
 npm run e2e:admin   # come sopra, per l'area admin (con eventi touch veri)
-# entrambi contengono il rilevatore di trabocchi di testo (e2e/trabocchi.ts): ogni schermata a 320/360/390/430 px,
-# chiaro e scuro, con web font, senza web font (font di ripiego) e con testo ingrandito; E2E_TRABOCCHI=report li conta senza fallire
+# entrambi contengono il rilevatore di trabocchi di testo (e2e/trabocchi.ts): ogni schermata a 320 e 390 px,
+# chiaro e scuro, con web font, senza web font (font di ripiego) e con testo ingrandito; E2E_TRABOCCHI=report li conta senza fallire;
+# E2E_TRABOCCHI_SCHERMATE=tutte|nessuna|scheda,home,... sceglie le schermate (pubblica.sh lo decide dai file cambiati)
+./scripts/prove_browser.sh pubblico admin   # le due prove INSIEME (senza rebuild: serve app/dist), come in pubblica.sh
 ```
 
-Le prove nel browser controllano tutte le schermate, il voto MVP col conflitto al secondo voto, la chiusura a tempo scaduto, la console senza errori, zero violazioni CSP, nessuna risorsa esterna e nessuno scroll orizzontale. Servono un Chromium già installato e `playwright-core` alla versione fissata: dettagli in [`docs/DEPLOY.md`](docs/DEPLOY.md).
+Le prove nel browser controllano (di default) tutte le schermate, il voto MVP col conflitto al secondo voto, la chiusura a tempo scaduto, la console senza errori, zero violazioni CSP, nessuna risorsa esterna e nessuno scroll orizzontale. Servono un Chromium già installato e `playwright-core` alla versione fissata: dettagli in [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ### Logo e icone
 

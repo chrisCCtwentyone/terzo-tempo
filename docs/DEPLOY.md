@@ -40,7 +40,7 @@ poi `scripts/controlla_produzione.sh`. Esce con 0 solo se e' tutto verde. La bui
 
 ### Verifiche mirate: quali prove nel browser
 
-Le prove nel browser (`npm run e2e`, `npm run e2e:admin`, rilevatore di trabocchi compreso) sono le sole che si alleggeriscono, in
+Le prove nel browser (`npm run e2e`, `npm run e2e:admin`) sono le sole che si alleggeriscono, in
 base ai file cambiati rispetto all'**ultima pubblicazione riuscita** (decisione dell'utente, 01/10/2026). Prima di eseguire
 qualunque cosa lo script stampa il piano: il riferimento usato, i file cambiati (riassunti per regola), quali prove fa, quali
 salta e perche'. Le regole stanno in `scripts/verifiche_mirate.mjs` (la prima che corrisponde a un file vince) e sono provate da
@@ -56,6 +56,24 @@ salta e perche'. Le regole stanno in `scripts/verifiche_mirate.mjs` (la prima ch
 | `scripts/pubblica.sh`, `scripts/verifiche_mirate.*` (la logica che sceglie), `scripts/seed_prova.sql` (i dati di tutte le prove) | COMPLETO |
 | solo `*.md`, `docs/**`, `LICENSE`, `test/**`, altri file in `scripts/` | nessuna prova nel browser |
 | qualunque altro percorso (es. `app/src/App.tsx`, `wrangler.toml`, `tsconfig*.json`, `.gitignore`) | COMPLETO: nel dubbio si prova |
+
+**Le due prove girano insieme.** Quando servono tutte e due, `pubblica.sh` le lancia in parallelo con `scripts/prove_browser.sh`
+(che si puo' usare anche da solo, dopo `npx vite build`: `./scripts/prove_browser.sh pubblico admin`). Ogni prova ha il suo D1
+usa-e-getta, le sue porte (pubblico 8799; admin 8780-8783 e 8790) e le sue schermate; le prove non ricostruiscono la build.
+Si aspettano entrambe, se ne fallisce una sola `pubblica.sh` si ferma prima di migrazioni e deploy, e l'output di ciascuna e'
+stampato per intero. Chromium parte due volte nello stesso container: in caso di timeout spuri si lancia una prova alla volta.
+
+**Rilevatore di trabocchi: 2 larghezze e solo le schermate toccate.** Il rilevatore prova 320 px (la piu' stretta) e 390 px (la
+tipica), sempre, anche con `--completo`. Le *verifiche funzionali* degli e2e girano per intero; il rilevatore gira solo sulle
+schermate scelte dai file cambiati (stesse regole di `scripts/verifiche_mirate.mjs`), passate agli e2e con
+`E2E_TRABOCCHI_SCHERMATE` = `tutte` | `nessuna` | gruppi separati da virgola (`scheda`, `home`, `admin-campi`... l'elenco e'
+`GRUPPI_TRABOCCHI`; un gruppo inesistente e' un errore). Il piano dice quali schermate controlla e quali salta:
+
+| File cambiati | Schermate del rilevatore |
+| --- | --- |
+| un file di `app/src/pagine/**` o `app/src/admin/**` della tabella `SCHERMATE_PER_FILE` (es. `Scheda.tsx` -> `scheda`; `Badge.tsx` -> `admin-badge`) | solo le schermate di quel gruppo (`Diretta.tsx`/`Mvp.tsx` -> home e partita; `Campi.tsx` -> campi e partite admin; `PartitaAdmin.tsx` -> partite e diretta admin) |
+| `app/src/ui/**`, `stili/**`, `lib/**`, `shared/**`, `functions/**`, `migrations/**`, `app/index.html`, `app/public/**`, `vite.config.*`, `package*.json`, `e2e/**`, `scripts/pubblica.sh`, `verifiche_mirate.*`, `seed_prova.sql`; un file di pagina/admin non in tabella (`Admin.tsx`, `comuni.tsx`, `admin.css`...); percorso non previsto; `--completo`; riferimento non trovato | TUTTE |
+| solo documenti, `test/**`, altri script | nessuna |
 
 Un file solo basta ad accendere una prova; con file di tipi diversi valgono le prove di tutti (unione). Senza nessun file
 cambiato non c'e' nessuna prova nel browser (e' lo stato gia' provato).

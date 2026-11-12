@@ -18,17 +18,39 @@
  * scorre in orizzontale.
  */
 import type { Browser, BrowserContext, Page } from 'playwright-core'
+import { TUTTI_I_GRUPPI } from '../scripts/verifiche_mirate.mjs'
 import { verifica } from './impianto.ts'
 
-export const LARGHEZZE = [320, 360, 390, 430] as const
+/** Solo due larghezze (decisione dell'utente, 12/11/2026): la piu' stretta provata e la tipica. */
+export const LARGHEZZE = [320, 390] as const
 export const CONDIZIONI = ['font', 'senzafont', 'ingrandito'] as const
 export type Condizione = (typeof CONDIZIONI)[number]
 export type Tema = 'light' | 'dark'
 
 export type Trabocco = { tipo: 'largo' | 'alto' | 'fuori' | 'sovrapposto' | 'controllo' | 'pagina'; el: string; testo: string; dettaglio: string }
 
-/** Una schermata da visitare: `prepara` porta la pagina nello stato voluto (form aperto, riga espansa...). */
-export type Schermata = { nome: string; url: string; base?: string; attesa?: string; prepara?: (p: Page) => Promise<void> }
+/**
+ * Una schermata da visitare: `prepara` porta la pagina nello stato voluto (form aperto, riga espansa...).
+ * `gruppo` = a quale gruppo appartiene (vedi GRUPPI_TRABOCCHI in scripts/verifiche_mirate.mjs): serve a scegliere, dai file
+ * cambiati, su quali schermate far girare il rilevatore.
+ */
+export type Schermata = { nome: string; gruppo: string; url: string; base?: string; attesa?: string; prepara?: (p: Page) => Promise<void> }
+
+/**
+ * Quali schermate controllare: E2E_TRABOCCHI_SCHERMATE = `tutte` (default, anche se manca), `nessuna` oppure i gruppi separati da
+ * virgola (scritta da scripts/pubblica.sh, che la decide dai file cambiati). Un gruppo che non esiste e' un errore: un refuso
+ * non deve spegnere il controllo in silenzio. (E2E_TRABOCCHI=report e' un'altra cosa: conta senza fallire.)
+ */
+export function scegliSchermate(schermate: Schermata[]): Schermata[] {
+  for (const sc of schermate) if (!(TUTTI_I_GRUPPI as string[]).includes(sc.gruppo)) throw new Error(`schermata "${sc.nome}": gruppo sconosciuto "${sc.gruppo}"`)
+  const v = (process.env.E2E_TRABOCCHI_SCHERMATE ?? 'tutte').trim()
+  if (v === 'tutte') return schermate
+  if (v === 'nessuna') return []
+  const voluti = v.split(',').map((x) => x.trim())
+  const ignoti = voluti.filter((g) => !(TUTTI_I_GRUPPI as string[]).includes(g))
+  if (ignoti.length) throw new Error(`E2E_TRABOCCHI_SCHERMATE: gruppi sconosciuti: ${ignoti.join(', ')}`)
+  return schermate.filter((sc) => voluti.includes(sc.gruppo))
+}
 
 /** La misura, eseguita DENTRO la pagina. Funzione sola: viene serializzata, non puo' usare niente dal modulo. */
 export function misuraNellaPagina(): Trabocco[] {
@@ -241,7 +263,7 @@ export async function visitaTrabocchi(browser: Browser, base: string, schermate:
   const rapporti: Rapporto[] = []
   for (const condizione of condizioni) {
     for (const tema of temi) {
-      // le quattro larghezze in parallelo (contesti separati)
+      // le larghezze in parallelo (contesti separati)
       await Promise.all(
         larghezze.map(async (w) => {
           const ctx = await contesto(browser, tema, w, condizione, touch)
@@ -306,8 +328,13 @@ export function distinte(rapporti: Rapporto[]) {
  * Esegue la visita e verifica: nessun trabocco. Con E2E_TRABOCCHI=report NON fallisce e stampa il riassunto
  * (serve per contare i trabocchi prima di correggere); con E2E_TRABOCCHI_JSON=percorso salva anche i dettagli.
  */
-export async function provaTrabocchi(browser: Browser, base: string, etichetta: string, schermate: Schermata[], opzioni: Parameters<typeof visitaTrabocchi>[3] = {}) {
-  console.log(`\n== trabocchi di testo: ${etichetta} (${schermate.length} schermate x ${(opzioni.condizioni ?? CONDIZIONI).length} condizioni x 2 temi x ${(opzioni.larghezze ?? LARGHEZZE).length} larghezze) ==`)
+export async function provaTrabocchi(browser: Browser, base: string, etichetta: string, tutte: Schermata[], opzioni: Parameters<typeof visitaTrabocchi>[3] = {}) {
+  const schermate = scegliSchermate(tutte)
+  if (schermate.length === 0) {
+    console.log(`\n== trabocchi di testo: ${etichetta}: SALTATO (nessuna delle ${tutte.length} schermate scelta; E2E_TRABOCCHI_SCHERMATE=${process.env.E2E_TRABOCCHI_SCHERMATE ?? 'tutte'}) ==`)
+    return
+  }
+  console.log(`\n== trabocchi di testo: ${etichetta} (${schermate.length} di ${tutte.length} schermate x ${(opzioni.condizioni ?? CONDIZIONI).length} condizioni x 2 temi x ${(opzioni.larghezze ?? LARGHEZZE).length} larghezze) ==`)
   const rapporti = await visitaTrabocchi(browser, base, schermate, opzioni)
   const { per, totale } = riassumi(rapporti)
   const report = process.env.E2E_TRABOCCHI === 'report'

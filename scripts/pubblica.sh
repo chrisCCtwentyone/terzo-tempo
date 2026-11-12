@@ -11,7 +11,7 @@
 # SEMPRE, in quest'ordine, senza alleggerire: tsc -b, build, vitest (tutti i test unitari: guardie su sicurezza, nomi e
 # segreti comprese), migrazioni D1, deploy, scripts/controlla_produzione.sh (il sito VERO).
 #
-# SOLO LE PROVE NEL BROWSER (npm run e2e, npm run e2e:admin, rilevatore di trabocchi compreso) si decidono dai file cambiati
+# SOLO LE PROVE NEL BROWSER (e2e pubblico e e2e admin) si decidono dai file cambiati
 # rispetto all'ULTIMA PUBBLICAZIONE riuscita. Le regole stanno in scripts/verifiche_mirate.mjs (con i test in
 # test/verifiche_mirate.test.ts); in sintesi, la PRIMA che corrisponde a ciascun file:
 #   scripts/pubblica.sh, verifiche_mirate.*, scripts/seed_prova.sql            -> COMPLETO (e2e pubblico + e2e admin)
@@ -22,8 +22,19 @@
 #   app/src/pagine/**                                                          -> solo e2e pubblico
 #   app/src/ui/**, stili/**, lib/**, app/index.html, app/public/**, shared/**,
 #   functions/**, migrations/**, vite.config.*, package.json, package-lock.json -> COMPLETO
-#   *.md, docs/**, LICENSE, test/**, scripts/* (gli altri)                     -> NESSUNA prova nel browser
+#   *.md, docs/**, LICENSE, test/**, scripts/* (gli altri)                     -> NESSUNA prova nel browser (e nessun trabocco)
 #   qualunque altro percorso (nel dubbio si prova)                             -> COMPLETO
+#
+# Se servono TUTTE E DUE, girano INSIEME (scripts/prove_browser.sh, due processi paralleli con D1 e porte propri; si aspettano
+# entrambe e si esce non-zero se una sola fallisce). Chromium parte due volte nello stesso container: se compaiono timeout spuri,
+# lancia scripts/prove_browser.sh con una prova alla volta. Le prove NON ricostruiscono la build: basta quella fatta prima dei test.
+#
+# RILEVATORE DI TRABOCCHI (e2e/trabocchi.ts): gira su 2 sole larghezze (320 e 390 px) e, dentro le prove nel browser, SOLO sulle
+# schermate toccate. La scelta (stessi file cambiati, stesse regole di verifiche_mirate.mjs) passa agli e2e con
+# E2E_TRABOCCHI_SCHERMATE = tutte | nessuna | gruppi separati da virgola. In sintesi: un file di pagina/admin ben identificabile
+# (es. app/src/pagine/Scheda.tsx) -> solo le schermate di quella pagina; file comuni (ui, stili, lib, shared, functions, index.html,
+# impianto/trabocchi/schermate_trabocchi, package*.json...), file e2e, file non previsti, --completo, riferimento non trovato -> TUTTE.
+# Le verifiche funzionali degli e2e girano sempre per intero. Il piano stampa quali schermate controlla e quali salta, e perche'.
 #
 # Il RIFERIMENTO e' il commit dell'ultima pubblicazione riuscita:
 #   1. il file .ultima-pubblicazione (ignorato da git), scritto alla fine di ogni pubblicazione riuscita e verificata;
@@ -177,9 +188,10 @@ else
 fi
 
 node scripts/verifiche_mirate.mjs ${ARGOMENTI_VERIFICHE[@]+"${ARGOMENTI_VERIFICHE[@]}"} --da-file "$ELENCO" > "$TMP/piano.txt"
-{ read -r RIGA_E2E; read -r RIGA_ADMIN; } < "$TMP/piano.txt"
+{ read -r RIGA_E2E; read -r RIGA_ADMIN; read -r RIGA_TRABOCCHI; } < "$TMP/piano.txt"
 case "$RIGA_E2E" in E2E=0) FA_E2E=0 ;; E2E=1) FA_E2E=1 ;; *) echo "Uscita inattesa di verifiche_mirate.mjs: $RIGA_E2E" >&2; exit 1 ;; esac
 case "$RIGA_ADMIN" in E2E_ADMIN=0) FA_ADMIN=0 ;; E2E_ADMIN=1) FA_ADMIN=1 ;; *) echo "Uscita inattesa di verifiche_mirate.mjs: $RIGA_ADMIN" >&2; exit 1 ;; esac
+case "$RIGA_TRABOCCHI" in TRABOCCHI=?*) TRABOCCHI=${RIGA_TRABOCCHI#TRABOCCHI=} ;; *) echo "Uscita inattesa di verifiche_mirate.mjs: $RIGA_TRABOCCHI" >&2; exit 1 ;; esac
 
 N_CAMBIATI=$(grep -c . "$ELENCO" || true)
 HEAD_COMMIT=$(git rev-parse HEAD)
@@ -188,17 +200,21 @@ echo "HEAD: ${HEAD_COMMIT:0:7}"
 if [ "$COMPLETO" = 1 ]; then
   echo "Riferimento: non serve (--completo)"
   echo "  motivo: giro completo richiesto con --completo"
+  tail -n +4 "$TMP/piano.txt" | grep rilevatore || true
 elif [ -z "$RIF" ]; then
   echo "Riferimento: NON TROVATO ($MOTIVO_NO_RIF)"
   echo "  motivo: riferimento non trovato, nel dubbio si prova tutto (giro COMPLETO)"
+  tail -n +4 "$TMP/piano.txt" | grep rilevatore || true
 else
   if [ "$SIMULA_DATA" = 1 ]; then echo "Riferimento: $ORIGINE_RIF"; else echo "Riferimento: ${RIF:0:7} ($ORIGINE_RIF)"; fi
   echo "File cambiati: $N_CAMBIATI"
-  tail -n +3 "$TMP/piano.txt"
+  tail -n +4 "$TMP/piano.txt"
 fi
 echo "Sempre: tsc -b, build, vitest (tutti), migrazioni D1, deploy, controllo del sito vero"
 if [ "$FA_E2E" = 1 ]; then echo "  e2e pubblico: FA"; else echo "  e2e pubblico: SALTA (nessun file cambiato lo riguarda)"; fi
 if [ "$FA_ADMIN" = 1 ]; then echo "  e2e admin:    FA"; else echo "  e2e admin:    SALTA (nessun file cambiato lo riguarda)"; fi
+if [ "$FA_E2E" = 1 ] && [ "$FA_ADMIN" = 1 ]; then echo "  (le due prove nel browser girano INSIEME, in parallelo)"; fi
+if [ "$FA_E2E" = 1 ] || [ "$FA_ADMIN" = 1 ]; then echo "  rilevatore di trabocchi, schermate scelte: $TRABOCCHI (2 larghezze: 320 e 390 px)"; fi
 echo "=="
 
 if [ "$SOLO_PIANO" = 1 ]; then
@@ -221,9 +237,16 @@ passo "tipi (tsc -b)" npx tsc -b
 # la build PRIMA dei test: test/sicurezza_bundle.test.ts controlla che nel bundle non ci sia nessun segreto
 passo "build" npx vite build
 passo "test (tutti)" npx vitest run
-# prove nel browser (CLAUDE.md, "Controlli su misura"): solo quelle che i file cambiati richiedono, rilevatore di trabocchi compreso
-if [ "$FA_E2E" = 1 ]; then passo "e2e pubblico" npm run e2e; else echo "-> e2e pubblico: SALTATO (vedi il piano)"; fi
-if [ "$FA_ADMIN" = 1 ]; then passo "e2e admin" npm run e2e:admin; else echo "-> e2e admin: SALTATO (vedi il piano)"; fi
+# prove nel browser (CLAUDE.md, "Controlli su misura"): solo quelle che i file cambiati richiedono. Se servono tutte e due girano
+# INSIEME (scripts/prove_browser.sh: niente rebuild, la build di sopra basta; esce non-zero se ANCHE UNA SOLA fallisce).
+# Il rilevatore di trabocchi gira solo sulle schermate scelte sopra (E2E_TRABOCCHI_SCHERMATE); le verifiche funzionali, tutte.
+PROVE=()
+if [ "$FA_E2E" = 1 ]; then PROVE+=(pubblico); else echo "-> e2e pubblico: SALTATO (vedi il piano)"; fi
+if [ "$FA_ADMIN" = 1 ]; then PROVE+=(admin); else echo "-> e2e admin: SALTATO (vedi il piano)"; fi
+if [ ${#PROVE[@]} -gt 0 ]; then
+  export E2E_TRABOCCHI_SCHERMATE="$TRABOCCHI"
+  passo "prove nel browser (${PROVE[*]})" ./scripts/prove_browser.sh "${PROVE[@]}"
+fi
 passo "migrazioni D1" npx wrangler d1 migrations apply DB --remote </dev/null
 
 echo "-> pubblicazione"

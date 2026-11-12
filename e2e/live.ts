@@ -15,7 +15,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Browser, Page } from 'playwright-core'
 import { apri, assesta, chiudiSessione, foto, iso, sql, verifica } from './impianto.ts'
-import { provaTrabocchi, type Schermata } from './trabocchi.ts'
+import { provaTrabocchi, scegliSchermate, type Schermata } from './trabocchi.ts'
 
 type Esito<T = any> = { stato: number; json: T }
 const api = <T = any>(p: Page, percorso: string, init?: { method?: string; corpo?: unknown }) =>
@@ -464,9 +464,9 @@ export async function eliminaFixture(browser: Browser, BASE: string, f: Fixture)
 export const schermateLive = (f: Fixture): Schermata[] => {
   const live = (id: number) => `/admin/partite/${id}/live`
   return [
-    { nome: 'live in diretta (nomi lunghi, gol)', url: live(f.vivo), attesa: '.live-squadre' },
+    { nome: 'live in diretta (nomi lunghi, gol)', gruppo: 'admin-live', url: live(f.vivo), attesa: '.live-squadre' },
     {
-      nome: 'live in diretta, conferma del gol aperta',
+      nome: 'live in diretta, conferma del gol aperta', gruppo: 'admin-live',
       url: live(f.vivo),
       attesa: '.live-squadre',
       prepara: async (p) => {
@@ -475,7 +475,7 @@ export const schermateLive = (f: Fixture): Schermata[] => {
       },
     },
     {
-      nome: 'live in diretta, cambia marcatore aperto',
+      nome: 'live in diretta, cambia marcatore aperto', gruppo: 'admin-live',
       url: live(f.vivo),
       attesa: '.live-squadre',
       prepara: async (p) => {
@@ -484,7 +484,7 @@ export const schermateLive = (f: Fixture): Schermata[] => {
       },
     },
     {
-      nome: 'live in diretta, elimina gol (conferma)',
+      nome: 'live in diretta, elimina gol (conferma)', gruppo: 'admin-live',
       url: live(f.vivo),
       attesa: '.live-squadre',
       prepara: async (p) => {
@@ -493,7 +493,7 @@ export const schermateLive = (f: Fixture): Schermata[] => {
       },
     },
     {
-      nome: 'live in diretta, fine partita (conferma)',
+      nome: 'live in diretta, fine partita (conferma)', gruppo: 'admin-live',
       url: live(f.vivo),
       attesa: '.live-squadre',
       prepara: async (p) => {
@@ -501,17 +501,22 @@ export const schermateLive = (f: Fixture): Schermata[] => {
         await p.getByRole('group', { name: 'Conferma' }).waitFor()
       },
     },
-    { nome: 'live da confermare', url: live(f.confermare), attesa: '.live-gol' },
-    { nome: 'live non iniziata', url: live(f.non), attesa: 'main h1' },
-    { nome: 'admin partita con "Inizia diretta"', url: `/admin/partite/${f.non}?sez=squadre`, attesa: '.carta-diretta' },
-    { nome: 'admin partita in diretta (apri LIVE)', url: `/admin/partite/${f.vivo}?sez=risultato`, attesa: '.carta-diretta' },
-    { nome: 'pubblico home con la carta IN DIRETTA', url: '/', attesa: '.card.diretta' },
-    { nome: 'pubblico partita in diretta', url: `/partite/${f.vivo}`, attesa: '[data-diretta="in_diretta"]' },
-    { nome: 'pubblico partita da confermare', url: `/partite/${f.confermare}`, attesa: '[data-diretta="da_confermare"]' },
+    { nome: 'live da confermare', gruppo: 'admin-live', url: live(f.confermare), attesa: '.live-gol' },
+    { nome: 'live non iniziata', gruppo: 'admin-live', url: live(f.non), attesa: 'main h1' },
+    { nome: 'admin partita con "Inizia diretta"', gruppo: 'admin-live', url: `/admin/partite/${f.non}?sez=squadre`, attesa: '.carta-diretta' },
+    { nome: 'admin partita in diretta (apri LIVE)', gruppo: 'admin-live', url: `/admin/partite/${f.vivo}?sez=risultato`, attesa: '.carta-diretta' },
+    { nome: 'pubblico home con la carta IN DIRETTA', gruppo: 'home', url: '/', attesa: '.card.diretta' },
+    { nome: 'pubblico partita in diretta', gruppo: 'partita', url: `/partite/${f.vivo}`, attesa: '[data-diretta="in_diretta"]' },
+    { nome: 'pubblico partita da confermare', gruppo: 'partita', url: `/partite/${f.confermare}`, attesa: '[data-diretta="da_confermare"]' },
   ]
 }
 
 export async function provaLiveTrabocchi(browser: Browser, BASE: string) {
+  // se nessuna schermata della diretta e' scelta non si creano nemmeno le partite di prova
+  if (scegliSchermate(schermateLive({ vivo: 0, confermare: 0, non: 0 })).length === 0) {
+    console.log('\n== trabocchi di testo: diretta: SALTATO (nessuna schermata della diretta scelta) ==')
+    return
+  }
   const f = await creaFixture(browser, BASE)
   try {
     await provaTrabocchi(browser, BASE, 'diretta', schermateLive(f), { touch: true })
