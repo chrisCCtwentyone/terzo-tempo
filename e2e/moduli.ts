@@ -7,7 +7,8 @@
 import type { Page } from 'playwright-core'
 import { foto, verifica } from './impianto.ts'
 
-export const LARGHEZZE = [320, 360, 390, 430] as const
+// 2 larghezze, la piu' stretta e quella tipica (decisione dell'utente, 12/11/2026: pubblicazione piu' veloce)
+export const LARGHEZZE = [320, 390] as const
 
 export type Difetti = { sovrapposti: string[]; fuori: string[]; controlli: number }
 

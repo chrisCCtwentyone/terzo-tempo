@@ -42,7 +42,8 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   prove nel browser: (1) e2e pubblico ed e2e admin girano IN PARALLELO; (2) il
   rilevatore di trabocchi controlla solo le schermate toccate (tutte se cambiano
   parti comuni o con `--completo`); (3) il rilevatore prova 2 larghezze di telefono
-  (la piu' stretta e 390 px) invece di 4, sempre.
+  (la piu' stretta e 390 px) invece di 4, sempre; lo stesso vale per la prova del
+  campo formazioni dell'admin (e2e/moduli.ts).
 
 ## Decisioni prese (30/09/2026)
 
