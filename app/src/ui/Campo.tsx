@@ -1,5 +1,5 @@
-import type { ReactNode, Ref } from 'react'
-import { LATO_ALTO, pedine as calcolaPedine, type Pedina } from '../lib/campo'
+import type { CSSProperties, ReactNode, Ref } from 'react'
+import { LATO_ALTO, misuraCampo, pedine as calcolaPedine, type Pedina } from '../lib/campo'
 import { voto } from '../lib/formato'
 import type { Badge, Partita } from '../lib/tipi'
 import { Pallone } from './Icone'
@@ -20,7 +20,7 @@ export function Campo({ giocatori, squadre, conVoti = true, mvpId = null, badge 
   const tutte: Pedina[] = [...calcolaPedine(giocatori, 'A'), ...calcolaPedine(giocatori, 'B')]
   return (
     <>
-      <Terreno squadre={squadre}>
+      <Terreno squadre={squadre} misura={misuraCampo(tutte)}>
         {tutte.map(({ g, x, y }, i) => (
           <div key={g.giocatore_id} className="ped" style={{ left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%` }} role="group" aria-label={descrivi(g, conVoti)}>
             <div className="att" style={{ '--i': i } as React.CSSProperties}>
@@ -39,11 +39,11 @@ export function Campo({ giocatori, squadre, conVoti = true, mvpId = null, badge 
 }
 
 /** Il terreno di gioco: campo verde con le righe, l'orientamento (A in alto) e i nomi delle squadre; le pedine sono i figli. */
-export function Terreno({ squadre, children, ref, className = '' }: { squadre: Partita['squadre']; children?: ReactNode; ref?: Ref<HTMLDivElement>; className?: string }) {
+export function Terreno({ squadre, children, ref, className = '', misura }: { squadre: Partita['squadre']; children?: ReactNode; ref?: Ref<HTMLDivElement>; className?: string; misura: { cw: number; r: number } }) {
   const nome = (c: 'A' | 'B') => squadre.find((s) => s.codice === c)?.nome ?? c
   const alto = LATO_ALTO
   return (
-    <div className={`pitch ${className}`} role="group" aria-label="Formazioni sul campo" ref={ref}>
+    <div className={`pitch ${className}`} role="group" aria-label="Formazioni sul campo" ref={ref} style={{ aspectRatio: `1 / ${misura.r}`, '--cw': `${(misura.cw * 100).toFixed(2)}cqw` } as CSSProperties}>
       <svg className="lines" viewBox="0 0 90 160" preserveAspectRatio="none" aria-hidden="true">
         <rect x="4" y="4" width="82" height="152" />
         <path d="M4 80h82" />

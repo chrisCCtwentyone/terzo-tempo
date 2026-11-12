@@ -106,8 +106,14 @@ export function muoviInCasella(righe: Riga[], c: Codice, id: number, casella: nu
   })
 }
 
-/** La casella piu' vicina a un punto del campo (percentuali), per l'aggancio dopo il trascinamento. */
-export const agganciaA = (cas: Casella[], x: number, y: number) => casellaPiuVicina(x, y, cas)
+/**
+ * La casella piu' vicina a un punto del campo (percentuali), per l'aggancio dopo il trascinamento.
+ * casellaPiuVicina pesa il campo 9:16: con un campo di altro rapporto `r` (altezza/larghezza) la y si riporta a quella scala.
+ */
+export const agganciaA = (cas: Casella[], x: number, y: number, r = 16 / 9) => {
+  const k = r / (16 / 9)
+  return casellaPiuVicina(x, y * k, cas.map((c) => ({ ...c, y: c.y * k })))
+}
 
 /** Limiti del trascinamento: ogni squadra resta nella sua meta' campo. */
 export function limitiMeta(c: Codice): { xMin: number; xMax: number; yMin: number; yMax: number } {

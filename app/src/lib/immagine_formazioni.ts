@@ -1,7 +1,7 @@
 // L'immagine delle formazioni da mandare su WhatsApp: PNG 1080x1920 disegnato su canvas 2D, stile "Figurine" (tema chiaro, sempre).
 // Posizioni dal campo del sito (lib/campo.ts). Niente risultato, voti o marcatori; i dati mancanti (campo, modulo) non si scrivono.
 import { deduciModulo } from '../../../shared/moduli'
-import { LATO_ALTO, pedine } from './campo'
+import { LATO_ALTO, larghezzaCarta, pedine } from './campo'
 import { CARTA_H, CARTA_L, PUNTI_SAGOMA, SEGNAPOSTO, archivioCarte, urlCarta } from './carte'
 import { giornoAnno, ora } from './formato'
 import type { Codice, Partita } from './tipi'
@@ -10,8 +10,10 @@ const L = 1080
 const A = 1920
 const INCHIOSTRO = '#1c1915'
 const CAMPO = { x: 60, y: 285, l: 960, a: 1560 }
-const CW = 84 // larghezza della carta: 3-3-1 contro 3-3-1 a 10% di scarto fra gli attaccanti (156 px) senza sovrapposizioni
-const CH = (CW * CARTA_H) / CARTA_L
+// pedina intera in larghezze di carta: altezza = carta + 11 px (a BASE) di cartellino che sporge; larghezza = il cartellino col nome (fino a ~2 carte)
+const PED_H = CARTA_H / CARTA_L + 11 / 84
+const PED_L = 2
+const BASE = 84 // larghezza di carta per cui sono scritte le misure fisse qui sotto (ombra, bordo, cartellino): tutto si scala con la carta
 const ANTON = 'Anton, Impact, sans-serif'
 const NUNITO = '"Nunito Sans", system-ui, sans-serif'
 const LINEE = new Path2D('M4 4h82v152H4zM4 80h82M56 80a11 11 0 1 0-22 0a11 11 0 1 0 22 0M24 4h42v18H24zM34 4h22v7H34zM24 138h42v18H24zM34 149h22v7H34zM37 22a9 9 0 0 0 16 0M37 138a9 9 0 0 1 16 0')
@@ -50,11 +52,14 @@ function segnaposto(c: CanvasRenderingContext2D, x: number, y: number, l: number
   c.fillText('?', x + l / 2, y + a * 0.438)
 }
 
-function pedina(c: CanvasRenderingContext2D, cx: number, cy: number, nome: string, img: HTMLImageElement | null) {
+/** Una pedina di larghezza-carta `CW`: ombra, bordo, font e cartellino in proporzione (k = CW / 84). */
+function pedina(c: CanvasRenderingContext2D, cx: number, cy: number, nome: string, img: HTMLImageElement | null, CW: number) {
+  const k = CW / BASE
+  const CH = (CW * CARTA_H) / CARTA_L
   const x = cx - CW / 2
-  const y = cy - CH / 2 - 8
+  const y = cy - (CH + 11 * k) / 2
   c.save()
-  c.translate(7, 7) // ombra stampata piena
+  c.translate(7 * k, 7 * k) // ombra stampata piena
   sagoma(c, x, y, CW, CH)
   c.fillStyle = INCHIOSTRO
   c.fill()
@@ -67,21 +72,21 @@ function pedina(c: CanvasRenderingContext2D, cx: number, cy: number, nome: strin
   c.restore()
   sagoma(c, x, y, CW, CH)
   c.lineJoin = 'round'
-  c.lineWidth = 5
+  c.lineWidth = 5 * k
   c.strokeStyle = INCHIOSTRO
   c.stroke()
   // il cartellino col nome, sovrapposto al fondo della carta; il font si riduce se il nome e' lungo
-  let f = 27
+  let f = Math.round(25 * k)
   c.font = `800 ${f}px ${NUNITO}`
-  while (c.measureText(nome).width > 196 && f > 16) c.font = `800 ${--f}px ${NUNITO}`
-  const w = c.measureText(nome).width + 20
-  const h = f + 14
-  const ty = y + CH - 20
+  while (c.measureText(nome).width > 196 * k && f > 16 * k) c.font = `800 ${--f}px ${NUNITO}`
+  const w = c.measureText(nome).width + 20 * k
+  const h = f + 12 * k
+  const ty = y + CH + 11 * k - h
   c.fillStyle = '#fffaf0'
   c.strokeStyle = INCHIOSTRO
-  c.lineWidth = 3
+  c.lineWidth = 3 * k
   c.beginPath()
-  if (c.roundRect) c.roundRect(cx - w / 2, ty, w, h, 6)
+  if (c.roundRect) c.roundRect(cx - w / 2, ty, w, h, 6 * k)
   else c.rect(cx - w / 2, ty, w, h)
   c.fill()
   c.stroke()
@@ -187,7 +192,9 @@ export async function creaImmagineFormazioni(p: Pick<Partita, 'data_ora' | 'camp
   c.lineWidth = 5
   c.strokeRect(x, y, l, a)
 
-  tutte.forEach(({ g, x: px, y: py }, i) => pedina(c, x + (px * l) / 100, y + (py * a) / 100, g.nome, immagini[i]))
+  // carta su misura: la piu' grande che non fa toccare nessuna pedina nel campo dell'immagine (1080x1920 resta cosi')
+  const cw = Math.max(0.08, larghezzaCarta(tutte, a / l, PED_H, PED_L)) * l
+  tutte.forEach(({ g, x: px, y: py }, i) => pedina(c, x + (px * l) / 100, y + (py * a) / 100, g.nome, immagini[i], cw))
 
   // targhette con nome e modulo (dedotto dalle posizioni; se non c'e', solo il nome)
   ;(['A', 'B'] as Codice[]).forEach((cod) => {

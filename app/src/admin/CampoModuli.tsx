@@ -1,6 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { moduliPer } from '../../../shared/moduli'
-import { pedine as automatiche } from '../lib/campo'
+import { misuraCampo, pedine as automatiche } from '../lib/campo'
 import type { Badge, Codice, Partita } from '../lib/tipi'
 import { PedinaCarta, Scelta, Terreno } from '../ui'
 import { CODICI, agganciaA, casellaVerso, dentroMeta, impostaModulo, moduloDi, muoviInCasella, occupanti, squadraDi, type Freccia, type Riga } from './logica'
@@ -27,6 +27,8 @@ export function CampoModuli({ righe, squadre, onCambia, badge }: {
   const [annuncio, setAnnuncio] = useState('')
   const nomeSq = (c: Codice) => squadre.find((s) => s.codice === c)?.nome ?? c
   const dati = CODICI.map((c) => ({ c, n: squadraDi(righe, c).length, o: occupanti(righe, c) }))
+  // misura stabile: dalle caselle del modulo scelto (o dalla disposizione automatica), non dalle pedine posate
+  const misura = misuraCampo(dati.flatMap(({ c, o }) => (o ? o.caselle.map(({ x, y }) => ({ x, y })) : automatiche(righe, c).map(({ x, y }) => ({ x, y })))))
   const nomeDi = (id: number) => righe.find((r) => r.giocatore_id === id)?.nome ?? ''
 
   function sposta(c: Codice, id: number, casella: number) {
@@ -62,7 +64,7 @@ export function CampoModuli({ righe, squadre, onCambia, badge }: {
     if (!drag || e.pointerId !== drag.pid) return
     const p = percento(e)
     const { x, y } = dentroMeta(drag.c, p.x + drag.dx, p.y + drag.dy)
-    setDrag({ ...drag, x, y, mosso: drag.mosso || Math.hypot((x - drag.x) * 9, (y - drag.y) * 16) > 6 })
+    setDrag({ ...drag, x, y, mosso: drag.mosso || Math.hypot((x - drag.x) * 9, (y - drag.y) * 9 * misura.r) > 6 })
   }
   function su(e: PointerEvent<HTMLDivElement>) {
     if (!drag || e.pointerId !== drag.pid) return
@@ -71,7 +73,7 @@ export function CampoModuli({ righe, squadre, onCambia, badge }: {
     if (!d.mosso) return attiva(d.c, d.id)
     const o = occupanti(righe, d.c)
     if (o) {
-      sposta(d.c, d.id, agganciaA(o.caselle, d.x, d.y))
+      sposta(d.c, d.id, agganciaA(o.caselle, d.x, d.y, misura.r))
       setSel(null)
     }
   }
@@ -111,13 +113,13 @@ export function CampoModuli({ righe, squadre, onCambia, badge }: {
         </div>
       ))}
 
-      <Terreno squadre={squadre} ref={ref} className="edita">
+      <Terreno squadre={squadre} ref={ref} className="edita" misura={misura}>
         {dati.map(({ c, o }) =>
           o
             ? (
               <div key={c}>
                 {o.caselle.map((k, i) => (
-                  <span key={i} className={`cas${drag?.c === c ? ' vivo' : ''}${drag?.c === c && agganciaA(o.caselle, drag.x, drag.y) === i ? ' bersaglio' : ''}`} style={{ left: `${k.x}%`, top: `${k.y}%` }} aria-hidden="true" />
+                  <span key={i} className={`cas${drag?.c === c ? ' vivo' : ''}${drag?.c === c && agganciaA(o.caselle, drag.x, drag.y, misura.r) === i ? ' bersaglio' : ''}`} style={{ left: `${k.x}%`, top: `${k.y}%` }} aria-hidden="true" />
                 ))}
                 {o.chi.map((r, i) => {
                   if (!r) return null

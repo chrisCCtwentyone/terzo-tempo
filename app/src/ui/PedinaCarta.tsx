@@ -8,7 +8,7 @@ import { Voto } from './Voto'
 /**
  * La pedina del campo: una mini-carta esagonale stile FUT (voto in pagella in alto a sinistra, palloni dei gol in alto a destra,
  * bollino MVP sul lato destro, badge in basso a sinistra) con il nome appena sotto, sovrapposto di qualche px.
- * La larghezza della carta (--cw) la decide il campo (.pitch): si restringe insieme a lui.
+ * La larghezza della carta (--cw) la decide il campo su misura (.pitch, lib/campo.ts misuraCampo); tutte le misure interne sono in proporzione.
  */
 export function PedinaCarta({ id, nome, voto, conVoto = false, gol = 0, autogol = 0, mvp = false, portiere = false, badge }: {
   id: number
@@ -34,7 +34,7 @@ export function PedinaCarta({ id, nome, voto, conVoto = false, gol = 0, autogol 
             {Array.from({ length: autogol }, (_, k) => <Pallone key={`o${k}`} autogol />)}
           </span>
         )}
-        {mvp && <Bollino z={24} />}
+        {mvp && <Bollino />}
         {portiere && <span className="pt" aria-hidden="true">P</span>}
         {segni.length > 0 && (
           <span className="mks" aria-hidden="true">

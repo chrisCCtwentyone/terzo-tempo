@@ -39,6 +39,50 @@ export function pedine(giocatori: GiocatoreInPartita[], codice: Codice): Pedina[
   return out
 }
 
+// ---- misura su misura delle carte sul campo ----
+
+/** Proporzioni della pedina intera in unita' di larghezza-carta: larghezza (carta + voto/palloni/bollino ai lati o il cartellino) e altezza (carta + cartellino del nome, sovrapposto). */
+export const PEDINA_L = 1.5
+export const PEDINA_H = 1.58
+/** Rapporto altezza/larghezza del campo: di base 16:9, al massimo 2,6 (solo quando serve). */
+export const CAMPO_ASPETTO_BASE = 16 / 9
+export const CAMPO_ASPETTO_MAX = 2.6
+/** Larghezza della carta in frazione della larghezza del campo: tetto (60 px su un campo largo 354, cioe' un telefono da 390) e minimo di sicurezza se i dati sono sovrapposti. */
+export const CARTA_FRAZ_MAX = 0.17
+/** Minimo sul sito se le posizioni salvate sono quasi sovrapposte (e' il dato): la carta non scende sotto. */
+export const CARTA_FRAZ_MIN = 0.106
+
+export type Punto = { x: number; y: number }
+
+/**
+ * La carta piu' grande (frazione della larghezza del campo) per cui nessuna pedina tocca un'altra, con il campo alto `r` volte la sua larghezza.
+ * `ph`/`pl`: altezza e larghezza della pedina in carte (l'immagine per WhatsApp ha un cartellino piu' grande). Per ogni coppia basta che siano lontane quanto la pedina in orizzontale OPPURE in verticale. Senza minimo: chi la usa decide cosa fare con posizioni salvate quasi sovrapposte (e' il dato).
+ */
+export function larghezzaCarta(punti: readonly Punto[], r: number, ph = PEDINA_H, pl = PEDINA_L): number {
+  let cw = CARTA_FRAZ_MAX
+  for (let i = 0; i < punti.length; i++) {
+    for (let j = i + 1; j < punti.length; j++) {
+      const dx = Math.abs(punti[i].x - punti[j].x) / 100
+      const dy = Math.abs(punti[i].y - punti[j].y) / 100
+      cw = Math.min(cw, Math.max(dx / pl, (dy * r) / ph))
+    }
+  }
+  return cw
+}
+
+/**
+ * Misura del campo di UNA partita: la carta piu' grande che i punti permettono con il campo al massimo di CAMPO_ASPETTO_MAX,
+ * e il campo piu' corto (da 16:9 in su) che la ottiene. `cw` e' la frazione della larghezza del campo, `r` altezza/larghezza.
+ */
+export function misuraCampo(punti: readonly Punto[]): { cw: number; r: number } {
+  const cw = (r: number) => Math.max(CARTA_FRAZ_MIN, larghezzaCarta(punti, r))
+  const meta = cw(CAMPO_ASPETTO_MAX)
+  let r = CAMPO_ASPETTO_BASE
+  while (r < CAMPO_ASPETTO_MAX && cw(r) < meta - 1e-9) r += 0.01
+  if (r > CAMPO_ASPETTO_BASE) r = Math.min(CAMPO_ASPETTO_MAX, Math.ceil(r * 1000) / 1000)
+  return { cw: Math.round(cw(r) * 10000) / 10000, r }
+}
+
 export type Voce = { nome: string; n: number; autogol: boolean }
 
 /**

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { marcatori, pedine, righe } from '../app/src/lib/campo';
+import { CAMPO_ASPETTO_BASE, CAMPO_ASPETTO_MAX, CARTA_FRAZ_MAX, PEDINA_H, PEDINA_L, larghezzaCarta, marcatori, misuraCampo, pedine, righe } from '../app/src/lib/campo';
+import { caselle } from '../shared/moduli';
 import { cognome, conto, media, voto } from '../app/src/lib/formato';
 import type { GiocatoreInPartita } from '../app/src/lib/tipi';
 
@@ -52,5 +53,51 @@ describe('campo', () => {
       senza: 1,
     });
     expect(marcatori(gg, 'B', null).senza).toBe(0);
+  });
+});
+
+describe('misura del campo su misura', () => {
+  const sq = (m: string, alta: boolean) => caselle(m, alta)!.map(({ x, y }) => ({ x, y }));
+  const due = (a: string, b = a) => [...sq(a, true), ...sq(b, false)];
+  /** nessuna coppia di pedine intere (1,5 x 1,58 carte) si tocca */
+  const senzaSovrapposizioni = (punti: { x: number; y: number }[], { cw, r }: { cw: number; r: number }) =>
+    punti.every((p, i) => punti.slice(i + 1).every((q) => Math.abs(p.x - q.x) / 100 >= PEDINA_L * cw - 1e-3 || (Math.abs(p.y - q.y) / 100) * r >= PEDINA_H * cw - 1e-3));
+
+  it.each([
+    ['5 contro 5, 2-2', due('2-2')],
+    ['5 contro 5, 1-2-1', due('1-2-1')],
+    ['6 contro 6, 2-1-2', due('2-1-2')],
+    ['6 contro 6, 3-2', due('3-2')],
+    ['7 contro 7, 3-2-1', due('3-2-1')],
+    ['8 contro 8, 3-3-1', due('3-3-1')],
+    ['8 contro 8, 3-2-2 contro 3-3-1', due('3-2-2', '3-3-1')],
+  ])('%s: carte grandi (>= 55 px a 390), campo entro il massimo, nessuna sovrapposizione', (_n, punti) => {
+    const m = misuraCampo(punti);
+    expect(m.cw * 390).toBeGreaterThanOrEqual(55);
+    expect(m.cw).toBeLessThanOrEqual(CARTA_FRAZ_MAX);
+    expect(m.r).toBeGreaterThanOrEqual(CAMPO_ASPETTO_BASE);
+    expect(m.r).toBeLessThanOrEqual(CAMPO_ASPETTO_MAX);
+    expect(senzaSovrapposizioni(punti, m)).toBe(true);
+  });
+  it('il campo si allunga solo se serve: allungarlo oltre non ingrandirebbe la carta, accorciarlo si', () => {
+    for (const punti of [due('2-2'), due('3-3-1'), sq('3-3-1', true)]) {
+      const m = misuraCampo(punti);
+      expect(larghezzaCarta(punti, CAMPO_ASPETTO_MAX)).toBeCloseTo(m.cw, 3);
+      if (m.r > CAMPO_ASPETTO_BASE + 0.02) expect(larghezzaCarta(punti, m.r - 0.02)).toBeLessThan(m.cw);
+    }
+  });
+  it('una squadra sola: carta al massimo e campo 16:9', () => {
+    expect(misuraCampo(sq('2-2', true))).toEqual({ cw: CARTA_FRAZ_MAX, r: CAMPO_ASPETTO_BASE });
+    expect(misuraCampo([])).toEqual({ cw: CARTA_FRAZ_MAX, r: CAMPO_ASPETTO_BASE });
+  });
+  it('posizioni libere / ripiego automatico: senza sovrapposizioni', () => {
+    const gg = Array.from({ length: 12 }, (_, i) => g(i + 1, `G${i}`, i < 6 ? 'A' : 'B'));
+    const punti = [...pedine(gg, 'A'), ...pedine(gg, 'B')];
+    expect(senzaSovrapposizioni(punti, misuraCampo(punti))).toBe(true);
+    const libere = [{ x: 20, y: 15 }, { x: 55, y: 22 }, { x: 80, y: 30 }, { x: 40, y: 80 }, { x: 70, y: 70 }];
+    expect(senzaSovrapposizioni(libere, misuraCampo(libere))).toBe(true);
+  });
+  it('dati quasi sovrapposti: la carta non sparisce (minimo)', () => {
+    expect(misuraCampo([{ x: 50, y: 50 }, { x: 50, y: 50 }]).cw).toBeGreaterThan(0);
   });
 });

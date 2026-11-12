@@ -154,7 +154,7 @@
 .ped.mov.trascina .pin{transform:scale(1.12)}
 .ped.mov:focus-visible .esa,.ped.mov.sel .esa{outline:3px solid var(--yellow);outline-offset:2px}
 .ped.mov.sel .cart{background:var(--yellow)}
-.pt{position:absolute;left:-8px;top:2px;z-index:2;width:18px;height:18px;border-radius:50%;background:var(--yellow);color:#1a1712;border:1.5px solid #1a1712;display:grid;place-items:center;font-family:Anton,Impact,sans-serif;font-size:11px;line-height:1}
+.pt{position:absolute;left:calc(var(--cw) * -.14);top:calc(var(--cw) * .03);z-index:2;width:max(16px,calc(var(--cw) * .32));height:max(16px,calc(var(--cw) * .32));border-radius:50%;background:var(--yellow);color:#1a1712;border:1.5px solid #1a1712;display:grid;place-items:center;font-family:Anton,Impact,sans-serif;font-size:11px;line-height:1}
 
 /* campi da gioco: form con "Ricava nome", anteprima delle indicazioni, tendina nella partita */
 .ricava{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
