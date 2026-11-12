@@ -37,6 +37,12 @@ tempo. L'utente non scrive codice: lo sviluppo e' interamente delegato a Claude 
   file cambiati rispetto all'ultima pubblicazione: admin -> e2e:admin; pagine
   pubbliche -> e2e; stili/componenti comuni/backend condiviso -> tutto. Lo script
   dice cosa ha saltato e perche'; `--completo` forza il giro intero.
+- **Pubblicazione piu' veloce** (decisione dell'utente, 12/11/2026, "troppo lenta"):
+  i test di sicurezza costano pochi secondi e restano tutti; si alleggeriscono le
+  prove nel browser: (1) e2e pubblico ed e2e admin girano IN PARALLELO; (2) il
+  rilevatore di trabocchi controlla solo le schermate toccate (tutte se cambiano
+  parti comuni o con `--completo`); (3) il rilevatore prova 2 larghezze di telefono
+  (la piu' stretta e 390 px) invece di 4, sempre.
 
 ## Decisioni prese (30/09/2026)
 
